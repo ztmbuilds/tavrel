@@ -1,0 +1,53 @@
+package store
+
+import (
+	"context"
+	"time"
+)
+
+type Store interface {
+	Close() error
+	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
+	StoreLogs(ctx context.Context, logs []Log) error
+}
+
+type Trace struct {
+	TraceID     string
+	RootService string
+	Environment string
+	RootName    string
+	StartTime   time.Time
+	EndTime     time.Time
+	SpanCount   int64
+	Error       bool
+}
+
+type Span struct {
+	SpanID       string
+	TraceID      string
+	ParentSpanID string
+	Service      string
+	Name         string
+	StartTime    time.Time
+	EndTime      time.Time
+	Status       string
+	Attributes   map[string]any
+	Events       []Event
+}
+
+type Event struct {
+	Time       time.Time
+	Name       string
+	Attributes map[string]any
+}
+
+type Log struct {
+	ID         int64
+	TraceID    string
+	SpanID     string
+	Timestamp  time.Time
+	Severity   string
+	Body       string
+	Service    string
+	Attributes map[string]any
+}
