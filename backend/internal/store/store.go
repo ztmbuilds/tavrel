@@ -22,17 +22,38 @@ type Trace struct {
 	Error       bool
 }
 
+type SpanKind int32
+
+const (
+	SpanKindUnspecified SpanKind = iota
+	SpanKindInternal
+	SpanKindServer
+	SpanKindClient
+	SpanKindProducer
+	SpanKindConsumer
+)
+
+type StatusCode int32
+
+const (
+	StatusCodeUnset StatusCode = iota
+	StatusCodeOk
+	StatusCodeError
+)
+
 type Span struct {
-	SpanID       string
-	TraceID      string
-	ParentSpanID string
-	Service      string
-	Name         string
-	StartTime    time.Time
-	EndTime      time.Time
-	Status       string
-	Attributes   map[string]any
-	Events       []Event
+	SpanID        string
+	TraceID       string
+	ParentSpanID  string
+	Service       string
+	Name          string
+	Kind          SpanKind
+	StatusCode    StatusCode
+	StatusMessage string
+	StartTime     time.Time
+	EndTime       time.Time
+	Attributes    map[string]any
+	Events        []Event
 }
 
 type Event struct {

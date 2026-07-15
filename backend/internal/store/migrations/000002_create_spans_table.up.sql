@@ -4,9 +4,10 @@ CREATE TABLE IF NOT EXISTS spans (
     parent_span_id TEXT,
     service TEXT NOT NULL,
     name TEXT NOT NULL,
+    kind INTEGER NOT NULL DEFAULT 0,
     start_time_ns INTEGER NOT NULL,
     end_time_ns INTEGER NOT NULL,
-    status TEXT NOT NULL,
+    status_code INTEGER NOT NULL DEFAULT 0,    status_message TEXT,
     attributes TEXT,
     events TEXT,
     FOREIGN KEY (trace_id) REFERENCES traces(trace_id)
