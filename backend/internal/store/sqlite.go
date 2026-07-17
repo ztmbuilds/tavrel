@@ -19,6 +19,8 @@ import (
 //go:embed migrations/*.up.sql
 var migrationFiles embed.FS
 
+const batchSize = 10000
+
 type SQLiteStore struct {
 	readDB  *sql.DB
 	writeDB *sql.DB
@@ -128,8 +130,6 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 		return nil
 	}
 
-	const batchSize = 100
-
 	for left := 0; left < len(spans); left += batchSize {
 
 		right := left + batchSize
@@ -195,7 +195,6 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 	if len(logs) == 0 {
 		return nil
 	}
-	const batchSize = 100
 
 	for left := 0; left < len(logs); left += batchSize {
 
