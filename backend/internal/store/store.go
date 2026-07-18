@@ -62,13 +62,46 @@ type Event struct {
 	Attributes map[string]any
 }
 
+type SeverityNumber int32
+
+const (
+	SeverityNumberUnspecified SeverityNumber = iota
+	SeverityNumberTrace
+	SeverityNumberTrace2
+	SeverityNumberTrace3
+	SeverityNumberTrace4
+	SeverityNumberDebug
+	SeverityNumberDebug2
+	SeverityNumberDebug3
+	SeverityNumberDebug4
+	SeverityNumberInfo
+	SeverityNumberInfo2
+	SeverityNumberInfo3
+	SeverityNumberInfo4
+	SeverityNumberWarn
+	SeverityNumberWarn2
+	SeverityNumberWarn3
+	SeverityNumberWarn4
+	SeverityNumberError
+	SeverityNumberError2
+	SeverityNumberError3
+	SeverityNumberError4
+	SeverityNumberFatal
+	SeverityNumberFatal2
+	SeverityNumberFatal3
+	SeverityNumberFatal4
+)
+
 type Log struct {
-	ID         int64
-	TraceID    string
-	SpanID     string
-	Timestamp  time.Time
-	Severity   string
-	Body       string
-	Service    string
-	Attributes map[string]any
+	ID                 int64
+	TraceID            string
+	SpanID             string
+	Timestamp          time.Time
+	SeverityText       string
+	SeverityNumber     SeverityNumber
+	Body               string
+	Service            string
+	Environment        string
+	Attributes         map[string]any
+	ResourceAttributes map[string]any
 }

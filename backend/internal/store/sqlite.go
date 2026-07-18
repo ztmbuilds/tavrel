@@ -206,9 +206,9 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 		batch := logs[left:right]
 
-		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity, body, service, attributes) VALUES`
+		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service, environment, attributes, resource_attributes) VALUES`
 
-		values := make([]any, 0, len(batch)*7) //size set to number of fields inserting into * lenght of batch
+		values := make([]any, 0, len(batch)*10) //size set to number of fields inserting into * lenght of batch
 
 		placeholders := make([]string, 0, len(batch))
 
@@ -217,17 +217,24 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 			if err != nil {
 				attributes = []byte("{}")
 			}
+			resourceAttributes, err := json.Marshal(log.ResourceAttributes)
+			if err != nil {
+				attributes = []byte("{}")
+			}
 
 			values = append(values,
 				log.TraceID,
 				log.SpanID,
 				log.Timestamp.UnixNano(),
-				log.Severity,
+				log.SeverityText,
+				int32(log.SeverityNumber),
 				log.Body,
 				log.Service,
-				attributes)
+				log.Environment,
+				attributes,
+				resourceAttributes)
 
-			placeholders = append(placeholders, "(?,?,?,?,?,?,?)")
+			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?)")
 		}
 
 		query += strings.Join(placeholders, ",")
