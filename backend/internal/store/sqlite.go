@@ -222,13 +222,19 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 				attributes = []byte("{}")
 			}
 
+			body, err := json.Marshal(log.Body)
+
+			if err != nil {
+				body = []byte("{}")
+			}
+
 			values = append(values,
 				log.TraceID,
 				log.SpanID,
 				log.Timestamp.UnixNano(),
 				log.SeverityText,
 				int32(log.SeverityNumber),
-				log.Body,
+				body,
 				log.Service,
 				log.Environment,
 				attributes,

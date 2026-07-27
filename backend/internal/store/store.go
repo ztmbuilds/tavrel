@@ -69,7 +69,7 @@ type Log struct {
 	Timestamp          time.Time
 	SeverityText       string
 	SeverityNumber     int32
-	Body               string
+	Body               any
 	Service            string
 	Environment        string
 	Attributes         map[string]any
