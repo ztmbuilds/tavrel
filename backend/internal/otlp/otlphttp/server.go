@@ -31,6 +31,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func NewOTLPHttpServer(store store.Store, worker worker, cfg *config.Config) *http.Server {
 	traceProcessor := pipeline.NewTraceExportProcessor(store)
+	logsProcessor := pipeline.NewLogsExportProcessor(store)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -40,6 +41,7 @@ func NewOTLPHttpServer(store store.Store, worker worker, cfg *config.Config) *ht
 	r.Route("/v1", func(r chi.Router) {
 
 		r.Post("/traces", newIngestTraceExportHandler(worker, traceProcessor))
+		r.Post("/logs", newIngestLogsExportHandler(worker, logsProcessor))
 	})
 
 	return &http.Server{
