@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS logs (
     body TEXT NOT NULL,
     service TEXT NOT NULL,
     environment TEXT,
-    attributes TEXT
+    attributes TEXT,
     resource_attributes TEXT
 );
 
