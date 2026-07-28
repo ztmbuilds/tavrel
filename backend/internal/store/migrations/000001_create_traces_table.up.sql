@@ -9,4 +9,3 @@ CREATE TABLE IF NOT EXISTS traces (
     error INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_traces_filter ON traces(start_time_ns, end_time_ns, root_service, error);

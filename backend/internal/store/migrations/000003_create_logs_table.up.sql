@@ -12,5 +12,3 @@ CREATE TABLE IF NOT EXISTS logs (
     resource_attributes TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_logs_trace_id ON logs(trace_id);
-CREATE INDEX IF NOT EXISTS idx_logs_filter ON logs(timestamp_ns, service, severity_number);

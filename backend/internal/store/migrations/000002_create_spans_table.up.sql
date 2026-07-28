@@ -13,4 +13,3 @@ CREATE TABLE IF NOT EXISTS spans (
     FOREIGN KEY (trace_id) REFERENCES traces(trace_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
