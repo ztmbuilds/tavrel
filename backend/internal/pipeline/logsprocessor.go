@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"log/slog"
 	"noname/internal/store"
+	"time"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 )
@@ -87,6 +88,7 @@ func (lp *LogsExportProcessor) Process(req *logspb.ExportLogsServiceRequest) {
 					SeverityText:       l.SeverityText,
 					SeverityNumber:     int32(l.SeverityNumber),
 					Body:               anyValueToGo(l.Body),
+					Timestamp:          time.Unix(0, int64(l.TimeUnixNano)),
 				}
 
 				logs = append(logs, log)
