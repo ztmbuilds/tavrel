@@ -20,6 +20,7 @@ type Trace struct {
 	EndTime     time.Time
 	SpanCount   int64
 	Error       bool
+	UpdatedAt   time.Time
 }
 
 type SpanKind int32

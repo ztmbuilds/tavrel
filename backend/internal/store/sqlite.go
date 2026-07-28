@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
@@ -108,7 +109,9 @@ func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span)
 }
 
 func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) error {
-	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET start_time_ns = MIN(start_time_ns, excluded.start_time_ns), end_time_ns = MAX(end_time_ns, excluded.end_time_ns), span_count = span_count + excluded.span_count, error = error OR excluded.error`
+	now := time.Now().UnixNano()
+
+	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET start_time_ns = MIN(start_time_ns, excluded.start_time_ns), end_time_ns = MAX(end_time_ns, excluded.end_time_ns), span_count = span_count + excluded.span_count, error = error OR excluded.error, updated_at_ns = excluded.updated_at_ns`
 
 	_, err := tx.ExecContext(ctx, query,
 		trace.TraceID,
@@ -119,6 +122,7 @@ func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) 
 		trace.EndTime.UnixNano(),
 		trace.SpanCount,
 		trace.Error,
+		now,
 	)
 
 	return err
