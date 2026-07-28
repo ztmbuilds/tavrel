@@ -108,7 +108,7 @@ func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span)
 }
 
 func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) error {
-	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET start_time_ns = excluded.start_time_ns, end_time_ns = excluded.end_time_ns, span_count = excluded.span_count, error = excluded.error`
+	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET start_time_ns = MIN(start_time_ns, excluded.start_time_ns), end_time_ns = MAX(end_time_ns, excluded.end_time_ns), span_count = span_count + excluded.span_count, error = error OR excluded.error`
 
 	_, err := tx.ExecContext(ctx, query,
 		trace.TraceID,
