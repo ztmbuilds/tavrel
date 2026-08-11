@@ -259,7 +259,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 }
 
-func (s *SQLiteStore) ListTraces(ctx context.Context, options ListOptions[ListTracesCursor]) (Page[Trace, ListTracesCursor], error) {
+func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error) {
 
 	var startTimeNS *int64
 	var traceID *string
