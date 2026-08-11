@@ -10,3 +10,5 @@ CREATE TABLE IF NOT EXISTS traces (
     updated_at_ns INTEGER NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_traces_start_time_trace_id
+ON traces (start_time_ns, trace_id );
