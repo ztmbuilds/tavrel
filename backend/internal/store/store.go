@@ -9,8 +9,10 @@ type Store interface {
 	Close() error
 	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
 	StoreLogs(ctx context.Context, logs []Log) error
+	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
 }
 
+type ListTracesOptions = ListOptions[ListTracesCursor]
 type Trace struct {
 	TraceID     string
 	RootService string

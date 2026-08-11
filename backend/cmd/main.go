@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"noname/internal/api"
 	"noname/internal/config"
 	"noname/internal/otlp/otlphttp"
 	"noname/internal/pipeline"
@@ -47,22 +48,13 @@ func run() error {
 	worker := pipeline.NewWorker(cfg.TaskQueueSize, cfg.WorkerCount)
 	worker.Start()
 
-	srv := otlphttp.NewOTLPHttpServer(sqlLiteStore, worker, cfg)
+	otlpSrv := otlphttp.NewOTLPHttpServer(sqlLiteStore, worker, cfg)
+	appSrv := api.NewAPPHttpServer(sqlLiteStore, cfg)
 
-	go func() {
-		err := srv.ListenAndServe()
-
-		//Shutting down the server returns http.ErrServerClosed so we do not want to call log.Fatal on a clean shutdown
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Server error", "error", err.Error())
-			os.Exit(1)
-		}
-	}()
-
-	logger.Info("OTLP/HTTP server started", "port", cfg.OTLPHTTPPort)
+	go startHttpServer(otlpSrv, "OTLP/HTTP", logger)
+	go startHttpServer(appSrv, "APP", logger)
 
 	quit := make(chan os.Signal, 1)
-
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
@@ -71,12 +63,30 @@ func run() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		return fmt.Errorf("Forced shutdown:  %w", err)
+	var shutdownErr error
+	if err := otlpSrv.Shutdown(ctx); err != nil {
+		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("otlp server forced shutdown: %w", err))
+	}
+	if err := appSrv.Shutdown(ctx); err != nil {
+		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("%w; api server forced shutdown: %w", shutdownErr, err))
+
 	}
 
 	worker.Stop()
 	logger.Info("Servers stopped cleanly")
 
-	return nil
+	return shutdownErr
+}
+
+func startHttpServer(srv *http.Server, srvName string, logger *slog.Logger) {
+	logger.Info(fmt.Sprintf("%s server starting", srvName), "port", srv.Addr)
+
+	err := srv.ListenAndServe()
+
+	// Shutting down the server returns http.ErrServerClosed, so we don't
+	// want to treat a clean shutdown as a fatal error.
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("server error", "server", srvName, "error", err)
+		os.Exit(1)
+	}
 }

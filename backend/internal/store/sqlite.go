@@ -258,3 +258,83 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 	return nil
 
 }
+
+func (s *SQLiteStore) ListTraces(ctx context.Context, options ListOptions[ListTracesCursor]) (Page[Trace, ListTracesCursor], error) {
+
+	var startTimeNS *int64
+	var traceID *string
+
+	page := Page[Trace, ListTracesCursor]{}
+
+	limit := options.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	if options.Cursor != nil {
+		ns := options.Cursor.StartTime.UnixNano()
+		startTimeNS = &ns
+		traceID = &options.Cursor.TraceID
+	}
+
+	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
+	 traces WHERE (?1 IS NULL) OR (start_time_ns,trace_id) < (?1, ?2) ORDER BY start_time_ns DESC, trace_id DESC  LIMIT (?3 + 1) `
+
+	rows, err := s.readDB.QueryContext(ctx, query,
+		startTimeNS,
+		traceID,
+		limit)
+
+	if err != nil {
+		return page, err
+	}
+	defer rows.Close()
+
+	traces := make([]Trace, 0, limit+1)
+
+	for rows.Next() {
+		var startTimeNS, endTimeNS, updatedNS int64
+		var t Trace
+
+		err := rows.Scan(
+			&t.TraceID,
+			&t.RootService,
+			&t.Environment,
+			&t.RootName,
+			&startTimeNS,
+			&endTimeNS,
+			&t.SpanCount,
+			&t.Error,
+			&updatedNS,
+		)
+
+		if err != nil {
+			return page, err
+		}
+
+		t.StartTime = time.Unix(0, startTimeNS)
+		t.EndTime = time.Unix(0, endTimeNS)
+		t.UpdatedAt = time.Unix(0, updatedNS)
+
+		traces = append(traces, t)
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return page, err
+	}
+
+	items, hasMore, extra := paginate(traces, limit)
+
+	page.HasMore = hasMore
+	page.Items = items
+
+	if extra != nil {
+		page.NextCursor = &ListTracesCursor{
+			StartTime: extra.StartTime,
+			TraceID:   extra.TraceID,
+		}
+	}
+
+	return page, nil
+
+}

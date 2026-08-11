@@ -13,6 +13,7 @@ type Config struct {
 	OTLPHTTPPort  string
 	WorkerCount   int
 	TaskQueueSize int
+	AppPort       string
 }
 
 func Load() (*Config, error) {
@@ -36,6 +37,7 @@ func Load() (*Config, error) {
 		OTLPHTTPPort:  getEnv("OTLP_HTTP_PORT", "4318"),
 		WorkerCount:   workerCount,
 		TaskQueueSize: taskQueueSize,
+		AppPort:       getEnv("APP_PORT", "5678"),
 	}
 
 	return cfg, nil
