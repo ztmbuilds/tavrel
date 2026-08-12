@@ -10,9 +10,21 @@ type Store interface {
 	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
 	StoreLogs(ctx context.Context, logs []Log) error
 	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
+	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
+}
+
+type ListTracesCursor struct {
+	StartTime time.Time
+	TraceID   string
+}
+
+type ListLogsCursor struct {
+	TimeStamp time.Time
+	ID        int64
 }
 
 type ListTracesOptions = ListOptions[ListTracesCursor]
+type ListLogsOptions = ListOptions[ListLogsCursor]
 type Trace struct {
 	TraceID     string
 	RootService string

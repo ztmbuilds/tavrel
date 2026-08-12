@@ -12,3 +12,5 @@ CREATE TABLE IF NOT EXISTS logs (
     resource_attributes TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_logs_timestamp_id ON logs (timestamp_ns,id)
+

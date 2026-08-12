@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"embed"
@@ -337,4 +338,103 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 
 	return page, nil
 
+}
+
+func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error) {
+
+	var timeStampNs *int64
+	var id *int64
+
+	page := Page[Log, ListLogsCursor]{}
+
+	limit := options.Limit
+
+	if limit <= 0 {
+		limit = 50
+	}
+
+	if options.Cursor != nil {
+		id = &options.Cursor.ID
+		ns := options.Cursor.TimeStamp.UnixNano()
+		timeStampNs = &ns
+	}
+
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE (?1 IS NULL) OR (timestamp_ns,id) < (?1,?2) ORDER BY timestamp_ns DESC, id DESC LIMIT (?3 + 1)`
+
+	rows, err := s.readDB.QueryContext(ctx, query,
+		timeStampNs,
+		id,
+		limit)
+
+	if err != nil {
+		return page, err
+	}
+	defer rows.Close()
+
+	logs := make([]Log, 0, limit+1)
+
+	for rows.Next() {
+		var timeStampNs int64
+		var attributes, resourceAttributes, body []byte
+
+		var l Log
+
+		err := rows.Scan(
+			&l.ID,
+			&l.TraceID,
+			&l.SpanID,
+			&timeStampNs,
+			&l.SeverityText,
+			&l.SeverityNumber,
+			&l.Body,
+			&l.Service,
+			&l.Environment,
+			&attributes,
+			&resourceAttributes,
+		)
+
+		if err != nil {
+			return page, err
+		}
+
+		if len(body) > 0 {
+			dec := json.NewDecoder(bytes.NewReader(body))
+			dec.UseNumber()
+			if err := dec.Decode(&l.Body); err != nil {
+				return page, err
+			}
+		}
+
+		if len(attributes) > 0 {
+			dec := json.NewDecoder(bytes.NewReader(attributes))
+			dec.UseNumber()
+			if err := dec.Decode(&l.Attributes); err != nil {
+				return page, err
+			}
+		}
+		if len(resourceAttributes) > 0 {
+			dec := json.NewDecoder(bytes.NewReader(resourceAttributes))
+			dec.UseNumber()
+			if err := dec.Decode(&l.ResourceAttributes); err != nil {
+				return page, err
+			}
+		}
+
+		l.Timestamp = time.Unix(0, timeStampNs)
+		logs = append(logs, l)
+
+	}
+	items, hasMore, extra := paginate(logs, limit)
+
+	page.HasMore = hasMore
+	page.Items = items
+
+	if extra != nil {
+		page.NextCursor = &ListLogsCursor{
+			ID:        extra.ID,
+			TimeStamp: extra.Timestamp,
+		}
+
+	}
+	return page, nil
 }

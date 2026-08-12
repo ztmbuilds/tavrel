@@ -14,6 +14,7 @@ func NewAPPHttpServer(store store.Store, cfg *config.Config) *http.Server {
 
 	r.Route("/api/v1/", func(r chi.Router) {
 		r.Get("/traces", Make(newListTracesHandler(store)))
+		r.Get("/logs", Make(newLogHandler(store)))
 	})
 
 	return &http.Server{
