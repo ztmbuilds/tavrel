@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"noname/internal/store"
-	"strconv"
 )
 
 type traceStore interface {
@@ -15,27 +14,7 @@ func newListTracesHandler(ts traceStore) AppHandler {
 
 	return func(w http.ResponseWriter, r *http.Request) error {
 
-		limit := 50
-
-		if value := r.URL.Query().Get("limit"); value != "" {
-			if num, err := strconv.Atoi(value); err == nil && num > 0 {
-
-				limit = num
-			}
-		}
-
-		options := store.ListTracesOptions{
-			Limit:  limit,
-			Cursor: nil,
-		}
-
-		encodedCursor := r.URL.Query().Get("cursor")
-
-		cursor, ok := decodeCursor[store.ListTracesCursor](encodedCursor)
-
-		if ok {
-			options.Cursor = &cursor
-		}
+		options := newListOptions[store.ListTracesCursor](r)
 
 		page, err := ts.ListTraces(r.Context(), options)
 
