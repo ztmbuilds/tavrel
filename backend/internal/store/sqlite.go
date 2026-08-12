@@ -224,7 +224,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 			}
 			resourceAttributes, err := json.Marshal(log.ResourceAttributes)
 			if err != nil {
-				attributes = []byte("{}")
+				resourceAttributes = []byte("{}")
 			}
 
 			body, err := json.Marshal(log.Body)
