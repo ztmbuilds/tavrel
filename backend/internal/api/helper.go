@@ -31,3 +31,17 @@ func newListOptions[C any](r *http.Request) store.ListOptions[C] {
 	return options
 
 }
+
+func writeListResponse[T, C any](w http.ResponseWriter, message string, page store.Page[T, C]) {
+	meta := &Meta{}
+	if cursor, ok := encodeCursor(page.NextCursor); ok {
+		meta.NextCursor = &cursor
+	}
+
+	writeJson(w, http.StatusOK, &Response{
+		Message: message,
+		Data:    page.Items,
+		Meta:    meta,
+	})
+
+}

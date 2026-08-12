@@ -22,17 +22,7 @@ func newListTracesHandler(ts traceStore) AppHandler {
 			return Internal(err)
 		}
 
-		meta := &Meta{}
-		if nextCursor, ok := encodeCursor(page.NextCursor); ok {
-
-			meta.NextCursor = &nextCursor
-		}
-
-		writeJson(w, http.StatusOK, &Response{
-			Message: "Traces retrieved successfully",
-			Data:    page.Items,
-			Meta:    meta,
-		})
+		writeListResponse(w, "Traces retrieved successfully", page)
 
 		return nil
 
