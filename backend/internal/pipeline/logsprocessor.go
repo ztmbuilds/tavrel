@@ -78,6 +78,12 @@ func (lp *LogsExportProcessor) Process(req *logspb.ExportLogsServiceRequest) {
 					logAttributes[attr.Key] = anyValueToGo(attr.Value)
 				}
 
+				timeStamp := l.TimeUnixNano
+
+				if timeStamp == 0 {
+					timeStamp = l.ObservedTimeUnixNano
+				}
+
 				log := store.Log{
 					SpanID:             hex.EncodeToString(spanID),
 					TraceID:            hex.EncodeToString(traceID),
@@ -88,7 +94,7 @@ func (lp *LogsExportProcessor) Process(req *logspb.ExportLogsServiceRequest) {
 					SeverityText:       l.SeverityText,
 					SeverityNumber:     int32(l.SeverityNumber),
 					Body:               anyValueToGo(l.Body),
-					Timestamp:          time.Unix(0, int64(l.TimeUnixNano)),
+					Timestamp:          time.Unix(0, int64(timeStamp)),
 				}
 
 				logs = append(logs, log)
