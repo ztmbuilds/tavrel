@@ -239,7 +239,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 				log.Timestamp.UnixNano(),
 				log.SeverityText,
 				int32(log.SeverityNumber),
-				body,
+				string(body),
 				log.Service,
 				log.Environment,
 				attributes,
@@ -386,7 +386,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			&timeStampNs,
 			&l.SeverityText,
 			&l.SeverityNumber,
-			&l.Body,
+			&body,
 			&l.Service,
 			&l.Environment,
 			&attributes,
@@ -424,6 +424,11 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		logs = append(logs, l)
 
 	}
+
+	if err := rows.Err(); err != nil {
+		return page, err
+	}
+
 	items, hasMore, extra := paginate(logs, limit)
 
 	page.HasMore = hasMore
