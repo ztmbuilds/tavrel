@@ -26,15 +26,15 @@ type ListLogsCursor struct {
 type ListTracesOptions = ListOptions[ListTracesCursor]
 type ListLogsOptions = ListOptions[ListLogsCursor]
 type Trace struct {
-	TraceID     string
-	RootService string
-	Environment string
-	RootName    string
-	StartTime   time.Time
-	EndTime     time.Time
-	SpanCount   int64
-	Error       bool
-	UpdatedAt   time.Time
+	TraceID     string    `json:"traceId"`
+	RootService string    `json:"rootService"`
+	Environment string    `json:"environment"`
+	RootName    string    `json:"rootName"`
+	StartTime   time.Time `json:"startTime"`
+	EndTime     time.Time `json:"endTime"`
+	SpanCount   int64     `json:"spanCount"`
+	Error       bool      `json:"error"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type SpanKind int32
@@ -57,36 +57,36 @@ const (
 )
 
 type Span struct {
-	SpanID        string
-	TraceID       string
-	ParentSpanID  string
-	Service       string
-	Name          string
-	Kind          SpanKind
-	StatusCode    StatusCode
-	StatusMessage string
-	StartTime     time.Time
-	EndTime       time.Time
-	Attributes    map[string]any
-	Events        []Event
+	SpanID        string         `json:"spanId"`
+	TraceID       string         `json:"traceId"`
+	ParentSpanID  string         `json:"parentSpanId"`
+	Service       string         `json:"service"`
+	Name          string         `json:"name"`
+	Kind          SpanKind       `json:"kind"`
+	StatusCode    StatusCode     `json:"statusCode"`
+	StatusMessage string         `json:"statusMessage"`
+	StartTime     time.Time      `json:"startTime"`
+	EndTime       time.Time      `json:"endTime"`
+	Attributes    map[string]any `json:"attributes"`
+	Events        []Event        `json:"events"`
 }
 
 type Event struct {
-	Time       time.Time
-	Name       string
-	Attributes map[string]any
+	Time       time.Time      `json:"time"`
+	Name       string         `json:"name"`
+	Attributes map[string]any `json:"attributes"`
 }
 
 type Log struct {
-	ID                 int64
-	TraceID            string
-	SpanID             string
-	Timestamp          time.Time
-	SeverityText       string
-	SeverityNumber     int32
-	Body               any
-	Service            string
-	Environment        string
-	Attributes         map[string]any
-	ResourceAttributes map[string]any
+	ID                 int64          `json:"id"`
+	TraceID            string         `json:"traceId"`
+	SpanID             string         `json:"spanId"`
+	Timestamp          time.Time      `json:"timestamp"`
+	SeverityText       string         `json:"severityText"`
+	SeverityNumber     int32          `json:"severityNumber"`
+	Body               any            `json:"body"`
+	Service            string         `json:"service"`
+	Environment        string         `json:"environment"`
+	Attributes         map[string]any `json:"attributes"`
+	ResourceAttributes map[string]any `json:"resourceAttributes"`
 }
