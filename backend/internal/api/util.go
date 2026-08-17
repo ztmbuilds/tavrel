@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"noname/internal/store"
 	"strconv"
@@ -44,4 +45,22 @@ func writeListResponse[T, C any](w http.ResponseWriter, message string, page sto
 		Meta:    meta,
 	})
 
+}
+
+func listHandler[T, C any](listFn func(context.Context, store.ListOptions[C]) (store.Page[T, C], error), msg string) AppHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+
+		options := newListOptions[C](r)
+
+		page, err := listFn(r.Context(), options)
+
+		if err != nil {
+			return Internal(err)
+		}
+
+		writeListResponse(w, msg, page)
+
+		return nil
+
+	}
 }
