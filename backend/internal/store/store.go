@@ -11,6 +11,8 @@ type Store interface {
 	StoreLogs(ctx context.Context, logs []Log) error
 	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
 	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
+
+	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
 }
 
 type ListTracesCursor struct {
@@ -23,8 +25,15 @@ type ListLogsCursor struct {
 	ID        int64
 }
 
+type ListSpansCursor struct {
+	StartTime time.Time
+	SpanID    string
+}
+
 type ListTracesOptions = ListOptions[ListTracesCursor]
 type ListLogsOptions = ListOptions[ListLogsCursor]
+type ListSpansOptions = ListOptions[ListSpansCursor]
+
 type Trace struct {
 	TraceID     string    `json:"traceId"`
 	RootService string    `json:"rootService"`
@@ -48,6 +57,23 @@ const (
 	SpanKindConsumer
 )
 
+func toSpanKind(i int32) SpanKind {
+	switch SpanKind(i) {
+	case SpanKindInternal:
+		return SpanKindInternal
+	case SpanKindServer:
+		return SpanKindServer
+	case SpanKindClient:
+		return SpanKindClient
+	case SpanKindProducer:
+		return SpanKindProducer
+	case SpanKindConsumer:
+		return SpanKindConsumer
+	default:
+		return SpanKindUnspecified
+	}
+}
+
 type StatusCode int32
 
 const (
@@ -55,6 +81,17 @@ const (
 	StatusCodeOk
 	StatusCodeError
 )
+
+func toStatusCode(i int32) StatusCode {
+	switch StatusCode(i) {
+	case StatusCodeOk:
+		return StatusCodeOk
+	case StatusCodeError:
+		return StatusCodeError
+	default:
+		return StatusCodeUnset
+	}
+}
 
 type Span struct {
 	SpanID        string         `json:"spanId"`

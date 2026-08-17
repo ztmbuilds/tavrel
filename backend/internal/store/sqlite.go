@@ -397,27 +397,16 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			return page, err
 		}
 
-		if len(body) > 0 {
-			dec := json.NewDecoder(bytes.NewReader(body))
-			dec.UseNumber()
-			if err := dec.Decode(&l.Body); err != nil {
-				return page, err
-			}
+		if err := decodeJson(body, &l.Body); err != nil {
+			return page, err
 		}
 
-		if len(attributes) > 0 {
-			dec := json.NewDecoder(bytes.NewReader(attributes))
-			dec.UseNumber()
-			if err := dec.Decode(&l.Attributes); err != nil {
-				return page, err
-			}
+		if err := decodeJson(attributes, &l.Attributes); err != nil {
+			return page, err
 		}
-		if len(resourceAttributes) > 0 {
-			dec := json.NewDecoder(bytes.NewReader(resourceAttributes))
-			dec.UseNumber()
-			if err := dec.Decode(&l.ResourceAttributes); err != nil {
-				return page, err
-			}
+
+		if err := decodeJson(resourceAttributes, &l.ResourceAttributes); err != nil {
+			return page, err
 		}
 
 		l.Timestamp = time.Unix(0, timeStampNs)
@@ -442,4 +431,108 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 	}
 	return page, nil
+}
+
+func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error) {
+
+	var startTimeNS *int64
+	var spanID *string
+	page := Page[Span, ListSpansCursor]{}
+
+	limit := options.Limit
+
+	if limit <= 0 {
+		limit = 50
+	}
+	if options.Cursor != nil {
+		spanID = &options.Cursor.SpanID
+		ns := options.Cursor.StartTime.UnixNano()
+		startTimeNS = &ns
+	}
+
+	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events FROM spans WHERE (?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2) ORDER BY start_time_ns DESC , span_id DESC LIMIT (?3 + 1)`
+
+	rows, err := s.readDB.QueryContext(ctx, query,
+		startTimeNS,
+		spanID,
+		limit)
+
+	if err != nil {
+		return page, err
+	}
+
+	defer rows.Close()
+
+	spans := make([]Span, 0, limit+1)
+
+	for rows.Next() {
+
+		var startTimeNS, endTimeNS int64
+		var attributes, events []byte
+		var statusCode, kind int32
+
+		var s Span
+
+		err := rows.Scan(
+			&s.SpanID,
+			&s.TraceID,
+			&s.ParentSpanID,
+			&s.Service,
+			&s.Name,
+			&kind,
+			&startTimeNS,
+			&endTimeNS,
+			&statusCode,
+			&s.StatusMessage,
+			&attributes,
+			&events,
+		)
+
+		if err != nil {
+			return page, err
+		}
+		s.StartTime = time.Unix(0, startTimeNS)
+		s.EndTime = time.Unix(0, endTimeNS)
+		s.Kind = toSpanKind(kind)
+		s.StatusCode = toStatusCode(statusCode)
+
+		if err := decodeJson(attributes, &s.Attributes); err != nil {
+			return page, err
+		}
+
+		if err := decodeJson(events, &s.Events); err != nil {
+			return page, err
+		}
+
+		spans = append(spans, s)
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return page, err
+	}
+
+	items, hasMore, extra := paginate(spans, limit)
+	page.HasMore = hasMore
+	page.Items = items
+
+	if extra != nil {
+		page.NextCursor = &ListSpansCursor{
+			StartTime: extra.StartTime,
+			SpanID:    extra.SpanID,
+		}
+	}
+	return page, nil
+}
+
+func decodeJson[T any](b []byte, target *T) error {
+
+	if len(b) == 0 {
+		return nil
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	return dec.Decode(&target)
+
 }
