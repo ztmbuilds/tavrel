@@ -54,7 +54,7 @@ func writeError(w http.ResponseWriter, err error) {
 
 	}
 
-	writeJson(w, e.StatusCode, &Response{
+	writeJson(w, http.StatusInternalServerError, &Response{
 		Error: &apiError{
 			Code:    ErrInternal,
 			Message: "Internal Server Error",
