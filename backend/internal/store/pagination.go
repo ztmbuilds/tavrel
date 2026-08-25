@@ -13,7 +13,7 @@ type Page[T, C any] struct {
 
 func paginate[T any](list []T, limit int) (items []T, hasMore bool, extra *T) {
 
-	if len(list) <= limit {
+	if len(list) <= limit || limit < 0 {
 		return list, false, nil
 	}
 	return list[:limit], true, &list[limit]

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 	"noname/internal/store"
 )
 
@@ -11,5 +12,13 @@ type spanStore interface {
 
 func newListSpansHandler(s spanStore) AppHandler {
 
-	return listHandler(s.ListSpans, "Spans retrieved successfully")
+	return listHandler(newSpanListOptions, s.ListSpans, "Spans retrieved successfully")
+}
+
+func newSpanListOptions(r *http.Request) store.ListSpansOptions {
+	options := store.ListSpansOptions{ListOptions: newListOptions[store.ListSpansCursor](r)}
+	if v := r.URL.Query().Get("traceId"); v != "" {
+		options.TraceID = v
+	}
+	return options
 }

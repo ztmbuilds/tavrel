@@ -47,10 +47,10 @@ func writeListResponse[T, C any](w http.ResponseWriter, message string, page sto
 
 }
 
-func listHandler[T, C any](listFn func(context.Context, store.ListOptions[C]) (store.Page[T, C], error), msg string) AppHandler {
+func listHandler[T, C, O any](buildOptionsFn func(*http.Request) O, listFn func(context.Context, O) (store.Page[T, C], error), msg string) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 
-		options := newListOptions[C](r)
+		options := buildOptionsFn(r)
 
 		page, err := listFn(r.Context(), options)
 

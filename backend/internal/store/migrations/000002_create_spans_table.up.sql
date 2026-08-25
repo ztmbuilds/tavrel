@@ -16,3 +16,5 @@ CREATE TABLE IF NOT EXISTS spans (
 
 CREATE INDEX IF NOT EXISTS idx_spans_start_time_span_id ON spans (start_time_ns,span_id)
 
+CREATE INDEX IF NOT EXISTS idx_spans_trace_id_start_time_span_id ON spans (trace_id, start_time_ns, span_id)
+

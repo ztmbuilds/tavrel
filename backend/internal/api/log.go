@@ -11,5 +11,5 @@ type logStore interface {
 
 func newListLogsHandler(ls logStore) AppHandler {
 
-	return listHandler(ls.ListLogs, "Logs retrieved successfully")
+	return listHandler(newListOptions[store.ListLogsCursor], ls.ListLogs, "Logs retrieved successfully")
 }

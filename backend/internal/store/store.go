@@ -7,12 +7,15 @@ import (
 
 type Store interface {
 	Close() error
+
 	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
 	StoreLogs(ctx context.Context, logs []Log) error
+
 	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
 	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
-
 	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
+
+	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
 }
 
 type ListTracesCursor struct {
@@ -32,7 +35,10 @@ type ListSpansCursor struct {
 
 type ListTracesOptions = ListOptions[ListTracesCursor]
 type ListLogsOptions = ListOptions[ListLogsCursor]
-type ListSpansOptions = ListOptions[ListSpansCursor]
+type ListSpansOptions struct {
+	ListOptions[ListSpansCursor]
+	TraceID string
+}
 
 type Trace struct {
 	TraceID     string    `json:"traceId"`

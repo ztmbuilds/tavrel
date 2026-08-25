@@ -437,25 +437,36 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 
 	var startTimeNS *int64
 	var spanID *string
+	var traceID string
+
 	page := Page[Span, ListSpansCursor]{}
 
 	limit := options.Limit
 
-	if limit <= 0 {
+	if limit <= 0 && limit != -1 {
 		limit = 50
 	}
+
 	if options.Cursor != nil {
 		spanID = &options.Cursor.SpanID
 		ns := options.Cursor.StartTime.UnixNano()
 		startTimeNS = &ns
 	}
 
-	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events FROM spans WHERE (?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2) ORDER BY start_time_ns DESC , span_id DESC LIMIT (?3 + 1)`
+	if options.TraceID != "" {
+		traceID = options.TraceID
+	}
+
+	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
+	FROM spans
+	WHERE ((?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2)) AND (?4 = 
+	'' OR trace_id = ?4) ORDER BY start_time_ns DESC , span_id DESC LIMIT (?3)`
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		startTimeNS,
 		spanID,
-		limit)
+		limit,
+		traceID)
 
 	if err != nil {
 		return page, err
@@ -523,6 +534,48 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		}
 	}
 	return page, nil
+}
+
+func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {
+
+	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
+	 traces WHERE trace_id = ?1`
+
+	var t Trace
+	var startTimeNS, endTimeNS, updatedNS int64
+
+	err := s.readDB.QueryRowContext(ctx, query, traceID).Scan(&t.TraceID,
+		&t.RootService,
+		&t.Environment,
+		&t.RootName,
+		&startTimeNS,
+		&endTimeNS,
+		&t.SpanCount,
+		&t.Error,
+		&updatedNS)
+
+	if err != nil {
+		return nil, nil, err
+	}
+	t.StartTime = time.Unix(0, startTimeNS)
+	t.EndTime = time.Unix(0, endTimeNS)
+	t.UpdatedAt = time.Unix(0, updatedNS)
+
+	listSpanOptions := ListSpansOptions{
+		ListOptions: ListOptions[ListSpansCursor]{
+			Limit: -1, //sqlite treats negative as no limit
+		},
+		TraceID: traceID,
+	}
+
+	page, err := s.ListSpans(ctx, listSpanOptions)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &t, page.Items, nil
+
 }
 
 func decodeJson[T any](b []byte, target *T) error {
