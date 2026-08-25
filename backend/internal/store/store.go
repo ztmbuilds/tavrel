@@ -16,6 +16,8 @@ type Store interface {
 	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
 
 	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
+
+	DeleteOldData(ctx context.Context, cutoff time.Time) error
 }
 
 type ListTracesCursor struct {

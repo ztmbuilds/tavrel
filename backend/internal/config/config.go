@@ -14,6 +14,7 @@ type Config struct {
 	WorkerCount   int
 	TaskQueueSize int
 	AppPort       string
+	RetentionDays int
 }
 
 func Load() (*Config, error) {
@@ -32,12 +33,18 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load TASK_QUEUE_SIZE env: %w", err)
 	}
 
+	retentionDays, err := strconv.Atoi(getEnv("RETENTION_DAYS", "30"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load RETENTION_DAYS env: %w", err)
+	}
+
 	cfg := &Config{
 		DBPath:        getEnv("DB_PATH", "store.db"),
 		OTLPHTTPPort:  getEnv("OTLP_HTTP_PORT", "4318"),
 		WorkerCount:   workerCount,
 		TaskQueueSize: taskQueueSize,
 		AppPort:       getEnv("APP_PORT", "5678"),
+		RetentionDays: retentionDays,
 	}
 
 	return cfg, nil

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"noname/internal/api"
 	"noname/internal/config"
+	"noname/internal/cron"
 	"noname/internal/otlp/otlphttp"
 	"noname/internal/pipeline"
 	"noname/internal/store"
@@ -47,6 +48,10 @@ func run() error {
 
 	worker := pipeline.NewWorker(cfg.TaskQueueSize, cfg.WorkerCount)
 	worker.Start()
+
+	retentioncron := cron.New(cfg.RetentionDays, sqlLiteStore.DeleteOldData)
+	retentioncron.Start(context.Background())
+	defer retentioncron.Stop()
 
 	otlpSrv := otlphttp.NewOTLPHttpServer(sqlLiteStore, worker, cfg)
 	appSrv := api.NewAPPHttpServer(sqlLiteStore, cfg)

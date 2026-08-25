@@ -578,6 +578,71 @@ func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []S
 
 }
 
+func (s *SQLiteStore) DeleteOldData(ctx context.Context, cutoff time.Time) error {
+
+	tx, err := s.writeDB.BeginTx(ctx, &sql.TxOptions{})
+
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	cutoffNS := cutoff.UnixNano()
+
+	rows, err := tx.QueryContext(ctx, `SELECT trace_id from traces WHERE end_time_ns <= ?1`, cutoffNS)
+
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	traceIDs := []string{}
+
+	for rows.Next() {
+		var traceID string
+
+		err := rows.Scan(&traceID)
+
+		if err != nil {
+			return err
+		}
+
+		traceIDs = append(traceIDs, traceID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	slog.Info(fmt.Sprintf("found %v traces for deletion", len(traceIDs)))
+
+	placeholders := strings.Repeat("?,", len(traceIDs))
+	placeholders = strings.TrimSuffix(placeholders, ",")
+
+	logQuery := fmt.Sprintf("DELETE FROM logs WHERE trace_id IN (%s) OR timestamp_ns <= (%v)", placeholders, cutoffNS)
+	spanQuery := fmt.Sprintf("DELETE FROM spans WHERE trace_id IN (%s)", placeholders)
+	traceQuery := fmt.Sprintf("DELETE FROM traces WHERE trace_id IN (%s)", placeholders)
+
+	//convert []string to []any to match args type
+	args := make([]any, 0, len(traceIDs))
+	for _, id := range traceIDs {
+		args = append(args, id)
+	}
+
+	if _, err := tx.ExecContext(ctx, logQuery, args...); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, spanQuery, args...); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, traceQuery, args...); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
 func decodeJson[T any](b []byte, target *T) error {
 
 	if len(b) == 0 {
