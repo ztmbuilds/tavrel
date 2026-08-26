@@ -29,8 +29,9 @@ func newIngestLogsExportHandler(worker worker, processor logExportProcessor) htt
 
 		if r.Header.Get("Content-Type") == "application/json" {
 			err = protojson.Unmarshal(body, req)
+		} else {
+			err = proto.Unmarshal(body, req)
 		}
-		err = proto.Unmarshal(body, req)
 
 		if err != nil {
 			writeError(w, r, http.StatusBadRequest, "failed to unmarshal request body: "+err.Error(), nil)
