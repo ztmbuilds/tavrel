@@ -11,6 +11,7 @@ import (
 type Config struct {
 	DBPath        string
 	OTLPHTTPPort  string
+	OTLPGRPCPort  string
 	WorkerCount   int
 	TaskQueueSize int
 	AppPort       string
@@ -41,6 +42,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		DBPath:        getEnv("DB_PATH", "store.db"),
 		OTLPHTTPPort:  getEnv("OTLP_HTTP_PORT", "4318"),
+		OTLPGRPCPort:  getEnv("OTLP_GRPC_PORT", "4317"),
 		WorkerCount:   workerCount,
 		TaskQueueSize: taskQueueSize,
 		AppPort:       getEnv("APP_PORT", "5678"),

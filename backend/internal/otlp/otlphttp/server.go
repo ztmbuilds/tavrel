@@ -4,8 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 	"noname/internal/config"
-	"noname/internal/pipeline"
-	"noname/internal/store"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -29,9 +27,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewOTLPHttpServer(store store.Store, worker worker, cfg *config.Config) *http.Server {
-	traceProcessor := pipeline.NewTraceExportProcessor(store)
-	logsProcessor := pipeline.NewLogsExportProcessor(store)
+func NewOTLPHttpServer(worker worker, traceProcessor traceExportProcessor, logsProcessor logExportProcessor, cfg *config.Config) *http.Server {
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
