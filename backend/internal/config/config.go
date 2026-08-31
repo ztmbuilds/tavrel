@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	DBPath        string
-	OTLPHTTPPort  string
-	OTLPGRPCPort  string
-	WorkerCount   int
-	TaskQueueSize int
-	AppPort       string
-	RetentionDays int
+	DBPath              string
+	OTLPHTTPPort        string
+	OTLPGRPCPort        string
+	WorkerCount         int
+	TaskQueueSize       int
+	AppPort             string
+	RetentionDays       int
+	MaxRequestBodyBytes int
 }
 
 func Load() (*Config, error) {
@@ -39,14 +40,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load RETENTION_DAYS env: %w", err)
 	}
 
+	maxRequestBodyBytes, err := strconv.Atoi(getEnv("OTLP_MAX_REQUEST_SIZE", "67108864"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load OTLP_MAX_REQUEST_SIZE env: %w", err)
+	}
+
 	cfg := &Config{
-		DBPath:        getEnv("DB_PATH", "store.db"),
-		OTLPHTTPPort:  getEnv("OTLP_HTTP_PORT", "4318"),
-		OTLPGRPCPort:  getEnv("OTLP_GRPC_PORT", "4317"),
-		WorkerCount:   workerCount,
-		TaskQueueSize: taskQueueSize,
-		AppPort:       getEnv("APP_PORT", "5678"),
-		RetentionDays: retentionDays,
+		DBPath:              getEnv("DB_PATH", "store.db"),
+		OTLPHTTPPort:        getEnv("OTLP_HTTP_PORT", "4318"),
+		OTLPGRPCPort:        getEnv("OTLP_GRPC_PORT", "4317"),
+		WorkerCount:         workerCount,
+		TaskQueueSize:       taskQueueSize,
+		AppPort:             getEnv("APP_PORT", "5678"),
+		RetentionDays:       retentionDays,
+		MaxRequestBodyBytes: maxRequestBodyBytes,
 	}
 
 	return cfg, nil

@@ -3,11 +3,14 @@ package otlpgrpc
 import (
 	"context"
 	"log/slog"
+	"noname/internal/config"
 	"time"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
+
+	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 )
@@ -26,11 +29,11 @@ func loggingUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServe
 	return resp, err
 }
 
-func NewOTLPGRPCServer(worker worker, traceProcessor traceExportProcessor, logsProcessor logExportProcessor) *grpc.Server {
+func NewOTLPGRPCServer(worker worker, traceProcessor traceExportProcessor, logsProcessor logExportProcessor, cfg *config.Config) *grpc.Server {
 
 	grpcServer := grpc.NewServer(
-		grpc.MaxRecvMsgSize(4*1024*1024), // 4MiB
-		grpc.MaxSendMsgSize(4*1024*1024),
+		grpc.MaxRecvMsgSize(cfg.MaxRequestBodyBytes),
+		grpc.MaxSendMsgSize(cfg.MaxRequestBodyBytes),
 		grpc.UnaryInterceptor(loggingUnaryInterceptor))
 
 	tracespb.RegisterTraceServiceServer(grpcServer, newTraceServiceServer(traceProcessor, worker))

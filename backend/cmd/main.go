@@ -61,7 +61,7 @@ func run() error {
 	logsProcessor := pipeline.NewLogsExportProcessor(sqlLiteStore)
 
 	otlphttpSrv := otlphttp.NewOTLPHttpServer(worker, traceProcessor, logsProcessor, cfg)
-	otlpgrpcSrv := otlpgrpc.NewOTLPGRPCServer(worker, traceProcessor, logsProcessor)
+	otlpgrpcSrv := otlpgrpc.NewOTLPGRPCServer(worker, traceProcessor, logsProcessor, cfg)
 
 	appSrv := api.NewAPPHttpServer(sqlLiteStore, cfg)
 
