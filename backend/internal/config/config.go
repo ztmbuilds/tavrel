@@ -21,7 +21,7 @@ type Config struct {
 
 func Load() (*Config, error) {
 
-	_ = godotenv.Load()
+	_ = godotenv.Load("../.env")
 
 	workerCount, err := strconv.Atoi(getEnv("WORKER_COUNT", "4"))
 
