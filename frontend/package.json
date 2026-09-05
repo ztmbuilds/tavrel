@@ -13,14 +13,12 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.62.11",
-    "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "reka-ui": "^2.5.0",
     "tailwind-merge": "^3.0.1",
     "vue": "^3.5.41",
-    "vue-router": "^4.5.0",
-    "zod": "^3.24.2"
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

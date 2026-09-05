@@ -1,6 +1,3 @@
-# pnpm v11 gates postinstall scripts behind this allowlist.
-# esbuild needs its postinstall binary; vue-demi's script only prints
-# its version — both are safe.
 allowBuilds:
   esbuild: true
   vue-demi: true

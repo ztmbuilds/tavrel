@@ -1,12 +1,7 @@
-import type { AxiosInstance, AxiosRequestConfig } from "axios";
-import type { z } from "zod";
-
-import axios from "axios";
-
 const HTTP_STATUS_NOT_FOUND = 404;
 const HTTP_STATUS_BAD_REQUEST = 400;
-const HTTP_STATUS_SCHEMA_MISMATCH = 500;
 const DEFAULT_TIMEOUT_MS = 30_000;
+const HTTP_STATUS_NO_CONTENT = 204;
 
 export class ApiError extends Error {
   readonly status: number;
@@ -30,13 +25,8 @@ export class ApiError extends Error {
 
 interface ApiFetchOptions {
   query?: Record<string, string | number | undefined>;
-  config?: Omit<AxiosRequestConfig, "url" | "method" | "params" | "baseURL">;
+  config?: Omit<RequestInit, "method" | "body">;
 }
-
-const http: AxiosInstance = axios.create({
-  headers: { Accept: "application/json" },
-  timeout: DEFAULT_TIMEOUT_MS,
-});
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -50,56 +40,102 @@ function extractMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-function toApiError(error: unknown, url: string): ApiError {
-  if (axios.isAxiosError(error)) {
-    const status = error.response?.status ?? 0;
-    if (status === 0) {
-      return new ApiError(0, url, error.message || "Network request failed");
-    }
-    const data: unknown = error.response?.data;
-    return new ApiError(
-      status,
-      url,
-      extractMessage(data, `Request failed with status ${status}`),
-    );
+function buildUrl(
+  path: string,
+  query: ApiFetchOptions["query"],
+): string {
+  if (!query) return path;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.append(key, String(value));
   }
-  return new ApiError(
-    0,
-    url,
-    error instanceof Error ? error.message : "Unknown request failure",
-  );
+  const suffix = params.toString();
+  if (!suffix) return path;
+  return path + (path.includes("?") ? "&" : "?") + suffix;
+}
+
+function withTimeout(userSignal: AbortSignal | null | undefined): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort(
+      new DOMException(
+        `Request timed out after ${DEFAULT_TIMEOUT_MS}ms`,
+        "TimeoutError",
+      ),
+    );
+  }, DEFAULT_TIMEOUT_MS);
+  const onUserAbort = (): void => {
+    controller.abort(userSignal?.reason);
+  };
+  if (userSignal) {
+    if (userSignal.aborted) {
+      onUserAbort();
+    } else {
+      userSignal.addEventListener("abort", onUserAbort, { once: true });
+    }
+  }
+  const cleanup = (): void => {
+    clearTimeout(timeoutId);
+    userSignal?.removeEventListener("abort", onUserAbort);
+  };
+  return { signal: controller.signal, cleanup };
+}
+
+async function parseJsonSafe(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text) return undefined;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  try {
-    const response = await http.get<T>(path, {
-      params: options.query,
-      ...options.config,
-    });
-    return response.data;
-  } catch (error: unknown) {
-    throw toApiError(error, path);
-  }
-}
+  const url = buildUrl(path, options.query);
+  const { signal: userSignal, headers: userHeaders, ...rest } =
+    options.config ?? {};
+  const headers = new Headers(userHeaders);
+  if (!headers.has("Accept")) headers.set("Accept", "application/json");
+  const { signal, cleanup } = withTimeout(userSignal);
 
-// Fetch + validate at the boundary with zod. Parses unknown JSON so a shape
-// drift fails loudly instead of flowing mistyped data into entities.
-export async function apiFetchValidated<T>(
-  path: string,
-  schema: z.ZodType<T>,
-  options: ApiFetchOptions = {},
-): Promise<T> {
-  const payload: unknown = await apiFetch<unknown>(path, options);
-  const parsed = schema.safeParse(payload);
-  if (!parsed.success) {
+  try {
+    const response = await fetch(url, {
+      ...rest,
+      method: "GET",
+      headers,
+      signal,
+    });
+    if (!response.ok) {
+      const payload = await parseJsonSafe(response).catch(
+        () => undefined as unknown,
+      );
+      throw new ApiError(
+        response.status,
+        path,
+        extractMessage(
+          payload,
+          `Request failed with status ${response.status}`,
+        ),
+      );
+    }
+    if (response.status === HTTP_STATUS_NO_CONTENT) return undefined as T;
+    const data = await parseJsonSafe(response);
+    return data as T;
+  } catch (error: unknown) {
+    if (error instanceof ApiError) throw error;
     throw new ApiError(
-      HTTP_STATUS_SCHEMA_MISMATCH,
+      0,
       path,
-      `Invalid API response shape: ${parsed.error.issues[0]?.message ?? "unknown"}`,
+      error instanceof Error ? error.message : "Network request failed",
     );
+  } finally {
+    cleanup();
   }
-  return parsed.data;
 }
