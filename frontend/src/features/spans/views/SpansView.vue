@@ -1,10 +1,15 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import EmptyState from "@/shared/components/EmptyState.vue";
+import PageHead from "@/shared/components/PageHead.vue";
+</script>
 
 <template>
-  <section>
-    <h1>Spans</h1>
-    <p>
-      Every unit of work recorded, independent of which trace it belongs to.
-    </p>
-  </section>
+  <div class="flex min-h-0 flex-1 flex-col">
+    <PageHead title="Spans" />
+    <EmptyState
+      title="No spans found"
+      message="No spans match these filters. Try widening the time range or clearing a filter."
+      action-label="Clear all filters"
+    />
+  </div>
 </template>

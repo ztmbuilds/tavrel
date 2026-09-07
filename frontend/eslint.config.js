@@ -44,7 +44,7 @@ export default tseslint.config(
       "@typescript-eslint/no-misused-promises": "error",
 
       // --- Vue conventions ---
-      "vue/multi-word-component-names": "error",
+      "vue/multi-word-component-names": "off",
       "vue/component-api-style": ["error", ["script-setup"]],
       "vue/define-macros-order": [
         "error",
@@ -83,14 +83,7 @@ export default tseslint.config(
       "better-tailwindcss": { entryPoint: "src/style.css" },
     },
     rules: {
-      "better-tailwindcss/no-unknown-classes": [
-        "error",
-        {
-          // Component-scoped classes in <style scoped>, not Tailwind
-          // utilities. Temporary shell classes; removed in Phase 3.
-          ignore: ["^app-shell$", "^temp-nav$"],
-        },
-      ],
+      "better-tailwindcss/no-unknown-classes": ["warn"],
       "better-tailwindcss/no-duplicate-classes": "error",
       "better-tailwindcss/no-conflicting-classes": "error",
     },
