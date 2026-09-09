@@ -24,6 +24,12 @@ export const routes: readonly RouteRecordRaw[] = [
         path: "spans",
         name: "spans",
         component: () => import("@/features/spans/views/SpansView.vue"),
+        meta: {
+          preload: {
+            prefetchQueries: () =>
+              import("@/features/spans/queries").then((m) => m.prefetchSpans),
+          },
+        },
       },
       {
         path: "logs",

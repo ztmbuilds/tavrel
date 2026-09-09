@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { RouterLink, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
+
+import PreloadLink from "@/shared/components/PreloadLink.vue";
 
 import { cn } from "@/shared/utils/cn";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
@@ -20,6 +22,7 @@ import tracesActiveIcon from "@/assets/icons/traces-active.svg";
 interface NavItem {
   label: string;
   to: string;
+  routeName: string;
   match: readonly string[];
   icon: string;
   activeIcon: string;
@@ -29,6 +32,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
   {
     label: "Dashboard",
     to: "/",
+    routeName: "dashboard",
     match: ["dashboard"],
     icon: dashboardIcon,
     activeIcon: dashboardActiveIcon,
@@ -36,6 +40,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
   {
     label: "Services",
     to: "/services",
+    routeName: "services",
     match: ["services"],
     icon: servicesIcon,
     activeIcon: servicesActiveIcon,
@@ -43,6 +48,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
   {
     label: "Traces",
     to: "/traces",
+    routeName: "traces",
     match: ["traces", "trace-detail"],
     icon: tracesIcon,
     activeIcon: tracesActiveIcon,
@@ -50,6 +56,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
   {
     label: "Spans",
     to: "/spans",
+    routeName: "spans",
     match: ["spans"],
     icon: spansIcon,
     activeIcon: spansActiveIcon,
@@ -57,6 +64,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
   {
     label: "Logs",
     to: "/logs",
+    routeName: "logs",
     match: ["logs"],
     icon: logsIcon,
     activeIcon: logsActiveIcon,
@@ -151,10 +159,11 @@ function handleToggle(): void {
         </button>
       </Tooltip>
     </div>
-    <RouterLink
+    <PreloadLink
       v-for="item in OBSERVE_ITEMS"
       :key="item.label"
       :to="item.to"
+      :route-name="item.routeName"
       :title="item.label"
       :aria-label="item.label"
       :aria-current="isActive(item) ? 'page' : undefined"
@@ -181,6 +190,6 @@ function handleToggle(): void {
         "
         >{{ item.label }}</span
       >
-    </RouterLink>
+    </PreloadLink>
   </nav>
 </template>
