@@ -5,6 +5,7 @@ import { cn } from "@/shared/utils/cn";
 
 defineProps<{
   title: string;
+  subtitle?: string;
 }>();
 
 const slots = useSlots();
@@ -26,6 +27,12 @@ const hasActions = computed(() => slots.actions !== undefined);
       >
         {{ title }}
       </h1>
+      <p
+        v-if="subtitle"
+        class="text-tertiary mt-0.5 text-xs leading-relaxed text-pretty"
+      >
+        {{ subtitle }}
+      </p>
     </div>
     <div v-if="hasActions" class="flex flex-wrap items-center gap-2">
       <slot name="actions" />
