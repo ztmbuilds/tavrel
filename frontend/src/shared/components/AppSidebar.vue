@@ -77,7 +77,7 @@ function isActive(item: NavItem): boolean {
 <template>
   <nav
     aria-label="Primary"
-    class="border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-px border-r px-2 py-2.5 max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5"
+    class="border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-px overflow-y-auto border-r px-2 py-2.5 max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5"
   >
     <div
       class="text-tertiary px-2 pt-2.5 pb-1 text-[0.625rem] font-semibold tracking-[0.08em] uppercase max-[56.25rem]:hidden"
