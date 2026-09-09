@@ -82,11 +82,11 @@ const rowLabel = computed(
         <span class="truncate">{{ span.service }}</span>
         <button
           type="button"
-          class="text-tertiary hover:text-secondary shrink-0 cursor-pointer border-none bg-transparent p-0 font-mono text-xs tabular-nums hover:underline hover:underline-offset-2"
+          class="text-tertiary hover:text-signal shrink-0 cursor-pointer border-none bg-transparent p-0 font-mono text-xs tabular-nums hover:underline hover:underline-offset-2"
           :title="`Open trace ${span.traceId}`"
           @click.stop="$emit('openTrace', span.traceId)"
         >
-          trace:{{ span.traceId.slice(0, 8) }}
+          trace:{{ span.traceId }}
         </button>
       </div>
     </div>
