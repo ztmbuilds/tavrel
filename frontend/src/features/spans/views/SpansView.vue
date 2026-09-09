@@ -313,7 +313,7 @@ function openTrace(traceId: string): void {
         v-model="filters.service"
         label="Service"
         :options="serviceOptions"
-        trigger-class="max-w-[9.375rem]"
+        trigger-class="max-w-64"
         @update:model-value="resetPage"
       />
     </FilterBar>
