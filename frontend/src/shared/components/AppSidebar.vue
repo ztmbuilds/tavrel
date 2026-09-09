@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 
 import { cn } from "@/shared/utils/cn";
+import Tooltip from "@/shared/components/ui/Tooltip.vue";
+import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
+import chevronRightIcon from "@/assets/icons/chevron-right.svg";
 import dashboardIcon from "@/assets/icons/dashboard.svg";
 import dashboardActiveIcon from "@/assets/icons/dashboard-active.svg";
 import logsIcon from "@/assets/icons/logs.svg";
@@ -63,26 +66,90 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
 const ITEM_CLASSES =
   "flex h-[1.875rem] w-auto cursor-pointer items-center justify-start gap-2 rounded-[0.3125rem] px-2 text-[0.78125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out hover:bg-hover hover:text-secondary max-[56.25rem]:w-8 max-[56.25rem]:justify-center max-[56.25rem]:px-0";
 
+const COLLAPSED_ITEM_CLASSES = "w-8 justify-center px-0";
+
 const ACTIVE_CLASSES =
   "bg-signal-muted text-signal hover:bg-signal-muted hover:text-signal";
 
+const STORAGE_KEY = "app-sidebar-collapsed";
+
+function getInitialCollapsed(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 const route = useRoute();
 const activeRouteName = computed(() => String(route.name ?? ""));
+const isCollapsed = ref(getInitialCollapsed());
+const toggleIcon = computed(() =>
+  isCollapsed.value ? chevronRightIcon : chevronLeftIcon,
+);
+const toggleLabel = computed(() =>
+  isCollapsed.value ? "Expand sidebar" : "Collapse sidebar",
+);
+const tooltipText = computed(() => (isCollapsed.value ? "Expand" : "Collapse"));
 
 function isActive(item: NavItem): boolean {
   return item.match.includes(activeRouteName.value);
+}
+
+function handleToggle(): void {
+  isCollapsed.value = !isCollapsed.value;
+  try {
+    localStorage.setItem(STORAGE_KEY, isCollapsed.value ? "1" : "0");
+  } catch {
+    return;
+  }
 }
 </script>
 
 <template>
   <nav
     aria-label="Primary"
-    class="border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-px overflow-y-auto border-r px-2 py-2.5 max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5"
+    :class="
+      cn(
+        'border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-px overflow-y-auto border-r px-2 py-2.5 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5',
+        isCollapsed && 'w-13 items-center px-1.5',
+      )
+    "
   >
     <div
-      class="text-tertiary px-2 pt-2.5 pb-1 text-[0.625rem] font-semibold tracking-[0.08em] uppercase max-[56.25rem]:hidden"
+      :class="
+        cn(
+          'flex items-center justify-between px-2 pt-2.5 pb-1 max-[56.25rem]:hidden',
+          isCollapsed && 'justify-center px-0',
+        )
+      "
     >
-      Observe
+      <div
+        :class="
+          cn(
+            'text-tertiary px-2 text-[0.625rem] font-semibold tracking-[0.08em] uppercase',
+            isCollapsed && 'hidden',
+          )
+        "
+      >
+        Observe
+      </div>
+      <Tooltip :label="tooltipText">
+        <button
+          type="button"
+          :aria-expanded="!isCollapsed"
+          :aria-label="toggleLabel"
+          class="text-tertiary hover:bg-hover hover:text-secondary flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
+          @click="handleToggle"
+        >
+          <img
+            :src="toggleIcon"
+            alt=""
+            aria-hidden="true"
+            class="size-4 shrink-0"
+          />
+        </button>
+      </Tooltip>
     </div>
     <RouterLink
       v-for="item in OBSERVE_ITEMS"
@@ -91,7 +158,13 @@ function isActive(item: NavItem): boolean {
       :title="item.label"
       :aria-label="item.label"
       :aria-current="isActive(item) ? 'page' : undefined"
-      :class="cn(ITEM_CLASSES, isActive(item) && ACTIVE_CLASSES)"
+      :class="
+        cn(
+          ITEM_CLASSES,
+          isCollapsed && COLLAPSED_ITEM_CLASSES,
+          isActive(item) && ACTIVE_CLASSES,
+        )
+      "
     >
       <img
         :src="isActive(item) ? item.activeIcon : item.icon"
@@ -100,7 +173,12 @@ function isActive(item: NavItem): boolean {
         class="size-3.75 shrink-0"
       />
       <span
-        class="overflow-hidden text-ellipsis whitespace-nowrap max-[56.25rem]:hidden"
+        :class="
+          cn(
+            'overflow-hidden text-ellipsis whitespace-nowrap max-[56.25rem]:hidden',
+            isCollapsed && 'hidden',
+          )
+        "
         >{{ item.label }}</span
       >
     </RouterLink>
