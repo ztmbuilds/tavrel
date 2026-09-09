@@ -267,10 +267,7 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 
 	page := Page[Trace, ListTracesCursor]{}
 
-	limit := options.Limit
-	if limit <= 0 {
-		limit = 20
-	}
+	limit, fetchLimit := resolvePagingLimits(options.Limit, 20)
 	if options.Cursor != nil {
 		ns := options.Cursor.StartTime.UnixNano()
 		startTimeNS = &ns
@@ -278,12 +275,12 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 	}
 
 	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
-	 traces WHERE (?1 IS NULL) OR (start_time_ns,trace_id) < (?1, ?2) ORDER BY start_time_ns DESC, trace_id DESC  LIMIT (?3 + 1) `
+	 traces WHERE (?1 IS NULL) OR (start_time_ns,trace_id) < (?1, ?2) ORDER BY start_time_ns DESC, trace_id DESC  LIMIT (?3) `
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		startTimeNS,
 		traceID,
-		limit)
+		fetchLimit)
 
 	if err != nil {
 		return page, err
@@ -324,15 +321,15 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		return page, err
 	}
 
-	items, hasMore, extra := paginate(traces, limit)
+	items, hasMore, last := paginate(traces, limit)
 
 	page.HasMore = hasMore
 	page.Items = items
 
-	if extra != nil {
+	if last != nil {
 		page.NextCursor = &ListTracesCursor{
-			StartTime: extra.StartTime,
-			TraceID:   extra.TraceID,
+			StartTime: last.StartTime,
+			TraceID:   last.TraceID,
 		}
 	}
 
@@ -347,11 +344,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 	page := Page[Log, ListLogsCursor]{}
 
-	limit := options.Limit
-
-	if limit <= 0 {
-		limit = 50
-	}
+	limit, fetchLimit := resolvePagingLimits(options.Limit, 50)
 
 	if options.Cursor != nil {
 		id = &options.Cursor.ID
@@ -359,12 +352,12 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		timeStampNs = &ns
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE (?1 IS NULL) OR (timestamp_ns,id) < (?1,?2) ORDER BY timestamp_ns DESC, id DESC LIMIT (?3 + 1)`
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE (?1 IS NULL) OR (timestamp_ns,id) < (?1,?2) ORDER BY timestamp_ns DESC, id DESC LIMIT (?3)`
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		timeStampNs,
 		id,
-		limit)
+		fetchLimit)
 
 	if err != nil {
 		return page, err
@@ -418,15 +411,15 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		return page, err
 	}
 
-	items, hasMore, extra := paginate(logs, limit)
+	items, hasMore, last := paginate(logs, limit)
 
 	page.HasMore = hasMore
 	page.Items = items
 
-	if extra != nil {
+	if last != nil {
 		page.NextCursor = &ListLogsCursor{
-			ID:        extra.ID,
-			TimeStamp: extra.Timestamp,
+			ID:        last.ID,
+			TimeStamp: last.Timestamp,
 		}
 
 	}
@@ -437,15 +430,10 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 
 	var startTimeNS *int64
 	var spanID *string
-	var traceID string
 
 	page := Page[Span, ListSpansCursor]{}
 
-	limit := options.Limit
-
-	if limit <= 0 && limit != -1 {
-		limit = 50
-	}
+	limit, fetchLimit := resolvePagingLimits(options.Limit, 50)
 
 	if options.Cursor != nil {
 		spanID = &options.Cursor.SpanID
@@ -453,20 +441,59 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		startTimeNS = &ns
 	}
 
-	if options.TraceID != "" {
-		traceID = options.TraceID
+	var statusCode *int32
+	if options.Status != nil {
+		code := int32(*options.Status)
+		statusCode = &code
+	}
+
+	var kind *int32
+	if options.Kind != nil {
+		k := int32(*options.Kind)
+		kind = &k
+	}
+
+	var startNS *int64
+	if options.Start != nil {
+		ns := options.Start.UnixNano()
+		startNS = &ns
+	}
+
+	var endNS *int64
+	if options.End != nil {
+		ns := options.End.UnixNano()
+		endNS = &ns
+	}
+
+	likePattern := ""
+	if options.Search != "" {
+		likePattern = "%" + escapeLike(options.Search) + "%"
 	}
 
 	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
 	FROM spans
-	WHERE ((?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2)) AND (?4 = 
-	'' OR trace_id = ?4) ORDER BY start_time_ns DESC , span_id DESC LIMIT (?3)`
+	WHERE ((?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2))
+	AND (?3 = '' OR trace_id = ?3)
+	AND (?4 = '' OR name LIKE ?5 ESCAPE '\' COLLATE NOCASE)
+	AND (?6 IS NULL OR status_code = ?6)
+	AND (?7 IS NULL OR kind = ?7)
+	AND (?8 = '' OR service = ?8)
+	AND (?9 IS NULL OR start_time_ns >= ?9)
+	AND (?10 IS NULL OR start_time_ns <= ?10)
+	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?11)`
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		startTimeNS,
 		spanID,
-		limit,
-		traceID)
+		options.TraceID,
+		options.Search,
+		likePattern,
+		statusCode,
+		kind,
+		options.Service,
+		startNS,
+		endNS,
+		fetchLimit)
 
 	if err != nil {
 		return page, err
@@ -504,7 +531,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		}
 		s.StartTime = time.Unix(0, startTimeNS)
 		s.EndTime = time.Unix(0, endTimeNS)
-		s.Kind = toSpanKind(kind)
+		s.Kind = ToSpanKind(kind)
 		s.StatusCode = toStatusCode(statusCode)
 
 		if err := decodeJson(attributes, &s.Attributes); err != nil {
@@ -523,17 +550,64 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		return page, err
 	}
 
-	items, hasMore, extra := paginate(spans, limit)
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM spans
+	WHERE (?1 = '' OR trace_id = ?1)
+	AND (?2 = '' OR name LIKE ?3 ESCAPE '\' COLLATE NOCASE)
+	AND (?4 IS NULL OR status_code = ?4)
+	AND (?5 IS NULL OR kind = ?5)
+	AND (?6 = '' OR service = ?6)
+	AND (?7 IS NULL OR start_time_ns >= ?7)
+	AND (?8 IS NULL OR start_time_ns <= ?8)`
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery,
+		options.TraceID,
+		options.Search,
+		likePattern,
+		statusCode,
+		kind,
+		options.Service,
+		startNS,
+		endNS).Scan(&total); err != nil {
+		return page, err
+	}
+	page.Total = &total
+
+	items, hasMore, last := paginate(spans, limit)
 	page.HasMore = hasMore
 	page.Items = items
 
-	if extra != nil {
+	if last != nil {
 		page.NextCursor = &ListSpansCursor{
-			StartTime: extra.StartTime,
-			SpanID:    extra.SpanID,
+			StartTime: last.StartTime,
+			SpanID:    last.SpanID,
 		}
 	}
 	return page, nil
+}
+
+func (s *SQLiteStore) ListServices(ctx context.Context) ([]string, error) {
+	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT service FROM spans ORDER BY service`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	services := []string{}
+
+	for rows.Next() {
+		var service string
+		if err := rows.Scan(&service); err != nil {
+			return nil, err
+		}
+		services = append(services, service)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return services, nil
 }
 
 func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {
@@ -653,4 +727,18 @@ func decodeJson[T any](b []byte, target *T) error {
 	dec.UseNumber()
 	return dec.Decode(&target)
 
+}
+
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+func resolvePagingLimits(requested, fallback int) (limit, fetch int) {
+	limit, fetch = requested, requested
+	if limit <= 0 && limit != -1 {
+		limit, fetch = fallback, fallback+1
+	} else if limit >= 0 {
+		fetch = limit + 1
+	}
+	return limit, fetch
 }
