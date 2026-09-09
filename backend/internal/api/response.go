@@ -13,6 +13,7 @@ type apiError struct {
 }
 type Meta struct {
 	NextCursor *string `json:"nextCursor"`
+	Total      *int64  `json:"total,omitempty"`
 }
 
 type Response struct {

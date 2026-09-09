@@ -34,7 +34,7 @@ func newListOptions[C any](r *http.Request) store.ListOptions[C] {
 }
 
 func writeListResponse[T, C any](w http.ResponseWriter, message string, page store.Page[T, C]) {
-	meta := &Meta{}
+	meta := &Meta{Total: page.Total}
 	if cursor, ok := encodeCursor(page.NextCursor); ok {
 		meta.NextCursor = &cursor
 	}
