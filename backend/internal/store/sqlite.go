@@ -441,10 +441,20 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		startTimeNS = &ns
 	}
 
-	var statusCode *int32
+	var statusEquals *int32
+	var statusNotEquals *int32
 	if options.Status != nil {
-		code := int32(*options.Status)
-		statusCode = &code
+		switch *options.Status {
+		case StatusCodeOk:
+			ne := int32(StatusCodeError)
+			statusNotEquals = &ne
+		case StatusCodeError:
+			eq := int32(StatusCodeError)
+			statusEquals = &eq
+		default:
+			eq := int32(*options.Status)
+			statusEquals = &eq
+		}
 	}
 
 	var kind *int32
@@ -476,11 +486,12 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	AND (?3 = '' OR trace_id = ?3)
 	AND (?4 = '' OR name LIKE ?5 ESCAPE '\' COLLATE NOCASE)
 	AND (?6 IS NULL OR status_code = ?6)
-	AND (?7 IS NULL OR kind = ?7)
-	AND (?8 = '' OR service = ?8)
-	AND (?9 IS NULL OR start_time_ns >= ?9)
-	AND (?10 IS NULL OR start_time_ns <= ?10)
-	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?11)`
+	AND (?7 IS NULL OR status_code != ?7)
+	AND (?8 IS NULL OR kind = ?8)
+	AND (?9 = '' OR service = ?9)
+	AND (?10 IS NULL OR start_time_ns >= ?10)
+	AND (?11 IS NULL OR start_time_ns <= ?11)
+	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?12)`
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		startTimeNS,
@@ -488,7 +499,8 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		options.TraceID,
 		options.Search,
 		likePattern,
-		statusCode,
+		statusEquals,
+		statusNotEquals,
 		kind,
 		options.Service,
 		startNS,
@@ -555,16 +567,18 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	WHERE (?1 = '' OR trace_id = ?1)
 	AND (?2 = '' OR name LIKE ?3 ESCAPE '\' COLLATE NOCASE)
 	AND (?4 IS NULL OR status_code = ?4)
-	AND (?5 IS NULL OR kind = ?5)
-	AND (?6 = '' OR service = ?6)
-	AND (?7 IS NULL OR start_time_ns >= ?7)
-	AND (?8 IS NULL OR start_time_ns <= ?8)`
+	AND (?5 IS NULL OR status_code != ?5)
+	AND (?6 IS NULL OR kind = ?6)
+	AND (?7 = '' OR service = ?7)
+	AND (?8 IS NULL OR start_time_ns >= ?8)
+	AND (?9 IS NULL OR start_time_ns <= ?9)`
 
 	if err := s.readDB.QueryRowContext(ctx, countQuery,
 		options.TraceID,
 		options.Search,
 		likePattern,
-		statusCode,
+		statusEquals,
+		statusNotEquals,
 		kind,
 		options.Service,
 		startNS,
