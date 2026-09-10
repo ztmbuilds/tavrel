@@ -6,8 +6,6 @@ import PreloadLink from "@/shared/components/PreloadLink.vue";
 
 import { cn } from "@/shared/utils/cn";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
-import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
-import chevronRightIcon from "@/assets/icons/chevron-right.svg";
 import dashboardIcon from "@/assets/icons/dashboard.svg";
 import dashboardActiveIcon from "@/assets/icons/dashboard-active.svg";
 import logsIcon from "@/assets/icons/logs.svg";
@@ -72,7 +70,7 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
 ];
 
 const ITEM_CLASSES =
-  "flex h-[1.875rem] w-auto cursor-pointer items-center justify-start gap-2 rounded-[0.3125rem] px-2 text-[0.78125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out hover:bg-hover hover:text-secondary max-[56.25rem]:w-8 max-[56.25rem]:justify-center max-[56.25rem]:px-0";
+  "flex h-[1.875rem] w-auto cursor-pointer items-center justify-start gap-2 rounded-[0.3125rem] px-2 text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out hover:bg-hover hover:text-secondary max-[56.25rem]:w-8 max-[56.25rem]:justify-center max-[56.25rem]:px-0";
 
 const COLLAPSED_ITEM_CLASSES = "w-8 justify-center px-0";
 
@@ -92,9 +90,6 @@ function getInitialCollapsed(): boolean {
 const route = useRoute();
 const activeRouteName = computed(() => String(route.name ?? ""));
 const isCollapsed = ref(getInitialCollapsed());
-const toggleIcon = computed(() =>
-  isCollapsed.value ? chevronRightIcon : chevronLeftIcon,
-);
 const toggleLabel = computed(() =>
   isCollapsed.value ? "Expand sidebar" : "Collapse sidebar",
 );
@@ -119,7 +114,7 @@ function handleToggle(): void {
     aria-label="Primary"
     :class="
       cn(
-        'border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-px overflow-y-auto border-r px-2 py-2.5 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5',
+        'border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-0.5 overflow-y-auto border-r pt-2 pr-4 pb-4 pl-2 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5',
         isCollapsed && 'w-13 items-center px-1.5',
       )
     "
@@ -127,21 +122,11 @@ function handleToggle(): void {
     <div
       :class="
         cn(
-          'flex items-center justify-between px-2 pt-2.5 pb-1 max-[56.25rem]:hidden',
+          'flex items-center justify-end pb-1 max-[56.25rem]:hidden',
           isCollapsed && 'justify-center px-0',
         )
       "
     >
-      <div
-        :class="
-          cn(
-            'text-tertiary px-2 text-[0.625rem] font-semibold tracking-[0.08em] uppercase',
-            isCollapsed && 'hidden',
-          )
-        "
-      >
-        Observe
-      </div>
       <Tooltip :label="tooltipText">
         <button
           type="button"
@@ -150,15 +135,33 @@ function handleToggle(): void {
           class="text-tertiary hover:bg-hover hover:text-secondary flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
           @click="handleToggle"
         >
-          <img
-            :src="toggleIcon"
-            alt=""
-            aria-hidden="true"
+          <!--
+            Panel icon instead of a bare chevron: it depicts the sidebar
+            itself (rail + divider), so its meaning doesn't depend on
+            context the way a chevron (which usually means "back") does.
+            The small arrow shows which way the panel will move. Uses
+            currentColor so it inherits the button's hover/text states
+            automatically -- no separate active-state asset needed.
+          -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
             class="size-4 shrink-0"
-          />
+            aria-hidden="true"
+          >
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M9 3v18" />
+            <path v-if="isCollapsed" d="m14 9 3 3-3 3" />
+            <path v-else d="m16 15-3-3 3-3" />
+          </svg>
         </button>
       </Tooltip>
     </div>
+
     <PreloadLink
       v-for="item in OBSERVE_ITEMS"
       :key="item.label"
