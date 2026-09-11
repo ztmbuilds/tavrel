@@ -34,7 +34,7 @@ import {
   dayPresetRange,
   matchDayPreset,
 } from "@/shared/utils/date-range";
-import { MS_PER_MINUTE } from "@/shared/utils/time";
+import { formatCivilDateTime, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: TraceStatusFilter;
@@ -242,6 +242,27 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Root operation",
       value: filters.value.search,
     });
+  if (filters.value.start !== undefined || filters.value.end !== undefined) {
+    const preset = TIME_PRESETS.find(
+      (item) => item.value === activePreset.value,
+    );
+    const day = DAY_PRESETS.find((item) => item.value === activePreset.value);
+    let value: string;
+    if (preset !== undefined) value = `Last ${preset.label}`;
+    else if (day !== undefined) value = day.label;
+    else {
+      const startLabel =
+        filters.value.start === undefined
+          ? "…"
+          : formatCivilDateTime(filters.value.start);
+      const endLabel =
+        filters.value.end === undefined
+          ? "…"
+          : formatCivilDateTime(filters.value.end);
+      value = `${startLabel} – ${endLabel}`;
+    }
+    chips.push({ key: "timerange", label: "Time", value });
+  }
   return chips;
 });
 
@@ -358,10 +379,24 @@ function clearFacets(): void {
   resetPage();
 }
 
+function clearAllFilters(): void {
+  searchInput.value = "";
+  debouncedQuery.value = "";
+  filters.value = {
+    search: "",
+    status: "all",
+    service: "all",
+    environment: "all",
+    order: filters.value.order,
+  };
+  resetPage();
+}
+
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: "all" };
+  else if (key === "timerange") setTimeRange(undefined, undefined);
   else if (key === "environment")
     filters.value = { ...filters.value, environment: "all" };
   else if (key === "search") {
@@ -493,7 +528,7 @@ function openTrace(traceId: string): void {
         :title="emptyTitle"
         :message="emptyMessage"
         :action-label="emptyActionLabel"
-        @clear="clearFacets"
+        @clear="clearAllFilters"
       />
       <template v-else>
         <div

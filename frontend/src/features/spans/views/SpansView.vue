@@ -31,7 +31,7 @@ import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import { formatCount } from "@/shared/utils/format";
-import { MS_PER_MINUTE } from "@/shared/utils/time";
+import { formatCivilDateTime, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: SpanStatusFilter;
@@ -201,6 +201,27 @@ const activeChips = computed((): ActiveFilterChip[] => {
     });
   if (filters.value.search !== "")
     chips.push({ key: "search", label: "Name", value: filters.value.search });
+  if (filters.value.start !== undefined || filters.value.end !== undefined) {
+    const preset = TIME_PRESETS.find(
+      (item) => item.value === activePreset.value,
+    );
+    const day = DAY_PRESETS.find((item) => item.value === activePreset.value);
+    let value: string;
+    if (preset !== undefined) value = `Last ${preset.label}`;
+    else if (day !== undefined) value = day.label;
+    else {
+      const startLabel =
+        filters.value.start === undefined
+          ? "…"
+          : formatCivilDateTime(filters.value.start);
+      const endLabel =
+        filters.value.end === undefined
+          ? "…"
+          : formatCivilDateTime(filters.value.end);
+      value = `${startLabel} – ${endLabel}`;
+    }
+    chips.push({ key: "timerange", label: "Time", value });
+  }
   return chips;
 });
 
@@ -300,10 +321,23 @@ function clearFacets(): void {
   resetPage();
 }
 
+function clearAllFilters(): void {
+  searchInput.value = "";
+  debouncedQuery.value = "";
+  filters.value = {
+    search: "",
+    status: "all",
+    service: "all",
+  };
+  resetPage();
+}
+
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: "all" };
+  else if (key === "timerange")
+    setTimeRange(undefined, undefined);
   else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";
@@ -425,7 +459,7 @@ function openTrace(traceId: string): void {
         :title="emptyTitle"
         :message="emptyMessage"
         :action-label="emptyActionLabel"
-        @clear="clearFacets"
+        @clear="clearAllFilters"
       />
       <template v-else>
         <div
