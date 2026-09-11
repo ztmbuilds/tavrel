@@ -19,7 +19,6 @@ import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
 import Pager from "@/shared/components/Pager.vue";
 import PageHead from "@/shared/components/PageHead.vue";
-import ResultStrip from "@/shared/components/ResultStrip.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import Select from "@/shared/components/ui/Select.vue";
@@ -317,11 +316,6 @@ function openTrace(traceId: string): void {
         @update:model-value="resetPage"
       />
     </FilterBar>
-    <ResultStrip
-      v-if="!isPending && !isError"
-      :count="total ?? spans.length"
-      noun="span"
-    />
     <div
       id="span-list"
       class="min-h-0 flex-1 overflow-y-auto"
@@ -392,6 +386,7 @@ function openTrace(traceId: string): void {
     <Pager
       :from="showingFrom"
       :to="showingTo"
+      :total="total"
       :has-prev="hasPrev"
       :has-next="hasNext"
       item-name="spans"

@@ -5,6 +5,7 @@ import chevronRightIcon from "@/assets/icons/chevron-right.svg";
 defineProps<{
   from: number;
   to: number;
+  total?: number | null;
   hasPrev: boolean;
   hasNext: boolean;
   itemName: string;
@@ -22,7 +23,10 @@ defineEmits<{
     :aria-label="`${itemName} pages`"
   >
     <span class="text-tertiary text-xs tabular-nums"
-      >Showing {{ from }}–{{ to }}</span
+      >Showing {{ from }}–{{ to
+      }}<template v-if="total !== undefined && total !== null">
+        of {{ total }} {{ itemName }}</template
+      ></span
     >
     <button
       type="button"
