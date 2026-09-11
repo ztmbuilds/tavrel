@@ -182,10 +182,20 @@ const filtersActive = computed(
     filters.value.end !== undefined,
 );
 
+const emptyTitle = computed(() =>
+  filtersActive.value ? "No spans found" : "No spans recorded yet",
+);
+
 const emptyMessage = computed(() =>
-  filters.value.search !== ""
-    ? `No spans match “${filters.value.search}” with these filters. Try a shorter name or widen the time range.`
-    : "No spans match these filters. Try widening the time range or clearing a filter.",
+  filtersActive.value
+    ? filters.value.search !== ""
+      ? `No spans match “${filters.value.search}” with these filters. Try a shorter name or widen the time range.`
+      : "No spans match these filters. Try widening the time range or clearing a filter."
+    : undefined,
+);
+
+const emptyActionLabel = computed(() =>
+  filtersActive.value ? "Clear all filters" : undefined,
 );
 
 const maxDurationMs = computed(() => {
@@ -346,9 +356,9 @@ function openTrace(traceId: string): void {
       </div>
       <EmptyState
         v-else-if="spans.length === 0"
-        title="No spans found"
+        :title="emptyTitle"
         :message="emptyMessage"
-        action-label="Clear all filters"
+        :action-label="emptyActionLabel"
         @clear="clearFilters"
       />
       <template v-else>

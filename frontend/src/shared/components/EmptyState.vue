@@ -3,8 +3,8 @@ import Button from "@/shared/components/ui/Button.vue";
 
 defineProps<{
   title: string;
-  message?: string;
-  actionLabel?: string;
+  message?: string | undefined;
+  actionLabel?: string | undefined;
 }>();
 
 defineEmits<{
