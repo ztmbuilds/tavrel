@@ -16,6 +16,8 @@ import spansIcon from "@/assets/icons/spans.svg";
 import spansActiveIcon from "@/assets/icons/spans-active.svg";
 import tracesIcon from "@/assets/icons/traces.svg";
 import tracesActiveIcon from "@/assets/icons/traces-active.svg";
+import sidebarCollapseIcon from "@/assets/icons/sidebar-collapse.svg";
+import sidebarExpandIcon from "@/assets/icons/sidebar-expand.svg";
 
 interface NavItem {
   label: string;
@@ -132,32 +134,15 @@ function handleToggle(): void {
           type="button"
           :aria-expanded="!isCollapsed"
           :aria-label="toggleLabel"
-          class="text-tertiary hover:bg-hover hover:text-secondary flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
+          class="hover:bg-hover flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
           @click="handleToggle"
         >
-          <!--
-            Panel icon instead of a bare chevron: it depicts the sidebar
-            itself (rail + divider), so its meaning doesn't depend on
-            context the way a chevron (which usually means "back") does.
-            The small arrow shows which way the panel will move. Uses
-            currentColor so it inherits the button's hover/text states
-            automatically -- no separate active-state asset needed.
-          -->
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="size-4 shrink-0"
+          <img
+            :src="isCollapsed ? sidebarExpandIcon : sidebarCollapseIcon"
+            alt=""
             aria-hidden="true"
-          >
-            <rect width="18" height="18" x="3" y="3" rx="2" />
-            <path d="M9 3v18" />
-            <path v-if="isCollapsed" d="m14 9 3 3-3 3" />
-            <path v-else d="m16 15-3-3 3-3" />
-          </svg>
+            class="size-4 shrink-0"
+          />
         </button>
       </Tooltip>
     </div>
