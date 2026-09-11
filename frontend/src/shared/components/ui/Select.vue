@@ -64,7 +64,7 @@ const CONTENT_SIDE_OFFSET = 6;
             v-for="option in props.options"
             :key="option.value"
             :value="option.value"
-            class="flex cursor-pointer items-center rounded px-2 py-1.5 font-sans text-xs text-secondary outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover data-[highlighted]:text-primary data-[state=checked]:text-signal"
+            class="flex cursor-pointer items-center rounded px-2 py-1.5 font-sans text-xs text-secondary outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover data-[highlighted]:text-primary data-[state=checked]:bg-active data-[state=checked]:text-ink data-[highlighted]:data-[state=checked]:bg-active data-[highlighted]:data-[state=checked]:text-ink"
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
           </SelectItem>

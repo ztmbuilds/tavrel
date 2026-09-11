@@ -2,31 +2,33 @@
 
 @theme {
   --font-sans:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --color-canvas: #0f0f12;
-  --color-panel: #18181c;
-  --color-surface: #1f1f24;
-  --color-raised: #26262c;
-  --color-hover: #2c2c33;
-  --color-subtle: #2a2a31;
-  --color-default: #38383f;
-  --color-strong: #4b4b54;
-  --color-tertiary: #8a8a93;
-  --color-secondary: #b4b4bc;
-  --color-primary: #dedede;
-  --color-heading: #f3f3f4;
+  --color-canvas: #080b10;
+  --color-panel: #0e141b;
+  --color-surface: #141b23;
+  --color-raised: #1a222b;
+  --color-hover: #2a323a;
+  --color-active: #fffffa;
+  --color-subtle: #1c242d;
+  --color-default: #2b3540;
+  --color-strong: #47535f;
+  --color-tertiary: #7c8a96;
+  --color-secondary: #a8b4bd;
+  --color-primary: #d8e0e5;
+  --color-heading: #f5f7f8;
 
-  --color-signal: #f0a868;
-  --color-signal-muted: #5c4a38;
-  --color-signal-hover: #f5bd8a;
-  --color-ink: #18181c;
+  --color-signal: #fffffa;
+  --color-signal-muted: #2a323a;
+  --color-signal-hover: #e2e6e2;
+  --color-ink: #0e141b;
 
-  --color-error: #e5695a;
-  --color-warn: #e0b454;
-  --color-ok: #6fb88a;
-  --color-info: #7c9cd6;
+  --color-error: #ef5b6f;
+  --color-warn: #e3b158;
+  --color-ok: #5cc98a;
+  --color-info: #5b9fe0;
 }
 
 @layer base {

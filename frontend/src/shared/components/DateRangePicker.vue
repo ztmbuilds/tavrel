@@ -289,7 +289,7 @@ function cancelCustom(): void {
             cn(
               'border-subtle bg-surface text-secondary hover:text-primary min-h-[1.875rem] cursor-pointer rounded-md border px-1 py-1.5 font-sans text-xs transition-colors duration-120 ease-out',
               active === preset.value &&
-                'bg-signal-muted text-signal border-transparent',
+                'bg-active text-ink border-transparent hover:bg-active hover:text-ink',
             )
           "
           @click="selectPreset(preset.value)"
@@ -369,7 +369,7 @@ function cancelCustom(): void {
                   cn(
                     'text-secondary hover:bg-hover hover:text-primary flex size-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 font-sans text-xs transition-colors duration-120 ease-out',
                     isInRangeDate(date) && 'bg-signal-muted/60 text-primary',
-                    isSelectedDate(date) && 'bg-signal-muted text-signal',
+                    isSelectedDate(date) && 'bg-active text-ink hover:bg-active hover:text-ink',
                     isTodayDate(date) &&
                       !isSelectedDate(date) &&
                       'ring-strong ring-1 ring-inset',

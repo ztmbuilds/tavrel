@@ -77,7 +77,7 @@ const ITEM_CLASSES =
 const COLLAPSED_ITEM_CLASSES = "w-8 justify-center px-0";
 
 const ACTIVE_CLASSES =
-  "bg-signal-muted text-signal hover:bg-signal-muted hover:text-signal";
+  "bg-active text-ink hover:bg-active hover:text-ink";
 
 const STORAGE_KEY = "app-sidebar-collapsed";
 
