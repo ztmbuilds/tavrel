@@ -2,6 +2,8 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import refreshIcon from "@/assets/icons/refresh.svg";
+
 import SpanRow from "@/features/spans/components/SpanRow.vue";
 import { SPANS_PAGE_SIZE } from "@/features/spans/api";
 import { useServicesQuery, useSpansQuery } from "@/features/spans/queries";
@@ -408,6 +410,13 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
+          <img
+            v-if="isFetching && !isPending"
+            :src="refreshIcon"
+            alt=""
+            aria-hidden="true"
+            class="size-3.5 shrink-0 animate-spin opacity-70"
+          />
           <span
             v-if="resultCount !== null"
             class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
@@ -424,7 +433,6 @@ function openTrace(traceId: string): void {
       role="list"
       aria-label="Spans"
       tabindex="-1"
-      :class="isFetching && 'opacity-60'"
     >
       <div
         v-if="isPending"

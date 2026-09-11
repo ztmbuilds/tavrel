@@ -3,6 +3,7 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg";
+import refreshIcon from "@/assets/icons/refresh.svg";
 
 import TraceRow from "@/features/traces/components/TraceRow.vue";
 import { TRACES_PAGE_SIZE } from "@/features/traces/api";
@@ -477,6 +478,13 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
+          <img
+            v-if="isFetching && !isPending"
+            :src="refreshIcon"
+            alt=""
+            aria-hidden="true"
+            class="size-3.5 shrink-0 animate-spin opacity-70"
+          />
           <span
             v-if="resultCount !== null"
             class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
@@ -493,7 +501,6 @@ function openTrace(traceId: string): void {
       role="list"
       aria-label="Traces"
       tabindex="-1"
-      :class="isFetching && 'opacity-60'"
     >
       <div
         v-if="isPending"
