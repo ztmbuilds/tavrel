@@ -47,7 +47,24 @@ type ListTracesOptions struct {
 	End         *time.Time
 	Ascending   bool
 }
-type ListLogsOptions = ListOptions[ListLogsCursor]
+type ListLogsOptions struct {
+	ListOptions[ListLogsCursor]
+	Search  string
+	Level   *LogLevel
+	Service string
+	TraceID string
+	SpanID  string
+	Start   *time.Time
+	End     *time.Time
+}
+
+type LogLevel string
+
+const (
+	LogLevelInfo  LogLevel = "info"
+	LogLevelWarn  LogLevel = "warn"
+	LogLevelError LogLevel = "error"
+)
 type ListSpansOptions struct {
 	ListOptions[ListSpansCursor]
 	TraceID string

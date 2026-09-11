@@ -19,6 +19,12 @@ function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
 
+const MS_PAD_LENGTH = 3;
+
+function pad3(value: number): string {
+  return String(value).padStart(MS_PAD_LENGTH, "0");
+}
+
 export function civilToIso(date: CivilDate, time: CivilTime): string {
   return new Date(
     date.year,
@@ -62,6 +68,23 @@ export function formatShortDateTime(iso: string): string {
       ? ""
       : `, ${parsed.getFullYear()}`;
   return `${month} ${parsed.getDate()}${yearSuffix}, ${formatShortTime(iso)}`;
+}
+
+export function formatShortDateTimeMs(iso: string): string {
+  const parsed = new Date(iso);
+  const month = parsed.toLocaleDateString("en-US", { month: "short" });
+  const yearSuffix =
+    parsed.getFullYear() === new Date().getFullYear()
+      ? ""
+      : `, ${parsed.getFullYear()}`;
+  const hour24 = parsed.getHours();
+  const suffix = hour24 < HOURS_PER_HALF_DAY ? "AM" : "PM";
+  const hour12 =
+    hour24 % HOURS_PER_HALF_DAY === 0
+      ? HOURS_PER_HALF_DAY
+      : hour24 % HOURS_PER_HALF_DAY;
+  const clock = `${hour12}:${pad2(parsed.getMinutes())}:${pad2(parsed.getSeconds())}.${pad3(parsed.getMilliseconds())}${suffix}`;
+  return `${month} ${parsed.getDate()}${yearSuffix}, ${clock}`;
 }
 
 export function formatDateTimeRange(

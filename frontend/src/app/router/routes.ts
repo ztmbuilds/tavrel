@@ -41,6 +41,12 @@ export const routes: readonly RouteRecordRaw[] = [
         path: "logs",
         name: "logs",
         component: () => import("@/features/logs/views/LogsView.vue"),
+        meta: {
+          preload: {
+            prefetchQueries: () =>
+              import("@/features/logs/queries").then((m) => m.prefetchLogs),
+          },
+        },
       },
       {
         path: "services",

@@ -409,7 +409,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 	page := Page[Log, ListLogsCursor]{}
 
-	limit, fetchLimit := resolvePagingLimits(options.Limit, 50)
+	limit, fetchLimit := resolvePagingLimits(options.Limit, 30)
 
 	if options.Cursor != nil {
 		id = &options.Cursor.ID
@@ -417,11 +417,52 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		timeStampNs = &ns
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE (?1 IS NULL) OR (timestamp_ns,id) < (?1,?2) ORDER BY timestamp_ns DESC, id DESC LIMIT (?3)`
+	var levelMin, levelMax *int32
+	if options.Level != nil {
+		switch *options.Level {
+		case LogLevelInfo:
+			max := int32(12)
+			levelMax = &max
+		case LogLevelWarn:
+			min, max := int32(13), int32(16)
+			levelMin, levelMax = &min, &max
+		case LogLevelError:
+			min := int32(17)
+			levelMin = &min
+		}
+	}
+
+	var startNS *int64
+	if options.Start != nil {
+		ns := options.Start.UnixNano()
+		startNS = &ns
+	}
+
+	var endNS *int64
+	if options.End != nil {
+		ns := options.End.UnixNano()
+		endNS = &ns
+	}
+
+	likePattern := ""
+	if options.Search != "" {
+		likePattern = "%" + escapeLike(options.Search) + "%"
+	}
+
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((?1 IS NULL) OR (timestamp_ns,id) < (?1,?2)) AND (?3 = '' OR body LIKE ?4 ESCAPE '\' COLLATE NOCASE) AND (?5 IS NULL OR severity_number >= ?5) AND (?6 IS NULL OR severity_number <= ?6) AND (?7 = '' OR service = ?7) AND (?8 = '' OR trace_id = ?8) AND (?9 = '' OR span_id = ?9) AND (?10 IS NULL OR timestamp_ns >= ?10) AND (?11 IS NULL OR timestamp_ns <= ?11) ORDER BY timestamp_ns DESC, id DESC LIMIT (?12)`
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		timeStampNs,
 		id,
+		options.Search,
+		likePattern,
+		levelMin,
+		levelMax,
+		options.Service,
+		options.TraceID,
+		options.SpanID,
+		startNS,
+		endNS,
 		fetchLimit)
 
 	if err != nil {
@@ -475,6 +516,31 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 	if err := rows.Err(); err != nil {
 		return page, err
 	}
+
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM logs
+	WHERE (?1 = '' OR body LIKE ?2 ESCAPE '\' COLLATE NOCASE)
+	AND (?3 IS NULL OR severity_number >= ?3)
+	AND (?4 IS NULL OR severity_number <= ?4)
+	AND (?5 = '' OR service = ?5)
+	AND (?6 = '' OR trace_id = ?6)
+	AND (?7 = '' OR span_id = ?7)
+	AND (?8 IS NULL OR timestamp_ns >= ?8)
+	AND (?9 IS NULL OR timestamp_ns <= ?9)`
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery,
+		options.Search,
+		likePattern,
+		levelMin,
+		levelMax,
+		options.Service,
+		options.TraceID,
+		options.SpanID,
+		startNS,
+		endNS).Scan(&total); err != nil {
+		return page, err
+	}
+	page.Total = &total
 
 	items, hasMore, last := paginate(logs, limit)
 

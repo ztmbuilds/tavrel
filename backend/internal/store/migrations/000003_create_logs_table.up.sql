@@ -14,3 +14,12 @@ CREATE TABLE IF NOT EXISTS logs (
 
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp_id ON logs (timestamp_ns,id);
 
+CREATE INDEX IF NOT EXISTS idx_logs_service_timestamp ON logs (service, timestamp_ns);
+
+CREATE INDEX IF NOT EXISTS idx_logs_trace_id_timestamp ON logs (trace_id, timestamp_ns);
+
+CREATE INDEX IF NOT EXISTS idx_logs_span_id ON logs (span_id);
+
+CREATE INDEX IF NOT EXISTS idx_logs_severity_number ON logs (severity_number);
+
+

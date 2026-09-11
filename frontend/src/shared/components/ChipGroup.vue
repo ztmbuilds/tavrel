@@ -4,7 +4,7 @@ import { cn } from "@/shared/utils/cn";
 interface ChipOption {
   value: string;
   label: string;
-  tone?: "error" | "ok";
+  tone?: "error" | "ok" | "warn" | "info";
 }
 
 defineProps<{
@@ -39,7 +39,10 @@ const modelValue = defineModel<string>({ required: true });
         :class="
           cn(
             'size-1.5 shrink-0 rounded-full',
-            option.tone === 'error' ? 'bg-error' : 'bg-ok',
+            option.tone === 'error' && 'bg-error',
+            option.tone === 'ok' && 'bg-ok',
+            option.tone === 'warn' && 'bg-warn',
+            option.tone === 'info' && 'bg-info',
           )
         "
         aria-hidden="true"
