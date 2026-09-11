@@ -4,7 +4,7 @@ import {
   type QueryClient,
   type UseQueryReturnType,
 } from "@tanstack/vue-query";
-import { computed, type Ref } from "vue";
+import { computed, ref, type Ref } from "vue";
 
 import { getServices, getSpans, type SpansPage } from "./api";
 import { DEFAULT_SPANS_FILTERS, type SpansListParams } from "./types";
@@ -16,13 +16,17 @@ export const spanKeys = {
   services: () => [...spanKeys.all, "services"] as const,
 };
 
+const LIVE_REFETCH_MS = 10000;
+
 export function useSpansQuery(
   params: Ref<SpansListParams>,
+  live: Ref<boolean> = ref(false),
 ): UseQueryReturnType<SpansPage, Error> {
   return useQuery({
     queryKey: computed(() => spanKeys.list(params.value)),
     queryFn: (): Promise<SpansPage> => getSpans(params.value),
     placeholderData: keepPreviousData,
+    refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });
 }
 

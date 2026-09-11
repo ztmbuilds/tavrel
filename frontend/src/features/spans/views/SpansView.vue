@@ -7,28 +7,40 @@ import { SPANS_PAGE_SIZE } from "@/features/spans/api";
 import { useServicesQuery, useSpansQuery } from "@/features/spans/queries";
 import {
   CUSTOM_RANGE,
-  DEFAULT_SPANS_FILTERS,
+  DAY_PRESETS,
   TIME_PRESETS,
+  dayPresetRange,
+  matchDayPreset,
   type SpansFilters,
   type SpansListParams,
   type SpanStatusFilter,
 } from "@/features/spans/types";
+import ActiveFilterChips, {
+  type ActiveFilterChip,
+} from "@/shared/components/ActiveFilterChips.vue";
 import ChipGroup from "@/shared/components/ChipGroup.vue";
 import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
+import LiveToggle from "@/shared/components/LiveToggle.vue";
 import Pager from "@/shared/components/Pager.vue";
 import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
+import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import Select from "@/shared/components/ui/Select.vue";
 import type { SpanKind } from "@/shared/types/entities/span";
+import { formatCount } from "@/shared/utils/format";
 import { MS_PER_MINUTE } from "@/shared/utils/time";
 
-const STATUS_OPTIONS: readonly { value: SpanStatusFilter; label: string }[] = [
+const STATUS_OPTIONS: readonly {
+  value: SpanStatusFilter;
+  label: string;
+  tone?: "error" | "ok";
+}[] = [
   { value: "all", label: "All" },
-  { value: "error", label: "Errors" },
-  { value: "ok", label: "OK" },
+  { value: "error", label: "Errors", tone: "error" },
+  { value: "ok", label: "OK", tone: "ok" },
 ];
 
 const KIND_OPTIONS: readonly { value: "all" | SpanKind; label: string }[] = [
@@ -86,6 +98,7 @@ const searchInput = ref(filters.value.search);
 const cursor = ref<string | undefined>(undefined);
 const cursorHistory = ref<(string | undefined)[]>([]);
 const debouncedQuery = ref(filters.value.search);
+const live = ref(false);
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchInput, (value) => {
@@ -134,7 +147,7 @@ const {
   isError,
   refetch,
   isFetching,
-} = useSpansQuery(listParams);
+} = useSpansQuery(listParams, live);
 const servicesQuery = useServicesQuery();
 
 const spans = computed(() => spansData.value?.spans ?? []);
@@ -161,6 +174,12 @@ const serviceOptions = computed(() => {
 const activePreset = computed(() => {
   if (filters.value.start === undefined && filters.value.end === undefined)
     return "1h";
+  const day = matchDayPreset(
+    filters.value.start,
+    filters.value.end,
+    PRESET_MATCH_TOLERANCE_MIN * MS_PER_MINUTE,
+  );
+  if (day !== undefined) return day;
   if (filters.value.end !== undefined || filters.value.start === undefined)
     return CUSTOM_RANGE;
   const minutesAgo =
@@ -181,6 +200,41 @@ const filtersActive = computed(
     filters.value.start !== undefined ||
     filters.value.end !== undefined,
 );
+
+const facetsActive = computed(
+  () =>
+    filters.value.search !== "" ||
+    filters.value.status !== "all" ||
+    filters.value.kind !== "all" ||
+    filters.value.service !== "all",
+);
+
+const activeChips = computed((): ActiveFilterChip[] => {
+  const chips: ActiveFilterChip[] = [];
+  if (filters.value.status !== "all")
+    chips.push({
+      key: "status",
+      label: "Status",
+      value: filters.value.status === "error" ? "Errors" : "OK",
+    });
+  if (filters.value.kind !== "all")
+    chips.push({ key: "kind", label: "Kind", value: filters.value.kind });
+  if (filters.value.service !== "all")
+    chips.push({
+      key: "service",
+      label: "Service",
+      value: filters.value.service,
+    });
+  if (filters.value.search !== "")
+    chips.push({ key: "search", label: "Name", value: filters.value.search });
+  return chips;
+});
+
+const resultCount = computed(() => {
+  const count = total.value;
+  if (count === null) return null;
+  return `${formatCount(count)} ${count === 1 ? "span" : "spans"}`;
+});
 
 const emptyTitle = computed(() =>
   filtersActive.value ? "No spans found" : "No spans recorded yet",
@@ -242,6 +296,11 @@ function setTimeRange(
 }
 
 function applyPreset(value: string): void {
+  const day = dayPresetRange(value);
+  if (day !== undefined) {
+    setTimeRange(day.start, day.end);
+    return;
+  }
   const preset = TIME_PRESETS.find((item) => item.value === value);
   if (preset === undefined) return;
   setTimeRange(
@@ -254,10 +313,31 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
   setTimeRange(range.start, range.end);
 }
 
-function clearFilters(): void {
+function clearFacets(): void {
   searchInput.value = "";
   debouncedQuery.value = "";
-  filters.value = { ...DEFAULT_SPANS_FILTERS };
+  const next: SpansFilters = {
+    search: "",
+    status: "all",
+    kind: "all",
+    service: "all",
+  };
+  if (filters.value.start !== undefined) next.start = filters.value.start;
+  if (filters.value.end !== undefined) next.end = filters.value.end;
+  filters.value = next;
+  resetPage();
+}
+
+function removeChip(key: string): void {
+  if (key === "status") filters.value = { ...filters.value, status: "all" };
+  else if (key === "kind") filters.value = { ...filters.value, kind: "all" };
+  else if (key === "service")
+    filters.value = { ...filters.value, service: "all" };
+  else if (key === "search") {
+    searchInput.value = "";
+    debouncedQuery.value = "";
+    filters.value = { ...filters.value, search: "" };
+  } else return;
   resetPage();
 }
 
@@ -287,44 +367,65 @@ function openTrace(traceId: string): void {
       title="Spans"
       subtitle="Every unit of work recorded, independent of which trace it belongs to."
     />
-    <FilterBar
-      label="Filter spans"
-      :show-clear="filtersActive"
-      @clear="clearFilters"
-    >
-      <SearchBox
-        v-model="searchInput"
-        input-id="span-search"
-        label="Filter by span name"
-        placeholder="Filter by span name, e.g. GET /cart"
-      />
-      <ChipGroup
-        v-model="filters.status"
-        :options="STATUS_OPTIONS"
-        group-label="Span status"
-        @update:model-value="resetPage"
-      />
-      <Select
-        v-model="filters.kind"
-        label="Kind"
-        :options="KIND_OPTIONS"
-        @update:model-value="resetPage"
-      />
-      <DateRangePicker
-        :presets="TIME_PRESETS"
-        :active="activePreset"
-        :start="filters.start"
-        :end="filters.end"
-        @preset="applyPreset"
-        @custom="applyCustomRange"
-      />
-      <Select
-        v-model="filters.service"
-        label="Service"
-        :options="serviceOptions"
-        trigger-class="max-w-64"
-        @update:model-value="resetPage"
-      />
+    <FilterBar label="Filter spans">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <div class="min-w-40 flex-1">
+          <SearchBox
+            v-model="searchInput"
+            input-id="span-search"
+            label="Filter by span name"
+            placeholder="Filter by span name, e.g. GET /cart"
+          />
+        </div>
+        <LiveToggle v-model="live" @update:model-value="resetPage" />
+        <DateRangePicker
+          :presets="TIME_PRESETS"
+          :day-presets="DAY_PRESETS"
+          :active="activePreset"
+          :start="filters.start"
+          :end="filters.end"
+          @preset="applyPreset"
+          @custom="applyCustomRange"
+        />
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <ChipGroup
+          v-model="filters.status"
+          :options="STATUS_OPTIONS"
+          group-label="Span status"
+          @update:model-value="resetPage"
+        />
+        <Select
+          v-model="filters.kind"
+          label="Kind"
+          :options="KIND_OPTIONS"
+          @update:model-value="resetPage"
+        />
+        <ServiceSelect
+          v-model="filters.service"
+          label="Service"
+          :options="serviceOptions"
+          trigger-class="max-w-64"
+          @update:model-value="resetPage"
+        />
+        <div class="ml-auto flex shrink-0 items-center gap-3">
+          <button
+            v-if="facetsActive"
+            type="button"
+            class="text-secondary hover:text-primary shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline decoration-strong underline-offset-2 transition-colors duration-120 ease-out"
+            @click="clearFacets"
+          >
+            Clear all
+          </button>
+          <span
+            v-if="resultCount !== null"
+            class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
+            role="status"
+            >{{ resultCount }}</span
+          >
+        </div>
+      </div>
+      <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
     </FilterBar>
     <div
       id="span-list"
@@ -359,7 +460,7 @@ function openTrace(traceId: string): void {
         :title="emptyTitle"
         :message="emptyMessage"
         :action-label="emptyActionLabel"
-        @clear="clearFilters"
+        @clear="clearFacets"
       />
       <template v-else>
         <div

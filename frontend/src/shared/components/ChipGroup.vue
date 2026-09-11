@@ -4,6 +4,7 @@ import { cn } from "@/shared/utils/cn";
 interface ChipOption {
   value: string;
   label: string;
+  tone?: "error" | "ok";
 }
 
 defineProps<{
@@ -16,7 +17,7 @@ const modelValue = defineModel<string>({ required: true });
 
 <template>
   <div
-    class="border-default bg-surface flex gap-0.5 rounded-md border p-0.5"
+    class="border-default bg-surface flex gap-0.5 rounded-lg border p-0.5"
     role="group"
     :aria-label="groupLabel"
   >
@@ -27,12 +28,22 @@ const modelValue = defineModel<string>({ required: true });
       :aria-pressed="modelValue === option.value"
       :class="
         cn(
-          'text-secondary hover:text-primary min-h-6 cursor-pointer rounded border-none bg-transparent px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors duration-120 ease-out',
+          'text-secondary hover:text-primary flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-3 py-1 text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out',
           modelValue === option.value && 'bg-active text-ink hover:bg-active hover:text-ink',
         )
       "
       @click="modelValue = option.value"
     >
+      <span
+        v-if="option.tone !== undefined"
+        :class="
+          cn(
+            'size-1.5 shrink-0 rounded-full',
+            option.tone === 'error' ? 'bg-error' : 'bg-ok',
+          )
+        "
+        aria-hidden="true"
+      />
       {{ option.label }}
     </button>
   </div>

@@ -37,6 +37,56 @@ export const TIME_PRESETS: readonly TimePreset[] = [
 
 export const CUSTOM_RANGE = "custom";
 
+export const TODAY_PRESET = "today";
+export const YESTERDAY_PRESET = "yesterday";
+
+export interface DayPreset {
+  value: string;
+  label: string;
+}
+
+export const DAY_PRESETS: readonly DayPreset[] = [
+  { value: TODAY_PRESET, label: "Today" },
+  { value: YESTERDAY_PRESET, label: "Yesterday" },
+];
+
+const MS_PER_DAY = 86400000;
+
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+export function dayPresetRange(value: string): { start?: string; end?: string } | undefined {
+  if (value === TODAY_PRESET) return { start: startOfToday().toISOString() };
+  if (value === YESTERDAY_PRESET) {
+    const today = startOfToday();
+    return {
+      start: new Date(today.getTime() - MS_PER_DAY).toISOString(),
+      end: today.toISOString(),
+    };
+  }
+  return undefined;
+}
+
+export function matchDayPreset(
+  start: string | undefined,
+  end: string | undefined,
+  toleranceMs: number,
+): string | undefined {
+  if (start === undefined) return undefined;
+  const todayMs = startOfToday().getTime();
+  if (Math.abs(Date.parse(start) - todayMs) < toleranceMs && end === undefined)
+    return TODAY_PRESET;
+  if (
+    end !== undefined &&
+    Math.abs(Date.parse(start) - (todayMs - MS_PER_DAY)) < toleranceMs &&
+    Math.abs(Date.parse(end) - todayMs) < toleranceMs
+  )
+    return YESTERDAY_PRESET;
+  return undefined;
+}
+
 export const DEFAULT_SPANS_FILTERS: SpansFilters = {
   search: "",
   status: "all",

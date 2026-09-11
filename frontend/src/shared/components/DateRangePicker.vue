@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
 import calendarIcon from "@/assets/icons/calendar.svg";
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
@@ -22,6 +22,7 @@ import {
 
 const props = defineProps<{
   presets: readonly DatePreset[];
+  dayPresets: readonly DayPreset[];
   active: string;
   start: string | undefined;
   end: string | undefined;
@@ -36,6 +37,11 @@ export interface DatePreset {
   value: string;
   label: string;
   minutes: number;
+}
+
+export interface DayPreset {
+  value: string;
+  label: string;
 }
 
 const CUSTOM = "custom";
@@ -57,7 +63,9 @@ const WEEKDAY_LABELS: readonly string[] = [
 ];
 
 const dateOpen = ref(false);
-const customOpen = ref(false);
+const rootRef = ref<HTMLDivElement | null>(null);
+const triggerRef = ref<HTMLButtonElement | null>(null);
+const panelRef = ref<HTMLDivElement | null>(null);
 const viewYear = ref(0);
 const viewMonth = ref(0);
 const selectedStart = ref<CivilDate | null>(null);
@@ -75,6 +83,8 @@ const customSummary = computed(() => {
 
 const dateLabel = computed(() => {
   if (props.active === CUSTOM) return customSummary.value;
+  const day = props.dayPresets.find((item) => item.value === props.active);
+  if (day !== undefined) return day.label;
   const preset = props.presets.find((item) => item.value === props.active);
   return preset === undefined ? "Last 1h" : `Last ${preset.label}`;
 });
@@ -200,7 +210,6 @@ function prefillInputs(): void {
 
 watch(dateOpen, (open) => {
   if (open) {
-    customOpen.value = props.active === CUSTOM;
     prefillInputs();
   }
 });
@@ -209,13 +218,55 @@ function toggleDatePop(): void {
   dateOpen.value = !dateOpen.value;
 }
 
-function closeDatePop(): void {
+function closeDatePop(returnFocus: boolean): void {
   dateOpen.value = false;
+  if (returnFocus) triggerRef.value?.focus();
+}
+
+function handleOutside(event: PointerEvent): void {
+  if (
+    dateOpen.value &&
+    rootRef.value !== null &&
+    !rootRef.value.contains(event.target as Node | null)
+  )
+    closeDatePop(false);
+}
+
+onMounted(() => {
+  document.addEventListener("pointerdown", handleOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", handleOutside);
+});
+
+function focusOption(step: number): void {
+  if (panelRef.value === null) return;
+  const buttons = Array.from(
+    panelRef.value.querySelectorAll<HTMLButtonElement>(
+      '[data-range-option="true"]',
+    ),
+  );
+  if (buttons.length === 0) return;
+  const index = buttons.findIndex(
+    (button) => button === document.activeElement,
+  );
+  const next = buttons[(index + step + buttons.length) % buttons.length];
+  next?.focus();
+}
+
+function handleOptionsKeydown(event: KeyboardEvent): void {
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    focusOption(1);
+  } else if (event.key === "ArrowUp") {
+    event.preventDefault();
+    focusOption(-1);
+  }
 }
 
 function selectPreset(value: string): void {
-  dateOpen.value = false;
-  customOpen.value = false;
+  closeDatePop(true);
   emit("preset", value);
 }
 
@@ -237,31 +288,25 @@ function applyCustom(): void {
   )
     return;
   dateOpen.value = false;
-  customOpen.value = false;
+  triggerRef.value?.focus();
   emit("custom", {
     start: civilToIso(start, parseTimeText(startTimeText.value)),
     end: civilToIso(end, parseTimeText(endTimeText.value)),
   });
 }
-
-function cancelCustom(): void {
-  customOpen.value = false;
-  if (props.active !== CUSTOM) {
-    resetCustomInputs();
-  }
-}
 </script>
 
 <template>
-  <div class="relative">
+  <div ref="rootRef" class="relative">
     <button
+      ref="triggerRef"
       type="button"
-      class="border-default bg-surface text-secondary hover:border-strong flex min-h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 font-sans text-xs whitespace-nowrap transition-colors duration-120 ease-out"
+      class="border-default bg-surface text-secondary hover:border-strong flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap transition-colors duration-120 ease-out"
       :aria-expanded="dateOpen"
       aria-haspopup="dialog"
       aria-controls="span-date-pop"
       @click="toggleDatePop"
-      @keydown.escape="closeDatePop"
+      @keydown.escape="closeDatePop(true)"
     >
       <img :src="calendarIcon" alt="" class="size-3.5 shrink-0" />
       <span>{{ dateLabel }}</span>
@@ -270,56 +315,54 @@ function cancelCustom(): void {
     <div
       v-if="dateOpen"
       id="span-date-pop"
+      ref="panelRef"
       role="dialog"
       aria-label="Choose time range"
-      class="border-default bg-raised absolute top-[calc(100%+0.375rem)] left-0 z-30 w-68 rounded-md border p-2 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
-      @keydown.escape="closeDatePop"
+      class="border-default bg-raised absolute top-[calc(100%+0.375rem)] right-0 z-30 flex w-130 max-w-[calc(100vw-3rem)] gap-2 rounded-lg border p-2 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
+      @keydown.escape="closeDatePop(true)"
     >
-      <div
-        class="grid grid-cols-5 gap-1"
-        role="group"
-        aria-label="Preset ranges"
-      >
-        <button
-          v-for="preset in presets"
-          :key="preset.value"
-          type="button"
-          :aria-pressed="active === preset.value"
-          :class="
-            cn(
-              'border-subtle bg-surface text-secondary hover:text-primary min-h-[1.875rem] cursor-pointer rounded-md border px-1 py-1.5 font-sans text-xs transition-colors duration-120 ease-out',
-              active === preset.value &&
-                'bg-active text-ink border-transparent hover:bg-active hover:text-ink',
-            )
-          "
-          @click="selectPreset(preset.value)"
-        >
-          {{ preset.label }}
-        </button>
+      <div class="w-37.5 shrink-0 border-r border-subtle pr-2">
+        <div role="group" aria-label="Preset ranges" @keydown="handleOptionsKeydown">
+          <button
+            v-for="preset in presets"
+            :key="preset.value"
+            type="button"
+            data-range-option="true"
+            :aria-pressed="active === preset.value"
+            :class="
+              cn(
+                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
+                active === preset.value &&
+                  'bg-active text-ink hover:bg-active hover:text-ink',
+              )
+            "
+            @click="selectPreset(preset.value)"
+          >
+            Last {{ preset.label }}
+          </button>
+        </div>
+        <div class="border-subtle my-1 border-t" aria-hidden="true" />
+        <div role="group" aria-label="Day ranges" @keydown="handleOptionsKeydown">
+          <button
+            v-for="day in dayPresets"
+            :key="day.value"
+            type="button"
+            data-range-option="true"
+            :aria-pressed="active === day.value"
+            :class="
+              cn(
+                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
+                active === day.value &&
+                  'bg-active text-ink hover:bg-active hover:text-ink',
+              )
+            "
+            @click="selectPreset(day.value)"
+          >
+            {{ day.label }}
+          </button>
+        </div>
       </div>
-      <button
-        type="button"
-        :aria-pressed="active === CUSTOM"
-        :aria-expanded="customOpen"
-        :class="
-          cn(
-            'text-tertiary hover:bg-surface hover:text-secondary mt-1 flex min-h-[1.875rem] w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-transparent bg-transparent px-1 py-[0.4375rem] font-sans text-xs transition-colors duration-120 ease-out',
-            active === CUSTOM && 'text-primary',
-          )
-        "
-        @click="customOpen = !customOpen"
-      >
-        <span>{{
-          active === CUSTOM && !customOpen ? customSummary : "Custom range"
-        }}</span>
-        <span
-          class="text-[0.5625rem] transition-transform duration-120 ease-out"
-          :class="customOpen && 'rotate-180'"
-          aria-hidden="true"
-          >▾</span
-        >
-      </button>
-      <div v-if="customOpen" class="border-subtle mt-0.5 border-t pt-2.5">
+      <div class="min-w-0 flex-1">
         <div class="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -330,7 +373,7 @@ function cancelCustom(): void {
             <img :src="chevronLeftIcon" alt="" class="size-3.5" />
           </Button>
           <span
-            class="text-primary font-sans text-xs font-semibold"
+            class="text-primary font-sans text-[0.8125rem] font-semibold"
             aria-live="polite"
             >{{ monthLabel }}</span
           >
@@ -367,7 +410,7 @@ function cancelCustom(): void {
                 :aria-label="dayLabel(date)"
                 :class="
                   cn(
-                    'text-secondary hover:bg-hover hover:text-primary flex size-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 font-sans text-xs transition-colors duration-120 ease-out',
+                    'text-secondary hover:bg-hover hover:text-primary flex size-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 font-sans text-[0.78125rem] transition-colors duration-120 ease-out',
                     isInRangeDate(date) && 'bg-signal-muted/60 text-primary',
                     isSelectedDate(date) && 'bg-active text-ink hover:bg-active hover:text-ink',
                     isTodayDate(date) &&
@@ -405,7 +448,9 @@ function cancelCustom(): void {
           </div>
         </div>
         <div class="mt-2.5 flex gap-1.5">
-          <Button variant="secondary" @click="cancelCustom">Cancel</Button>
+          <Button variant="secondary" @click="closeDatePop(true)"
+            >Cancel</Button
+          >
           <Button class="flex-1" :disabled="!canApply" @click="applyCustom">
             Apply range
           </Button>

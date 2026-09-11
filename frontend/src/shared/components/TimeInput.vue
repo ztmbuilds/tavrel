@@ -46,7 +46,7 @@ function handleInput(event: Event): void {
     :aria-invalid="showInvalid"
     :class="
       cn(
-        'border-default bg-surface text-primary placeholder:text-tertiary focus:border-signal w-full min-w-0 rounded-md border px-1.5 py-1.5 font-sans text-[0.71875rem] tabular-nums transition-colors duration-120 ease-out outline-none',
+        'border-default bg-surface text-primary placeholder:text-tertiary focus:border-signal w-full min-w-0 rounded-md border px-1.5 py-1.5 font-sans text-[0.78125rem] tabular-nums transition-colors duration-120 ease-out outline-none',
         showInvalid && 'border-error',
       )
     "
