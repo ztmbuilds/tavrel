@@ -30,8 +30,6 @@ import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
-import Select from "@/shared/components/ui/Select.vue";
-import type { SpanKind } from "@/shared/types/entities/span";
 import { formatCount } from "@/shared/utils/format";
 import { MS_PER_MINUTE } from "@/shared/utils/time";
 
@@ -43,16 +41,6 @@ const STATUS_OPTIONS: readonly {
   { value: "all", label: "All" },
   { value: "error", label: "Errors", tone: "error" },
   { value: "ok", label: "OK", tone: "ok" },
-];
-
-const KIND_OPTIONS: readonly { value: "all" | SpanKind; label: string }[] = [
-  { value: "all", label: "All kinds" },
-  { value: "unspecified", label: "unspecified" },
-  { value: "internal", label: "internal" },
-  { value: "server", label: "server" },
-  { value: "client", label: "client" },
-  { value: "producer", label: "producer" },
-  { value: "consumer", label: "consumer" },
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -69,22 +57,11 @@ function queryParam(name: string): string | undefined {
 
 function filtersFromRoute(): SpansFilters {
   const statusRaw = queryParam("status");
-  const kindRaw = queryParam("kind");
   const next: SpansFilters = {
     search: queryParam("search") ?? "",
     status:
       statusRaw === "error" || statusRaw === "ok" || statusRaw === "all"
         ? statusRaw
-        : "all",
-    kind:
-      kindRaw === "all" ||
-      kindRaw === "unspecified" ||
-      kindRaw === "internal" ||
-      kindRaw === "server" ||
-      kindRaw === "client" ||
-      kindRaw === "producer" ||
-      kindRaw === "consumer"
-        ? kindRaw
         : "all",
     service: queryParam("service") ?? "all",
   };
@@ -123,7 +100,6 @@ function filtersToQuery(): Record<string, string> {
   const query: Record<string, string> = {};
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.status !== "all") query.status = filters.value.status;
-  if (filters.value.kind !== "all") query.kind = filters.value.kind;
   if (filters.value.service !== "all") query.service = filters.value.service;
   if (filters.value.start !== undefined) query.start = filters.value.start;
   if (filters.value.end !== undefined) query.end = filters.value.end;
@@ -197,7 +173,6 @@ const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
-    filters.value.kind !== "all" ||
     filters.value.service !== "all" ||
     filters.value.start !== undefined ||
     filters.value.end !== undefined,
@@ -207,7 +182,6 @@ const facetsActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
-    filters.value.kind !== "all" ||
     filters.value.service !== "all",
 );
 
@@ -219,8 +193,6 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Status",
       value: filters.value.status === "error" ? "Errors" : "OK",
     });
-  if (filters.value.kind !== "all")
-    chips.push({ key: "kind", label: "Kind", value: filters.value.kind });
   if (filters.value.service !== "all")
     chips.push({
       key: "service",
@@ -288,7 +260,6 @@ function setTimeRange(
   const next: SpansFilters = {
     search: filters.value.search,
     status: filters.value.status,
-    kind: filters.value.kind,
     service: filters.value.service,
   };
   if (start !== undefined) next.start = start;
@@ -321,7 +292,6 @@ function clearFacets(): void {
   const next: SpansFilters = {
     search: "",
     status: "all",
-    kind: "all",
     service: "all",
   };
   if (filters.value.start !== undefined) next.start = filters.value.start;
@@ -332,7 +302,6 @@ function clearFacets(): void {
 
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
-  else if (key === "kind") filters.value = { ...filters.value, kind: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: "all" };
   else if (key === "search") {
@@ -395,12 +364,6 @@ function openTrace(traceId: string): void {
           v-model="filters.status"
           :options="STATUS_OPTIONS"
           group-label="Span status"
-          @update:model-value="resetPage"
-        />
-        <Select
-          v-model="filters.kind"
-          label="Kind"
-          :options="KIND_OPTIONS"
           @update:model-value="resetPage"
         />
         <ServiceSelect

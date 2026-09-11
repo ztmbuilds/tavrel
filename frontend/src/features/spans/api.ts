@@ -14,15 +14,6 @@ const SPAN_KIND_BY_INDEX: readonly SpanKind[] = [
   "consumer",
 ];
 
-const SPAN_KIND_INDEX: Record<SpanKind, number> = {
-  unspecified: 0,
-  internal: 1,
-  server: 2,
-  client: 3,
-  producer: 4,
-  consumer: 5,
-};
-
 function toSpanKind(kind: number): SpanKind {
   return SPAN_KIND_BY_INDEX[kind] ?? "unspecified";
 }
@@ -89,7 +80,6 @@ export async function getSpans(params: SpansListParams): Promise<SpansPage> {
   };
   if (params.search !== "") query.search = params.search;
   if (params.status !== "all") query.status = params.status;
-  if (params.kind !== "all") query.kind = SPAN_KIND_INDEX[params.kind];
   if (params.service !== "" && params.service !== "all")
     query.service = params.service;
   if (params.start !== undefined) query.start = params.start;

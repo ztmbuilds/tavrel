@@ -41,7 +41,7 @@ const meterWidth = computed(() => {
 
 const rowLabel = computed(
   () =>
-    `${props.span.name}, ${props.span.kind}, ${props.span.service}, ${durationLabel.value}, ${relativeLabel.value}`,
+    `${props.span.name}, ${props.span.service}, ${durationLabel.value}, ${relativeLabel.value}`,
 );
 </script>
 
@@ -76,10 +76,6 @@ const rowLabel = computed(
         "
       >
         <span :title="span.name">{{ span.name }}</span>
-        <span
-          class="border-subtle bg-surface text-tertiary ml-2 rounded border px-2 py-0.5 text-[0.6875rem] font-semibold tracking-wide whitespace-nowrap uppercase"
-          >{{ span.kind }}</span
-        >
       </div>
       <div class="text-tertiary mt-0.5 flex min-w-0 gap-2.5 text-xs">
         <span class="truncate">{{ span.service }}</span>

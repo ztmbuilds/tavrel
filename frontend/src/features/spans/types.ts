@@ -1,5 +1,3 @@
-import type { SpanKind } from "@/shared/types/entities/span";
-
 const SpanStatusFilter = {
   All: "all",
   Error: "error",
@@ -11,7 +9,6 @@ export type SpanStatusFilter =
 export interface SpansFilters {
   search: string;
   status: SpanStatusFilter;
-  kind: "all" | SpanKind;
   service: string;
   start?: string;
   end?: string;
@@ -24,6 +21,5 @@ export interface SpansListParams extends SpansFilters {
 export const DEFAULT_SPANS_FILTERS: SpansFilters = {
   search: "",
   status: "all",
-  kind: "all",
   service: "all",
 };
