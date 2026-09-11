@@ -11,7 +11,7 @@ import {
   civilToIso,
   compareCivilDate,
   formatCivilDate,
-  formatCivilDateTime,
+  formatDateTimeRange,
   isValidTimeText,
   isoToCivilDate,
   isoToCivilTime,
@@ -73,13 +73,9 @@ const selectedEnd = ref<CivilDate | null>(null);
 const startTimeText = ref(DEFAULT_START_TEXT);
 const endTimeText = ref(DEFAULT_END_TEXT);
 
-const customSummary = computed(() => {
-  const startLabel =
-    props.start === undefined ? "…" : formatCivilDateTime(props.start);
-  const endLabel =
-    props.end === undefined ? "…" : formatCivilDateTime(props.end);
-  return `${startLabel} – ${endLabel}`;
-});
+const customSummary = computed(() =>
+  formatDateTimeRange(props.start, props.end),
+);
 
 const dateLabel = computed(() => {
   if (props.active === CUSTOM) return customSummary.value;

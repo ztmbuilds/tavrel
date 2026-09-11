@@ -13,6 +13,7 @@ export const MS_PER_SECOND = 1000;
 export const MS_PER_MINUTE = 60000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
+const HOURS_PER_HALF_DAY = 12;
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
@@ -42,10 +43,51 @@ export function isoToCivilTime(iso: string): CivilTime {
   return { hour: parsed.getHours(), minute: parsed.getMinutes() };
 }
 
-export function formatCivilDateTime(iso: string): string {
-  const date = isoToCivilDate(iso);
-  const time = isoToCivilTime(iso);
-  return `${date.year}-${pad2(date.month)}-${pad2(date.day)} ${pad2(time.hour)}:${pad2(time.minute)}`;
+export function formatShortTime(iso: string): string {
+  const parsed = new Date(iso);
+  const hour24 = parsed.getHours();
+  const suffix = hour24 < HOURS_PER_HALF_DAY ? "AM" : "PM";
+  const hour12 =
+    hour24 % HOURS_PER_HALF_DAY === 0
+      ? HOURS_PER_HALF_DAY
+      : hour24 % HOURS_PER_HALF_DAY;
+  return `${hour12}:${pad2(parsed.getMinutes())}${suffix}`;
+}
+
+export function formatShortDateTime(iso: string): string {
+  const parsed = new Date(iso);
+  const month = parsed.toLocaleDateString("en-US", { month: "short" });
+  const yearSuffix =
+    parsed.getFullYear() === new Date().getFullYear()
+      ? ""
+      : `, ${parsed.getFullYear()}`;
+  return `${month} ${parsed.getDate()}${yearSuffix}, ${formatShortTime(iso)}`;
+}
+
+export function formatDateTimeRange(
+  start: string | undefined,
+  end: string | undefined,
+): string {
+  if (start !== undefined && end !== undefined) {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const sameDay =
+      startDate.getFullYear() === endDate.getFullYear() &&
+      startDate.getMonth() === endDate.getMonth() &&
+      startDate.getDate() === endDate.getDate();
+    if (sameDay) {
+      const month = startDate.toLocaleDateString("en-US", { month: "short" });
+      const yearSuffix =
+        startDate.getFullYear() === new Date().getFullYear()
+          ? ""
+          : `, ${startDate.getFullYear()}`;
+      return `${month} ${startDate.getDate()}${yearSuffix}, ${formatShortTime(start)} – ${formatShortTime(end)}`;
+    }
+    return `${formatShortDateTime(start)} – ${formatShortDateTime(end)}`;
+  }
+  const startLabel = start === undefined ? "…" : formatShortDateTime(start);
+  const endLabel = end === undefined ? "…" : formatShortDateTime(end);
+  return `${startLabel} – ${endLabel}`;
 }
 
 export function compareCivilDate(a: CivilDate, b: CivilDate): number {

@@ -34,7 +34,7 @@ import {
   dayPresetRange,
   matchDayPreset,
 } from "@/shared/utils/date-range";
-import { formatCivilDateTime, MS_PER_MINUTE } from "@/shared/utils/time";
+import { formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: TraceStatusFilter;
@@ -251,15 +251,7 @@ const activeChips = computed((): ActiveFilterChip[] => {
     if (preset !== undefined) value = `Last ${preset.label}`;
     else if (day !== undefined) value = day.label;
     else {
-      const startLabel =
-        filters.value.start === undefined
-          ? "…"
-          : formatCivilDateTime(filters.value.start);
-      const endLabel =
-        filters.value.end === undefined
-          ? "…"
-          : formatCivilDateTime(filters.value.end);
-      value = `${startLabel} – ${endLabel}`;
+      value = formatDateTimeRange(filters.value.start, filters.value.end);
     }
     chips.push({ key: "timerange", label: "Time", value });
   }

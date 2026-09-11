@@ -31,7 +31,7 @@ import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import { formatCount } from "@/shared/utils/format";
-import { formatCivilDateTime, MS_PER_MINUTE } from "@/shared/utils/time";
+import { formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: SpanStatusFilter;
@@ -210,15 +210,7 @@ const activeChips = computed((): ActiveFilterChip[] => {
     if (preset !== undefined) value = `Last ${preset.label}`;
     else if (day !== undefined) value = day.label;
     else {
-      const startLabel =
-        filters.value.start === undefined
-          ? "…"
-          : formatCivilDateTime(filters.value.start);
-      const endLabel =
-        filters.value.end === undefined
-          ? "…"
-          : formatCivilDateTime(filters.value.end);
-      value = `${startLabel} – ${endLabel}`;
+      value = formatDateTimeRange(filters.value.start, filters.value.end);
     }
     chips.push({ key: "timerange", label: "Time", value });
   }
