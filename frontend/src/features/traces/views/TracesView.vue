@@ -497,7 +497,7 @@ function openTrace(traceId: string): void {
     </FilterBar>
     <div
       id="trace-list"
-      class="min-h-0 flex-1 overflow-y-auto"
+      class="border-subtle bg-panel mx-4 mb-3 min-h-0 flex-1 overflow-y-auto rounded-xl border"
       role="list"
       aria-label="Traces"
       tabindex="-1"
