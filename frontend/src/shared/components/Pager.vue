@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
 import chevronRightIcon from "@/assets/icons/chevron-right.svg";
+import { formatCount } from "@/shared/utils/format";
 
-defineProps<{
+const props = defineProps<{
   from: number;
   to: number;
   total?: number | null;
@@ -15,6 +18,13 @@ defineEmits<{
   prev: [];
   next: [];
 }>();
+
+const formattedFrom = computed(() => formatCount(props.from));
+const formattedTo = computed(() => formatCount(props.to));
+const hasTotal = computed(
+  () => props.total !== undefined && props.total !== null,
+);
+const formattedTotal = computed(() => formatCount(props.total ?? 0));
 </script>
 
 <template>
@@ -23,9 +33,9 @@ defineEmits<{
     :aria-label="`${itemName} pages`"
   >
     <span class="text-tertiary text-xs tabular-nums"
-      >Showing {{ from }}–{{ to
-      }}<template v-if="total !== undefined && total !== null">
-        of {{ total }} {{ itemName }}</template
+      >Showing {{ formattedFrom }}–{{ formattedTo
+      }}<template v-if="hasTotal">
+        of {{ formattedTotal }} {{ itemName }}</template
       ></span
     >
     <button
