@@ -2,10 +2,14 @@
 import { computed, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import arrowUpIcon from "@/assets/icons/arrow-up.svg";
 import refreshIcon from "@/assets/icons/refresh.svg";
 
 import LogRow from "@/features/logs/components/LogRow.vue";
-import { useInfiniteLogsQuery, useLogsServicesQuery } from "@/features/logs/queries";
+import {
+  useInfiniteLogsQuery,
+  useLogsServicesQuery,
+} from "@/features/logs/queries";
 import { type LogsFilters, type LogLevelFilter } from "@/features/logs/types";
 import { useLogsInfiniteScroll } from "@/features/logs/composables/useLogsInfiniteScroll";
 import ActiveFilterChips, {
@@ -43,6 +47,7 @@ const LEVEL_OPTIONS: readonly {
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PRESET_MATCH_TOLERANCE_MIN = 1;
+const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
 const router = useRouter();
@@ -82,6 +87,7 @@ const live = ref(false);
 const expanded = reactive(new Set<number>());
 const scrollerEl = ref<Element | null>(null);
 const sentinelEl = ref<Element | null>(null);
+const showBackToTop = ref(false);
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchInput, (value) => {
@@ -293,12 +299,24 @@ const loadedCount = computed(() => {
 const endOfListLabel = computed(() => {
   const count = total.value;
   if (count === null) return "No more logs";
-  return count === 1 ? "Showing the only log" : `Showing all ${formatCount(count)} logs`;
+  return count === 1
+    ? "Showing the only log"
+    : `Showing all ${formatCount(count)} logs`;
 });
 
 function resetList(): void {
   expanded.clear();
+  showBackToTop.value = false;
   scrollerEl.value?.scrollTo({ top: 0 });
+}
+
+function onScrollerScroll(event: Event): void {
+  if (!(event.target instanceof HTMLElement)) return;
+  showBackToTop.value = event.target.scrollTop > BACK_TO_TOP_THRESHOLD_PX;
+}
+
+function scrollToTop(): void {
+  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function setTimeRange(
@@ -369,10 +387,8 @@ function removeChip(key: string): void {
   if (key === "level") filters.value = { ...filters.value, level: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: "all" };
-  else if (key === "traceId")
-    filters.value = { ...filters.value, traceId: "" };
-  else if (key === "spanId")
-    filters.value = { ...filters.value, spanId: "" };
+  else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
+  else if (key === "spanId") filters.value = { ...filters.value, spanId: "" };
   else if (key === "timerange") setTimeRange(undefined, undefined);
   else if (key === "search") {
     searchInput.value = "";
@@ -437,7 +453,7 @@ function openTrace(traceId: string): void {
           <button
             v-if="facetsActive"
             type="button"
-            class="text-secondary hover:text-primary shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline decoration-strong underline-offset-2 transition-colors duration-120 ease-out"
+            class="text-secondary hover:text-primary decoration-strong shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline underline-offset-2 transition-colors duration-120 ease-out"
             @click="clearFacets"
           >
             Clear all
@@ -459,125 +475,134 @@ function openTrace(traceId: string): void {
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
     </FilterBar>
-    <div
-      id="log-list"
-      ref="scrollerEl"
-      class="border-subtle bg-panel mx-4 mb-3 min-h-0 flex-1 overflow-y-auto rounded-xl border"
-      role="list"
-      aria-label="Logs"
-      tabindex="-1"
-    >
+    <div class="relative mx-4 mb-3 min-h-0 flex-1">
       <div
-        v-if="isPending"
-        class="text-tertiary flex flex-col items-center gap-1.5 px-5 py-12 text-center text-[0.8125rem]"
-        role="status"
+        id="log-list"
+        ref="scrollerEl"
+        class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
+        role="list"
+        aria-label="Logs"
+        tabindex="-1"
+        @scroll="onScrollerScroll"
       >
-        <span class="text-heading text-sm font-semibold">Loading logs…</span>
-      </div>
-      <div
-        v-else-if="isError"
-        class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
-        role="alert"
-      >
-        <span class="text-heading text-sm font-semibold"
-          >Couldn’t load logs</span
-        >
-        <span class="leading-relaxed"
-          >Something went wrong fetching logs. Try again.</span
-        >
-        <Button variant="secondary" @click="refetch()">Retry</Button>
-      </div>
-      <EmptyState
-        v-else-if="logs.length === 0"
-        :title="emptyTitle"
-        :message="emptyMessage"
-        :action-label="emptyActionLabel"
-        @clear="clearAllFilters"
-      />
-      <template v-else>
         <div
-          class="border-default bg-panel sticky top-0 z-5 flex items-center gap-2.5 border-b px-4 py-1.5"
-          aria-hidden="true"
+          v-if="isPending"
+          class="text-tertiary flex flex-col items-center gap-1.5 px-5 py-12 text-center text-[0.8125rem]"
+          role="status"
         >
-          <div class="w-[0.1875rem] shrink-0" />
-          <div
-            class="text-tertiary w-10 shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
-          >
-            Level
-          </div>
-          <div
-            class="text-tertiary w-[10.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
-          >
-            Time
-          </div>
-          <div
-            class="text-tertiary w-[7.375rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
-          >
-            Service
-          </div>
-          <div
-            class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
-          >
-            Message
-          </div>
-          <div
-            class="text-tertiary w-[4.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
-          >
-            Trace
-          </div>
+          <span class="text-heading text-sm font-semibold">Loading logs…</span>
         </div>
-        <LogRow
-          v-for="log in logs"
-          :key="log.id"
-          :log="log"
-          :expanded="expanded.has(log.id)"
-          @toggle="toggleLog"
-          @open-trace="openTrace"
-        />
         <div
-          ref="sentinelEl"
-          class="flex flex-col items-center gap-2 px-5 py-4 text-center"
+          v-else-if="isError"
+          class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
+          role="alert"
         >
-          <template v-if="isFetchingNextPage">
-            <img
-              :src="refreshIcon"
-              alt=""
-              aria-hidden="true"
-              class="size-3.5 shrink-0 animate-spin opacity-70"
-            />
-            <span
-              class="text-tertiary text-[0.78125rem]"
-              role="status"
-              >Loading more logs…</span
+          <span class="text-heading text-sm font-semibold"
+            >Couldn’t load logs</span
+          >
+          <span class="leading-relaxed"
+            >Something went wrong fetching logs. Try again.</span
+          >
+          <Button variant="secondary" @click="refetch()">Retry</Button>
+        </div>
+        <EmptyState
+          v-else-if="logs.length === 0"
+          :title="emptyTitle"
+          :message="emptyMessage"
+          :action-label="emptyActionLabel"
+          @clear="clearAllFilters"
+        />
+        <template v-else>
+          <div
+            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-2.5 border-b px-4 py-1.5"
+            aria-hidden="true"
+          >
+            <div class="w-[0.1875rem] shrink-0" />
+            <div
+              class="text-tertiary w-10 shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
             >
-          </template>
-          <template v-else-if="isFetchNextPageError">
-            <span
-              class="text-tertiary text-[0.78125rem]"
-              role="alert"
-              >Couldn’t load more logs.</span
+              Level
+            </div>
+            <div
+              class="text-tertiary w-[10.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
             >
-            <Button variant="secondary" @click="loadMore()">Retry</Button>
-          </template>
-          <template v-else-if="hasNextPage">
+              Time
+            </div>
+            <div
+              class="text-tertiary w-[7.375rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+            >
+              Service
+            </div>
+            <div
+              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+            >
+              Message
+            </div>
+            <div
+              class="text-tertiary w-[4.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
+            >
+              Trace
+            </div>
+          </div>
+          <LogRow
+            v-for="log in logs"
+            :key="log.id"
+            :log="log"
+            :expanded="expanded.has(log.id)"
+            @toggle="toggleLog"
+            @open-trace="openTrace"
+          />
+          <div
+            ref="sentinelEl"
+            class="flex flex-col items-center gap-2 px-5 py-4 text-center"
+          >
+            <template v-if="isFetchingNextPage">
+              <img
+                :src="refreshIcon"
+                alt=""
+                aria-hidden="true"
+                class="size-3.5 shrink-0 animate-spin opacity-70"
+              />
+              <span class="text-tertiary text-[0.78125rem]" role="status"
+                >Loading more logs…</span
+              >
+            </template>
+            <template v-else-if="isFetchNextPageError">
+              <span class="text-tertiary text-[0.78125rem]" role="alert"
+                >Couldn’t load more logs.</span
+              >
+              <Button variant="secondary" @click="loadMore()">Retry</Button>
+            </template>
+            <template v-else-if="hasNextPage">
+              <span
+                v-if="loadedCount !== null"
+                class="text-tertiary text-[0.78125rem] tabular-nums"
+                role="status"
+                >{{ loadedCount }}</span
+              >
+              <Button variant="secondary" @click="loadMore()"
+                >Load more logs</Button
+              >
+            </template>
             <span
-              v-if="loadedCount !== null"
+              v-else
               class="text-tertiary text-[0.78125rem] tabular-nums"
               role="status"
-              >{{ loadedCount }}</span
+              >{{ endOfListLabel }}</span
             >
-            <Button variant="secondary" @click="loadMore()"
-              >Load more logs</Button
-            >
-          </template>
-          <span
-            v-else
-            class="text-tertiary text-[0.78125rem] tabular-nums"
-            role="status"
-            >{{ endOfListLabel }}</span
-          >
-        </div>
-      </template>
+          </div>
+        </template>
+      </div>
+      <button
+        v-show="showBackToTop"
+        type="button"
+        aria-label="Back to top of logs"
+        title="Back to top"
+        class="border-default bg-raised hover:border-strong hover:bg-hover absolute right-4 bottom-4 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border shadow-lg transition-colors duration-120 ease-out"
+        @click="scrollToTop"
+      >
+        <img :src="arrowUpIcon" alt="" aria-hidden="true" class="size-4" />
+      </button>
     </div>
   </div>
 </template>
