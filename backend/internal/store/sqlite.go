@@ -112,7 +112,7 @@ func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span)
 func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) error {
 	now := time.Now().UnixNano()
 
-	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET start_time_ns = MIN(start_time_ns, excluded.start_time_ns), end_time_ns = MAX(end_time_ns, excluded.end_time_ns), span_count = span_count + excluded.span_count, error = error OR excluded.error, updated_at_ns = excluded.updated_at_ns`
+	query := `INSERT INTO traces (trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET root_service = CASE WHEN root_service = '' THEN excluded.root_service ELSE root_service END, environment = CASE WHEN environment IS NULL OR environment = '' THEN excluded.environment ELSE environment END, root_name = CASE WHEN root_name = '' THEN excluded.root_name ELSE root_name END, start_time_ns = MIN(start_time_ns, excluded.start_time_ns), end_time_ns = MAX(end_time_ns, excluded.end_time_ns), span_count = span_count + excluded.span_count, error = error OR excluded.error, updated_at_ns = excluded.updated_at_ns`
 
 	_, err := tx.ExecContext(ctx, query,
 		trace.TraceID,
@@ -274,12 +274,56 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		traceID = &options.Cursor.TraceID
 	}
 
+	var startNS *int64
+	if options.Start != nil {
+		ns := options.Start.UnixNano()
+		startNS = &ns
+	}
+
+	var endNS *int64
+	if options.End != nil {
+		ns := options.End.UnixNano()
+		endNS = &ns
+	}
+
+	var errorEquals *bool
+	if options.ErrorFilter != nil {
+		v := *options.ErrorFilter
+		errorEquals = &v
+	}
+
+	likePattern := ""
+	if options.Search != "" {
+		likePattern = "%" + escapeLike(options.Search) + "%"
+	}
+
+	comparator := "<"
+	orderDir := "DESC"
+	if options.Ascending {
+		comparator = ">"
+		orderDir = "ASC"
+	}
+
 	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
-	 traces WHERE (?1 IS NULL) OR (start_time_ns,trace_id) < (?1, ?2) ORDER BY start_time_ns DESC, trace_id DESC  LIMIT (?3) `
+	 traces WHERE ((?1 IS NULL) OR (start_time_ns,trace_id) ` + comparator + ` (?1, ?2))
+	 AND (?3 = '' OR root_name LIKE ?4 ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ?4 ESCAPE '\' COLLATE NOCASE)
+	 AND (?5 IS NULL OR error = ?5)
+	 AND (?6 = '' OR EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service = ?6))
+	 AND (?7 IS NULL OR start_time_ns >= ?7)
+	 AND (?8 IS NULL OR start_time_ns <= ?8)
+	 AND (?9 = '' OR environment = ?9)
+	 ORDER BY start_time_ns ` + orderDir + `, trace_id ` + orderDir + ` LIMIT (?10) `
 
 	rows, err := s.readDB.QueryContext(ctx, query,
 		startTimeNS,
 		traceID,
+		options.Search,
+		likePattern,
+		errorEquals,
+		options.Service,
+		startNS,
+		endNS,
+		options.Environment,
 		fetchLimit)
 
 	if err != nil {
@@ -320,6 +364,27 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 	if err := rows.Err(); err != nil {
 		return page, err
 	}
+
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM traces
+	 WHERE (?1 = '' OR root_name LIKE ?2 ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ?2 ESCAPE '\' COLLATE NOCASE)
+	 AND (?3 IS NULL OR error = ?3)
+	 AND (?4 = '' OR EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service = ?4))
+	 AND (?5 IS NULL OR start_time_ns >= ?5)
+	 AND (?6 IS NULL OR start_time_ns <= ?6)
+	 AND (?7 = '' OR environment = ?7)`
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery,
+		options.Search,
+		likePattern,
+		errorEquals,
+		options.Service,
+		startNS,
+		endNS,
+		options.Environment).Scan(&total); err != nil {
+		return page, err
+	}
+	page.Total = &total
 
 	items, hasMore, last := paginate(traces, limit)
 
@@ -622,6 +687,30 @@ func (s *SQLiteStore) ListServices(ctx context.Context) ([]string, error) {
 	}
 
 	return services, nil
+}
+
+func (s *SQLiteStore) ListEnvironments(ctx context.Context) ([]string, error) {
+	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT environment FROM traces WHERE environment IS NOT NULL AND environment != '' ORDER BY environment`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	environments := []string{}
+
+	for rows.Next() {
+		var environment string
+		if err := rows.Scan(&environment); err != nil {
+			return nil, err
+		}
+		environments = append(environments, environment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return environments, nil
 }
 
 func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {

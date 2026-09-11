@@ -14,6 +14,12 @@ export const routes: readonly RouteRecordRaw[] = [
         path: "traces",
         name: "traces",
         component: () => import("@/features/traces/views/TracesView.vue"),
+        meta: {
+          preload: {
+            prefetchQueries: () =>
+              import("@/features/traces/queries").then((m) => m.prefetchTraces),
+          },
+        },
       },
       {
         path: "traces/:id",

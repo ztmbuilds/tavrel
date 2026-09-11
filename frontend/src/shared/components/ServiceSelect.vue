@@ -16,9 +16,11 @@ const props = withDefaults(
     label?: string;
     options: readonly ServiceSelectOption[];
     triggerClass?: string;
+    searchPlaceholder?: string;
   }>(),
   {
     label: "Service",
+    searchPlaceholder: "Search services…",
   },
 );
 
@@ -153,7 +155,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           ref="searchRef"
           v-model="filter"
           type="text"
-          placeholder="Search services…"
+          :placeholder="props.searchPlaceholder"
           autocomplete="off"
           spellcheck="false"
           class="text-primary placeholder:text-tertiary w-full min-w-0 flex-1 border-none bg-transparent font-sans text-[0.8125rem] outline-none"

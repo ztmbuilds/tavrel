@@ -15,6 +15,7 @@ type Store interface {
 	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
 	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
 	ListServices(ctx context.Context) ([]string, error)
+	ListEnvironments(ctx context.Context) ([]string, error)
 
 	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
 
@@ -36,7 +37,16 @@ type ListSpansCursor struct {
 	SpanID    string
 }
 
-type ListTracesOptions = ListOptions[ListTracesCursor]
+type ListTracesOptions struct {
+	ListOptions[ListTracesCursor]
+	Search      string
+	ErrorFilter *bool
+	Service     string
+	Environment string
+	Start       *time.Time
+	End         *time.Time
+	Ascending   bool
+}
 type ListLogsOptions = ListOptions[ListLogsCursor]
 type ListSpansOptions struct {
 	ListOptions[ListSpansCursor]

@@ -3,6 +3,7 @@ import { computed } from "vue";
 
 import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
+import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
 import { formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
 
@@ -27,6 +28,8 @@ const FULL_METER_PERCENT = 100;
 const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
 const relativeLabel = computed(() => formatRelativeTime(props.span.startTime));
+
+const shortTraceId = computed(() => truncateTraceId(props.span.traceId));
 
 const meterWidth = computed(() => {
   if (props.maxDurationMs <= 0) return 0;
@@ -86,7 +89,7 @@ const rowLabel = computed(
           :title="`Open trace ${span.traceId}`"
           @click.stop="$emit('openTrace', span.traceId)"
         >
-          trace:{{ span.traceId }}
+          trace:{{ shortTraceId }}
         </button>
       </div>
     </div>

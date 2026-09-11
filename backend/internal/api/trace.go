@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"noname/internal/store"
 	"slices"
+	"time"
 )
 
 type traceStore interface {
@@ -21,10 +22,91 @@ type TraceData struct {
 	Spans []*spanNode  `json:"spans"`
 }
 
+const defaultTracesLimit = 20
+const defaultTracesLookback = 24 * time.Hour
+
 func newListTracesHandler(ts traceStore) AppHandler {
 
-	return listHandler(newListOptions[store.ListTracesCursor], ts.ListTraces, "Traces retrieved successfully")
+	return func(w http.ResponseWriter, r *http.Request) error {
+		options, err := newTraceListOptions(r)
+		if err != nil {
+			return err
+		}
 
+		page, err := ts.ListTraces(r.Context(), options)
+		if err != nil {
+			return Internal(err)
+		}
+
+		writeListResponse(w, "Traces retrieved successfully", page)
+
+		return nil
+	}
+
+}
+
+func newTraceListOptions(r *http.Request) (store.ListTracesOptions, error) {
+	options := store.ListTracesOptions{
+		ListOptions: newListOptions[store.ListTracesCursor](r),
+	}
+	query := r.URL.Query()
+
+	if query.Get("limit") == "" {
+		options.Limit = defaultTracesLimit
+	}
+	if v := query.Get("search"); v != "" {
+		options.Search = v
+	}
+	if v := query.Get("service"); v != "" {
+		options.Service = v
+	}
+	if v := query.Get("environment"); v != "" {
+		options.Environment = v
+	}
+
+	switch v := query.Get("status"); v {
+	case "", "all":
+	case "error":
+		err := true
+		options.ErrorFilter = &err
+	case "ok":
+		err := false
+		options.ErrorFilter = &err
+	default:
+		return store.ListTracesOptions{}, BadRequest("invalid status: must be all, error or ok", nil)
+	}
+
+	switch v := query.Get("order"); v {
+	case "", "desc":
+	case "asc":
+		options.Ascending = true
+	default:
+		return store.ListTracesOptions{}, BadRequest("invalid order: must be asc or desc", nil)
+	}
+
+	if v := query.Get("start"); v != "" {
+		start, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return store.ListTracesOptions{}, BadRequest("invalid start: must be ISO 8601 ", err)
+		}
+		options.Start = &start
+	}
+	if v := query.Get("end"); v != "" {
+		end, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return store.ListTracesOptions{}, BadRequest("invalid end: must be ISO 8601 ", err)
+		}
+		options.End = &end
+	}
+	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
+		return store.ListTracesOptions{}, BadRequest("invalid time range: start must not be after end", nil)
+	}
+	if options.Start == nil && options.End == nil {
+		start := time.Now().Add(-defaultTracesLookback)
+		options.Start = &start
+	}
+
+	return options, nil
 }
 
 func newGetTraceHandler(ts traceStore) AppHandler {
