@@ -8,6 +8,8 @@ import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
 import { formatDurationMs } from "@/shared/utils/time";
 
+import SpanAttributes from "./SpanAttributes.vue";
+
 import type { AncestorEntry } from "../composables/useTraceGraph";
 import type { SpanEventView, TraceDetailTab } from "../types";
 
@@ -42,28 +44,6 @@ const TABS: readonly { value: TraceDetailTab; label: string }[] = [
   { value: "events", label: "Events" },
   { value: "logs", label: "Logs" },
 ];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function formatAttributeValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (value === null || value === undefined) return "null";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "[unserializable]";
-  }
-}
-
-const attributeEntries = computed((): [string, string][] => {
-  if (!isRecord(props.span.attributes)) return [];
-  return Object.entries(props.span.attributes).map(
-    ([key, value]) => [key, formatAttributeValue(value)] as [string, string],
-  );
-});
 
 const statusLabel = computed(() =>
   props.span.status === "error"
@@ -212,20 +192,7 @@ function logOffsetMs(timestamp: string): number {
       </template>
 
       <template v-else-if="activeTab === 'attributes'">
-        <p class="text-tertiary mt-0 mb-2 text-[0.65625rem] font-medium tracking-wider uppercase">Attributes</p>
-        <div v-if="attributeEntries.length === 0" class="px-2 py-6 text-center">
-          <div class="text-primary text-[0.78125rem] font-semibold">No attributes on this span</div>
-        </div>
-        <table v-else class="w-full border-collapse">
-          <tbody>
-            <tr v-for="[key, value] in attributeEntries" :key="key" class="border-subtle border-b last:border-b-0">
-              <td class="text-tertiary w-32 py-2 pr-3 align-top font-mono text-xs break-words">{{ key }}</td>
-              <td class="text-primary hover:text-heading cursor-pointer rounded-sm py-2 align-top font-mono text-xs break-all tabular-nums" title="Select to copy">
-                {{ value }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <SpanAttributes :attributes="span.attributes" />
       </template>
 
       <template v-else-if="activeTab === 'events'">
