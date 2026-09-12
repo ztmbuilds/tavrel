@@ -6,13 +6,27 @@ import {
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
 
-import { getEnvironments, getServices, getTraces, type TracesPage } from "./api";
-import { DEFAULT_TRACES_FILTERS, type TracesListParams } from "./types";
+import { ApiError } from "@/shared/api/client";
+import type { Log } from "@/shared/types/entities/log";
+
+import {
+  getEnvironments,
+  getServices,
+  getSpanLogs,
+  getTraceDetail,
+  getTraces,
+  type TracesPage,
+} from "./api";
+import { DEFAULT_TRACES_FILTERS, type SpanLogWindow, type TraceDetail, type TracesListParams } from "./types";
 
 export const traceKeys = {
   all: ["traces"] as const,
   lists: () => [...traceKeys.all, "list"] as const,
   list: (params: TracesListParams) => [...traceKeys.lists(), params] as const,
+  details: () => [...traceKeys.all, "detail"] as const,
+  detail: (id: string) => [...traceKeys.details(), id] as const,
+  spanLogs: (window: SpanLogWindow) =>
+    [...traceKeys.all, "span-logs", window] as const,
   services: () => [...traceKeys.all, "services"] as const,
   environments: () => [...traceKeys.all, "environments"] as const,
 };
@@ -31,6 +45,37 @@ export function useTracesQuery(
   });
 }
 
+export function useTraceDetailQuery(
+  id: Ref<string>,
+): UseQueryReturnType<TraceDetail, Error> {
+  return useQuery({
+    queryKey: computed(() => traceKeys.detail(id.value)),
+    queryFn: (): Promise<TraceDetail> => getTraceDetail(id.value),
+    retry: (count: number, error: Error): boolean => {
+      if (error instanceof ApiError && error.isNotFound()) return false;
+      return count < 1;
+    },
+  });
+}
+
+export function useTraceSpanLogsQuery(
+  traceId: Ref<string>,
+  window: Ref<SpanLogWindow | null>,
+): UseQueryReturnType<Log[], Error> {
+  return useQuery({
+    queryKey: computed(() =>
+      traceKeys.spanLogs(
+        window.value ?? { spanId: "", start: "", end: "" },
+      ),
+    ),
+    queryFn: (): Promise<Log[]> => {
+      const current = window.value;
+      if (current === null) return Promise.resolve([]);
+      return getSpanLogs(traceId.value, current.spanId, current.start, current.end);
+    },
+    enabled: computed(() => window.value !== null),
+  });
+}
 export function useTracesServicesQuery(): UseQueryReturnType<string[], Error> {
   return useQuery({
     queryKey: traceKeys.services(),
