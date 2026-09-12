@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"net/http"
 	"noname/internal/store"
 	"slices"
@@ -116,7 +118,10 @@ func newGetTraceHandler(ts traceStore) AppHandler {
 		trace, spans, err := ts.GetTrace(r.Context(), traceId)
 
 		if err != nil {
-			return err
+			if errors.Is(err, sql.ErrNoRows) {
+				return NotFound("trace not found", err)
+			}
+			return Internal(err)
 		}
 
 		nodes := buildTraceTree(spans)
@@ -174,5 +179,18 @@ func buildTraceTree(spans []store.Span) []*spanNode {
 		return a.Span.StartTime.Compare(b.Span.StartTime)
 	})
 
+	for _, root := range roots {
+		sortSpanChildren(root)
+	}
+
 	return roots
+}
+
+func sortSpanChildren(node *spanNode) {
+	slices.SortFunc(node.Children, func(a, b *spanNode) int {
+		return a.Span.StartTime.Compare(b.Span.StartTime)
+	})
+	for _, child := range node.Children {
+		sortSpanChildren(child)
+	}
 }
