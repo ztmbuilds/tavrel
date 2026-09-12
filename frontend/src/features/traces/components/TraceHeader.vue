@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
+import copyIcon from "@/assets/icons/copy.svg";
 import type { TraceStatus } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
@@ -50,11 +51,17 @@ const statusLabel = computed(() =>
     <div class="bg-subtle h-3.5 w-px shrink-0" aria-hidden="true" />
     <button
       type="button"
-      class="text-tertiary hover:text-secondary hover:bg-hover -ml-1.5 cursor-pointer rounded border-none bg-transparent px-1.5 py-0.5 font-mono text-[0.71875rem] underline decoration-strong decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
+      class="text-tertiary hover:text-secondary hover:bg-hover group -ml-1.5 inline-flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-1.5 py-0.5 font-mono text-[0.71875rem] underline decoration-strong decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
       title="Copy full trace ID"
       @click="$emit('copy')"
     >
-      trace&nbsp;{{ shortTraceId }}
+      <span>trace&nbsp;{{ shortTraceId }}</span>
+      <img
+        :src="copyIcon"
+        alt=""
+        aria-hidden="true"
+        class="size-3 opacity-0 transition-opacity duration-120 ease-out group-hover:opacity-100 group-focus-visible:opacity-100"
+      />
     </button>
     <span v-if="copied" class="text-ok text-[0.6875rem] font-medium" role="status"
       >Copied</span
