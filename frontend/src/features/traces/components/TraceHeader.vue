@@ -15,6 +15,7 @@ const props = defineProps<{
   rootName: string;
   rootService: string;
   rootKind: string;
+  environment: string;
   status: TraceStatus;
   durationLabel: string;
   relativeLabel: string;
@@ -103,6 +104,13 @@ const statusLabel = computed(() =>
           >
             <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
             {{ statusLabel }}
+          </span>
+          <span
+            v-if="environment !== ''"
+            class="border-default bg-surface text-secondary inline-flex items-center rounded-full border px-2.5 py-0.5 text-[0.71875rem] font-medium"
+            :title="`Environment: ${environment}`"
+          >
+            {{ environment }}
           </span>
         </div>
       </div>

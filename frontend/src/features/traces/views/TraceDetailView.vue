@@ -330,6 +330,7 @@ function retryLogs(): void {
         :root-name="detail.trace.rootName"
         :root-service="detail.trace.rootService"
         :root-kind="graph.rootSpan.value?.kind ?? 'unspecified'"
+        :environment="detail.trace.environment"
         :status="detail.trace.status"
         :duration-label="durationLabel"
         :relative-label="relativeLabel"
