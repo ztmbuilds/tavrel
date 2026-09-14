@@ -40,6 +40,8 @@ const GRID_LINE_COUNT = 6;
 const COPY_FLASH_MS = 1600;
 const NARROW_VIEWPORT_PX = 760;
 const PX_PER_REM = 16;
+const SINGLE_ROOT_DEPTH = 1;
+const MULTI_ROOT_DEPTH = 2;
 
 const idRef = computed((): string => {
   const raw = route.params.id;
@@ -70,6 +72,10 @@ const detailQuery = useTraceDetailQuery(idRef);
 const detail = computed(() => detailQuery.data.value);
 
 const graph = useTraceGraph(detail);
+
+const rootDepth = computed((): number =>
+  graph.rootNodes.value.length > 1 ? MULTI_ROOT_DEPTH : SINGLE_ROOT_DEPTH,
+);
 
 const selectedSpan = computed((): Span | null => {
   if (selectedId.value === null) return null;
@@ -356,7 +362,7 @@ function copyTraceId(): void {
               v-for="(node, index) in graph.rootNodes.value"
               :key="node.span.spanId"
               :node="node"
-              :depth="1"
+              :depth="rootDepth"
               :level="1"
               :guides="[]"
               :is-last="index === graph.rootNodes.value.length - 1"
