@@ -9,6 +9,7 @@ import { formatDurationMs } from "@/shared/utils/time";
 import { isAsyncSpan } from "../api";
 import { useWaterfallContext } from "../composables/waterfall-context";
 import type { SpanNode } from "../types";
+import TreeGuides from "./TreeGuides.vue";
 import WaterfallRowSelf from "./WaterfallRow.vue";
 
 const props = defineProps<{
@@ -114,23 +115,7 @@ function onChevron(event: MouseEvent): void {
         class="border-subtle bg-panel flex h-full shrink-0 items-center gap-1 border-r pr-2.5"
         :style="{ width: context.labelWidth.value + 'rem' }"
       >
-        <div class="flex h-full shrink-0 items-stretch" aria-hidden="true">
-          <div
-            v-for="(guide, index) in guides"
-            :key="index"
-            class="relative h-full w-[1.125rem] shrink-0"
-          >
-            <div v-if="guide" class="bg-default absolute top-0 bottom-0 left-2 w-px" />
-          </div>
-          <div v-if="depth > 1" class="relative h-full w-[1.125rem] shrink-0">
-            <div class="bg-default absolute top-0 left-2 h-1/2 w-px" />
-            <div
-              v-if="!isLast"
-              class="bg-default absolute top-1/2 bottom-0 left-2 w-px"
-            />
-            <div class="bg-default absolute top-1/2 right-0 left-2 h-px" />
-          </div>
-        </div>
+        <TreeGuides :guides="guides" :depth="depth" :is-last="isLast" />
         <button
           :class="
             cn(
@@ -229,28 +214,12 @@ function onChevron(event: MouseEvent): void {
         :is-last="index === node.children.length - 1"
       />
     </div>
-    <div v-else-if="node.children.length > 0 && isCollapsed" class="flex h-[1.875rem] items-center">
+    <div v-else-if="node.children.length > 0 && isCollapsed" role="group" class="flex h-[1.875rem] items-center border-l-[3px] border-l-transparent">
       <div
         class="border-subtle bg-panel flex h-full shrink-0 items-center border-r"
         :style="{ width: context.labelWidth.value + 'rem' }"
       >
-        <div class="flex h-full shrink-0 items-stretch" aria-hidden="true">
-          <div
-            v-for="(guide, index) in guides"
-            :key="index"
-            class="relative h-full w-[1.125rem] shrink-0"
-          >
-            <div v-if="guide" class="bg-default absolute top-0 bottom-0 left-2 w-px" />
-          </div>
-          <div v-if="depth > 1" class="relative h-full w-[1.125rem] shrink-0">
-            <div class="bg-default absolute top-0 left-2 h-1/2 w-px" />
-            <div
-              v-if="!isLast"
-              class="bg-default absolute top-1/2 bottom-0 left-2 w-px"
-            />
-            <div class="bg-default absolute top-1/2 right-0 left-2 h-px" />
-          </div>
-        </div>
+        <TreeGuides :guides="childGuides" :depth="depth + 1" :is-last="true" />
         <button
           type="button"
           class="text-tertiary hover:text-secondary flex h-full w-full cursor-pointer items-center border-none bg-transparent p-0 text-[0.71875rem] tabular-nums"
