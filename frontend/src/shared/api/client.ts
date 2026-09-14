@@ -33,10 +33,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function extractMessage(payload: unknown, fallback: string): string {
-  if (isRecord(payload) && typeof payload["error"] === "string")
-    return payload["error"];
-  if (isRecord(payload) && typeof payload["message"] === "string")
-    return payload["message"];
+  if (isRecord(payload)) {
+    const error = payload["error"];
+    if (
+      isRecord(error) &&
+      typeof error["message"] === "string" &&
+      error["message"] !== ""
+    )
+      return error["message"];
+    if (
+      typeof payload["message"] === "string" &&
+      payload["message"] !== ""
+    )
+      return payload["message"];
+  }
   return fallback;
 }
 
