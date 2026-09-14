@@ -1,8 +1,4 @@
-const TraceStatus = {
-  Ok: "ok",
-  Error: "error",
-} as const;
-export type TraceStatus = (typeof TraceStatus)[keyof typeof TraceStatus];
+export type TraceStatus = "ok" | "error";
 
 export interface Trace {
   traceId: string;

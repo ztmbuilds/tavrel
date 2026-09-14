@@ -1,4 +1,4 @@
-import { ref, type InjectionKey, type Ref } from "vue";
+import { inject, type InjectionKey, type Ref } from "vue";
 
 import type { Span } from "@/shared/types/entities/span";
 
@@ -23,16 +23,8 @@ export const MIN_LABEL_WIDTH_REM = 8;
 export const MAX_LABEL_WIDTH_REM = 40;
 export const LABEL_RESIZE_STEP_REM = 0.5;
 
-export function fallbackWaterfallContext(): WaterfallContext {
-  return {
-    selectedId: ref(null),
-    collapsed: ref(new Set<string>()),
-    totalMs: ref(0),
-    labelWidth: ref(DEFAULT_LABEL_WIDTH_REM),
-    select: () => {},
-    toggleCollapse: () => {},
-    spanStartMs: () => 0,
-    spanDurationMs: () => 0,
-    selfTimeMs: () => 0,
-  };
+export function useWaterfallContext(): WaterfallContext {
+  const context = inject(waterfallKey);
+  if (context === undefined) throw new Error("Missing trace waterfall provider");
+  return context;
 }

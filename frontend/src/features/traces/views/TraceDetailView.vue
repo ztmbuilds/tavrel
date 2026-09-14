@@ -14,13 +14,14 @@ import {
   NARROW_LABEL_WIDTH_REM,
   waterfallKey,
 } from "@/features/traces/composables/waterfall-context";
-import { isAsyncSpan, toSpanEventViews } from "@/features/traces/api";
+import { isAsyncSpan } from "@/features/traces/api";
 import {
   useTraceDetailQuery,
   useTraceSpanLogsQuery,
 } from "@/features/traces/queries";
 import type { SpanLogWindow, TraceDetailTab } from "@/features/traces/types";
 import { ApiError } from "@/shared/api/client";
+import { toSpanEventViews } from "@/shared/api/otel";
 import Button from "@/shared/components/ui/Button.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import type { Span } from "@/shared/types/entities/span";
@@ -66,7 +67,7 @@ const labelWidth = ref(
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
 const detailQuery = useTraceDetailQuery(idRef);
-const detail = computed(() => detailQuery.data.value ?? undefined);
+const detail = computed(() => detailQuery.data.value);
 
 const graph = useTraceGraph(detail);
 
@@ -193,15 +194,7 @@ provide(waterfallKey, {
 });
 
 function flatVisible(): Span[] {
-  const out: Span[] = [];
-  const visit = (list: typeof graph.rootNodes.value): void => {
-    for (const node of list) {
-      out.push(node.span);
-      if (!collapsed.value.has(node.span.spanId)) visit(node.children);
-    }
-  };
-  visit(graph.rootNodes.value);
-  return out;
+  return graph.visibleSpans(collapsed);
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -285,14 +278,6 @@ function copyTraceId(): void {
     copied.value = false;
   }, COPY_FLASH_MS);
 }
-
-function refetch(): void {
-  void detailQuery.refetch();
-}
-
-function retryLogs(): void {
-  void spanLogsQuery.refetch();
-}
 </script>
 
 <template>
@@ -318,7 +303,7 @@ function retryLogs(): void {
             : 'Something went wrong fetching this trace. Try again.'
         "
         :action-label="isNotFound ? 'Back to traces' : 'Retry'"
-        @clear="isNotFound ? back() : refetch()"
+        @clear="isNotFound ? back() : void detailQuery.refetch()"
       />
       <Button v-if="!isNotFound" variant="secondary" class="mt-1" @click="back()">
         Back to traces
@@ -413,7 +398,7 @@ function retryLogs(): void {
             :logs-error="spanLogsQuery.isError.value"
             @close="selectedId = null"
             @select-ancestor="select"
-            @retry-logs="retryLogs"
+            @retry-logs="void spanLogsQuery.refetch()"
           />
         </aside>
       </div>

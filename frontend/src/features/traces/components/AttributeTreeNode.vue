@@ -19,10 +19,6 @@ const emit = defineEmits<{
   copy: [path: string, text: string];
   toggle: [path: string];
 }>();
-
-function forwardCopy(path: string, text: string): void {
-  emit("copy", path, text);
-}
 </script>
 
 <template>
@@ -70,7 +66,7 @@ function forwardCopy(path: string, text: string): void {
         :node="child"
         :row-style="rowStyle"
         :copied-path="copiedPath"
-        @copy="forwardCopy"
+          @copy="(path, text) => emit('copy', path, text)"
         @toggle="$emit('toggle', $event)"
       />
     </div>

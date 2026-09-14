@@ -29,7 +29,7 @@ interface ApiFetchOptions {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function extractMessage(payload: unknown, fallback: string): string {
@@ -113,9 +113,7 @@ export async function apiFetch<T>(
       signal,
     });
     if (!response.ok) {
-      const payload = await parseJsonSafe(response).catch(
-        () => undefined as unknown,
-      );
+      const payload = await parseJsonSafe(response);
       throw new ApiError(
         response.status,
         path,

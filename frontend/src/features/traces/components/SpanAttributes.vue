@@ -5,9 +5,10 @@ import { cn } from "@/shared/utils/cn";
 import AttributeTreeNode from "./AttributeTreeNode.vue";
 import CopyButton from "./CopyButton.vue";
 import { useAttributeTree } from "../composables/useAttributeTree";
+import type { Attributes } from "@/shared/api/otel";
 
 const props = defineProps<{
-  attributes: unknown;
+  attributes: Attributes;
 }>();
 
 const attributesRef = toRef(props, "attributes");
@@ -26,10 +27,6 @@ const {
   collapseAll,
   copyAttribute,
 } = useAttributeTree(attributesRef);
-
-function handleCopyFlat(path: string, value: string): void {
-  copyAttribute(path, `${path}: ${value}`);
-}
 </script>
 
 <template>
@@ -132,7 +129,7 @@ function handleCopyFlat(path: string, value: string): void {
             :label="`Copy ${row.path}`"
             title="Copy key and value"
             :copied="copiedPath === row.path"
-            @copy="handleCopyFlat(row.path, row.value)"
+            @copy="copyAttribute(row.path, `${row.path}: ${row.value}`)"
           />
         </div>
       </div>

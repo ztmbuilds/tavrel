@@ -1,19 +1,14 @@
-const SpanKind = {
-  Unspecified: "unspecified",
-  Internal: "internal",
-  Server: "server",
-  Client: "client",
-  Producer: "producer",
-  Consumer: "consumer",
-} as const;
-export type SpanKind = (typeof SpanKind)[keyof typeof SpanKind];
+import type { Attributes, SpanEventDto } from "@/shared/api/otel";
 
-const SpanStatus = {
-  Unset: "unset",
-  Ok: "ok",
-  Error: "error",
-} as const;
-export type SpanStatus = (typeof SpanStatus)[keyof typeof SpanStatus];
+export type SpanKind =
+  | "unspecified"
+  | "internal"
+  | "server"
+  | "client"
+  | "producer"
+  | "consumer";
+
+export type SpanStatus = "unset" | "ok" | "error";
 
 export interface Span {
   spanId: string;
@@ -26,6 +21,6 @@ export interface Span {
   statusMessage: string;
   startTime: string;
   endTime: string;
-  attributes: unknown;
-  events: unknown;
+  attributes: Attributes;
+  events: SpanEventDto[];
 }

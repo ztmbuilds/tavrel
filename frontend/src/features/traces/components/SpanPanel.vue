@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from "vue";
-
 import xIcon from "@/assets/icons/x.svg";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
@@ -45,14 +43,6 @@ const TABS: readonly { value: TraceDetailTab; label: string }[] = [
   { value: "logs", label: "Logs" },
 ];
 
-const statusLabel = computed(() =>
-  props.span.status === "error"
-    ? "error"
-    : props.span.status === "ok"
-      ? "ok"
-      : "unset",
-);
-
 function logOffsetMs(timestamp: string): number {
   return Math.max(Date.parse(timestamp) - Date.parse(props.span.startTime), 0);
 }
@@ -81,7 +71,7 @@ function logOffsetMs(timestamp: string): number {
           aria-hidden="true"
         />
         {{ span.service }} · {{ span.kind }}
-        <span class="sr-only">, status {{ statusLabel }}</span>
+        <span class="sr-only">, status {{ span.status }}</span>
       </div>
       <nav class="text-tertiary mt-2.5 flex flex-wrap items-center gap-0.5 text-[0.71875rem] leading-relaxed" aria-label="Span path">
         <template v-for="(ancestor, index) in ancestors" :key="ancestor.spanId">
@@ -147,7 +137,7 @@ function logOffsetMs(timestamp: string): number {
                 )
               "
             >
-              {{ statusLabel }}
+              {{ span.status }}
             </div>
           </div>
         </div>

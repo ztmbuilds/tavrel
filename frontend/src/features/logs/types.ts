@@ -1,11 +1,4 @@
-const LogLevelFilter = {
-  All: "all",
-  Info: "info",
-  Warn: "warn",
-  Error: "error",
-} as const;
-export type LogLevelFilter =
-  (typeof LogLevelFilter)[keyof typeof LogLevelFilter];
+export type LogLevelFilter = "all" | "info" | "warn" | "error";
 
 export interface LogsFilters {
   search: string;

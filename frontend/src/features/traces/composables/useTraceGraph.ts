@@ -1,10 +1,9 @@
 import { computed, type Ref } from "vue";
-
+import { toSpanEventViews } from "@/shared/api/otel";
 import type { Span } from "@/shared/types/entities/span";
 import { serviceColor } from "@/shared/utils/service-color";
 import { formatDurationMs } from "@/shared/utils/time";
 
-import { toSpanEventViews } from "../api";
 import type {
   SpanNode,
   TraceDetail,
@@ -24,15 +23,15 @@ export interface AncestorEntry {
 
 const FULL_PCT = 100;
 
-function errorDetail(span: Span): string {
+function errorDetail(span: Span): string | undefined {
   const views = toSpanEventViews(span.events, span.startTime);
   const failure = views.find((view) => view.type === "error" && view.detail);
-  if (failure?.detail === undefined) return "";
+  if (failure?.detail === undefined) return undefined;
   const firstLine = failure.detail.split("\n")[0] ?? "";
   const separator = firstLine.indexOf(": ");
   const message =
     separator === -1 ? firstLine : firstLine.slice(separator + 2);
-  if (message === "") return "";
+  if (message === "") return undefined;
   return message.charAt(0).toLowerCase() + message.slice(1);
 }
 
@@ -53,6 +52,7 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
   childCount: (spanId: string) => number;
   ancestors: (spanId: string) => AncestorEntry[];
   findSpan: (spanId: string) => Span | null;
+  visibleSpans: (collapsed: Ref<Set<string>>) => Span[];
 } {
   const nodes = computed((): SpanNode[] => detail.value?.spans ?? []);
 
@@ -99,7 +99,7 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     return map;
   });
 
-  const rootNodes = computed((): SpanNode[] => nodes.value);
+  const rootNodes = nodes;
 
   const rootSpan = computed((): Span | null => {
     const firstRoot = nodes.value[0]?.span;
@@ -168,7 +168,7 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
       kind: "error",
       spanId: top.spanId,
       spanName: top.name,
-      suffix: ` failed in ${top.service}${detailText !== "" ? ` — ${detailText}` : ""}, using ${formatDurationMs(durationMs)} (${percent}% of the trace).`,
+      suffix: ` failed in ${top.service}${detailText !== undefined && detailText !== "" ? ` — ${detailText}` : ""}, using ${formatDurationMs(durationMs)} (${percent}% of the trace).`,
       tail: traceOk ? " The request still completed with an ok status." : "",
     };
   });
@@ -218,6 +218,18 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     return byId.value.get(spanId) ?? null;
   }
 
+  function visibleSpans(collapsed: Ref<Set<string>>): Span[] {
+    const out: Span[] = [];
+    const visit = (list: SpanNode[]): void => {
+      for (const node of list) {
+        out.push(node.span);
+        if (!collapsed.value.has(node.span.spanId)) visit(node.children);
+      }
+    };
+    visit(nodes.value);
+    return out;
+  }
+
   return {
     flatSpans,
     rootNodes,
@@ -235,5 +247,6 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     childCount,
     ancestors,
     findSpan,
+    visibleSpans,
   };
 }

@@ -1,10 +1,4 @@
-const SpanStatusFilter = {
-  All: "all",
-  Error: "error",
-  Ok: "ok",
-} as const;
-export type SpanStatusFilter =
-  (typeof SpanStatusFilter)[keyof typeof SpanStatusFilter];
+export type SpanStatusFilter = "all" | "error" | "ok";
 
 export interface SpansFilters {
   search: string;

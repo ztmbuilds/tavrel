@@ -11,10 +11,6 @@ interface NetworkInformation {
 
 const IDLE_FALLBACK_DELAY_MS = 200;
 
-const nextRouteMap: Record<string, string[]> = {
-  dashboard: ["spans"],
-};
-
 const route = useRoute();
 const { preloadRoute } = useRoutePreload();
 
@@ -26,13 +22,13 @@ onMounted(() => {
   );
   if (isSlowConnection) return;
 
-  const targets = nextRouteMap[String(route.name)] ?? [];
+  if (route.name !== "dashboard") return;
   const idle: (callback: () => void) => void =
     typeof window.requestIdleCallback === "function"
       ? (callback) => window.requestIdleCallback(callback)
       : (callback) => setTimeout(callback, IDLE_FALLBACK_DELAY_MS);
   idle(() => {
-    targets.forEach((routeName) => void preloadRoute(routeName));
+    void preloadRoute("spans");
   });
 });
 </script>

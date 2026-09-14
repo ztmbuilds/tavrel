@@ -1,9 +1,6 @@
-const LogLevel = {
-  Info: "info",
-  Warn: "warn",
-  Error: "error",
-} as const;
-export type LogLevel = (typeof LogLevel)[keyof typeof LogLevel];
+import type { Attributes } from "@/shared/api/otel";
+
+export type LogLevel = "info" | "warn" | "error";
 
 export interface Log {
   id: number;
@@ -17,6 +14,6 @@ export interface Log {
   level: LogLevel;
   message: string;
   host: string;
-  attributes: unknown;
-  resourceAttributes: unknown;
+  attributes: Attributes;
+  resourceAttributes: Attributes;
 }

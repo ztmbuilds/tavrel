@@ -1,19 +1,9 @@
 import type { Span, SpanStatus } from "@/shared/types/entities/span";
 import type { Trace } from "@/shared/types/entities/trace";
 
-const TraceStatusFilter = {
-  All: "all",
-  Error: "error",
-  Ok: "ok",
-} as const;
-export type TraceStatusFilter =
-  (typeof TraceStatusFilter)[keyof typeof TraceStatusFilter];
+export type TraceStatusFilter = "all" | "error" | "ok";
 
-const TraceOrder = {
-  Asc: "asc",
-  Desc: "desc",
-} as const;
-export type TraceOrder = (typeof TraceOrder)[keyof typeof TraceOrder];
+export type TraceOrder = "asc" | "desc";
 
 export interface TracesFilters {
   search: string;
@@ -47,20 +37,9 @@ export interface TraceDetail {
   spans: SpanNode[];
 }
 
-const TraceDetailTab = {
-  Overview: "overview",
-  Attributes: "attributes",
-  Events: "events",
-  Logs: "logs",
-} as const;
-export type TraceDetailTab =
-  (typeof TraceDetailTab)[keyof typeof TraceDetailTab];
+export type TraceDetailTab = "overview" | "attributes" | "events" | "logs";
 
-const SpanEventType = {
-  Error: "error",
-  Info: "info",
-} as const;
-export type SpanEventType = (typeof SpanEventType)[keyof typeof SpanEventType];
+export type SpanEventType = "error" | "info";
 
 export interface SpanEventView {
   offsetMs: number;

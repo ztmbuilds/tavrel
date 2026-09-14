@@ -25,8 +25,8 @@ export const traceKeys = {
   list: (params: TracesListParams) => [...traceKeys.lists(), params] as const,
   details: () => [...traceKeys.all, "detail"] as const,
   detail: (id: string) => [...traceKeys.details(), id] as const,
-  spanLogs: (window: SpanLogWindow) =>
-    [...traceKeys.all, "span-logs", window] as const,
+  spanLogs: (traceId: string, window: SpanLogWindow | null) =>
+    [...traceKeys.all, "span-logs", traceId, window] as const,
   services: () => [...traceKeys.all, "services"] as const,
   environments: () => [...traceKeys.all, "environments"] as const,
 };
@@ -63,14 +63,10 @@ export function useTraceSpanLogsQuery(
   window: Ref<SpanLogWindow | null>,
 ): UseQueryReturnType<Log[], Error> {
   return useQuery({
-    queryKey: computed(() =>
-      traceKeys.spanLogs(
-        window.value ?? { spanId: "", start: "", end: "" },
-      ),
-    ),
-    queryFn: (): Promise<Log[]> => {
+    queryKey: computed(() => traceKeys.spanLogs(traceId.value, window.value)),
+    queryFn: async (): Promise<Log[]> => {
       const current = window.value;
-      if (current === null) return Promise.resolve([]);
+      if (current === null) return [];
       return getSpanLogs(traceId.value, current.spanId, current.start, current.end);
     },
     enabled: computed(() => window.value !== null),

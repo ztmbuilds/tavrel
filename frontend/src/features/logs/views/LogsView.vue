@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg";
@@ -24,6 +24,11 @@ import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
+import {
+  readQueryParam,
+  useDebouncedSearch,
+  useRouteQuerySync,
+} from "@/shared/composables/useRouteFilters";
 import {
   CUSTOM_RANGE,
   DAY_PRESETS,
@@ -52,16 +57,10 @@ const BACK_TO_TOP_THRESHOLD_PX = 600;
 const route = useRoute();
 const router = useRouter();
 
-function queryParam(name: string): string | undefined {
-  const raw = route.query[name];
-  if (typeof raw === "string" && raw !== "") return raw;
-  return undefined;
-}
-
 function filtersFromRoute(): LogsFilters {
-  const levelRaw = queryParam("level");
+  const levelRaw = readQueryParam(route, "level");
   const next: LogsFilters = {
-    search: queryParam("search") ?? "",
+    search: readQueryParam(route, "search") ?? "",
     level:
       levelRaw === "info" ||
       levelRaw === "warn" ||
@@ -69,12 +68,12 @@ function filtersFromRoute(): LogsFilters {
       levelRaw === "all"
         ? levelRaw
         : "all",
-    service: queryParam("service") ?? "all",
-    traceId: queryParam("traceId") ?? "",
-    spanId: queryParam("spanId") ?? "",
+    service: readQueryParam(route, "service") ?? "all",
+    traceId: readQueryParam(route, "traceId") ?? "",
+    spanId: readQueryParam(route, "spanId") ?? "",
   };
-  const start = queryParam("start");
-  const end = queryParam("end");
+  const start = readQueryParam(route, "start");
+  const end = readQueryParam(route, "end");
   if (start !== undefined) next.start = start;
   if (end !== undefined) next.end = end;
   return next;
@@ -82,23 +81,12 @@ function filtersFromRoute(): LogsFilters {
 
 const filters = ref<LogsFilters>(filtersFromRoute());
 const searchInput = ref(filters.value.search);
-const debouncedQuery = ref(filters.value.search);
+const debouncedQuery = useDebouncedSearch(searchInput, SEARCH_DEBOUNCE_MS);
 const live = ref(false);
 const expanded = reactive(new Set<number>());
 const scrollerEl = ref<Element | null>(null);
 const sentinelEl = ref<Element | null>(null);
 const showBackToTop = ref(false);
-
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch(searchInput, (value) => {
-  if (searchTimer !== undefined) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    debouncedQuery.value = value;
-  }, SEARCH_DEBOUNCE_MS);
-});
-onUnmounted(() => {
-  if (searchTimer !== undefined) clearTimeout(searchTimer);
-});
 
 watch(debouncedQuery, (value) => {
   if (value === filters.value.search) return;
@@ -118,13 +106,7 @@ function filtersToQuery(): Record<string, string> {
   return query;
 }
 
-watch(
-  filters,
-  () => {
-    void router.replace({ query: filtersToQuery() });
-  },
-  { deep: true },
-);
+useRouteQuerySync(filters, filtersToQuery);
 
 const {
   data: logsData,
@@ -279,13 +261,12 @@ const emptyTitle = computed(() =>
   filtersActive.value ? "No log lines found" : "No logs recorded yet",
 );
 
-const emptyMessage = computed(() =>
-  filtersActive.value
-    ? filters.value.search !== ""
-      ? `No log lines match “${filters.value.search}” with these filters. Try a shorter search or widen the time range.`
-      : "No log lines match these filters. Try widening the time range or clearing a filter."
-    : undefined,
-);
+const emptyMessage = computed(() => {
+  if (!filtersActive.value) return undefined;
+  if (filters.value.search !== "")
+    return `No log lines match “${filters.value.search}” with these filters. Try a shorter search or widen the time range.`;
+  return "No log lines match these filters. Try widening the time range or clearing a filter.";
+});
 
 const emptyActionLabel = computed(() =>
   filtersActive.value ? "Clear all filters" : undefined,

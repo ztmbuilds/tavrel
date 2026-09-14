@@ -7,12 +7,14 @@ import {
   type Ref,
 } from "vue";
 
-const AttributeViewMode = {
-  Nested: "nested",
-  Flat: "flat",
-} as const;
-export type AttributeViewMode =
-  (typeof AttributeViewMode)[keyof typeof AttributeViewMode];
+import {
+  formatAttributeValue,
+  isRecord,
+  type Attributes,
+  type JsonValue,
+} from "@/shared/api/otel";
+
+export type AttributeViewMode = "nested" | "flat";
 
 export type AttributeVisibleNode =
   | {
@@ -52,16 +54,15 @@ const COPY_FLASH_MS = 1600;
 
 function readInitialMode(): AttributeViewMode {
   try {
-    return localStorage.getItem(VIEW_MODE_STORAGE_KEY) ===
-      AttributeViewMode.Flat
-      ? AttributeViewMode.Flat
-      : AttributeViewMode.Nested;
+    return localStorage.getItem(VIEW_MODE_STORAGE_KEY) === "flat"
+      ? "flat"
+      : "nested";
   } catch {
-    return AttributeViewMode.Nested;
+    return "nested";
   }
 }
 
-export function useAttributeTree(source: Ref<unknown>): {
+export function useAttributeTree(source: Ref<Attributes>): {
   mode: Ref<AttributeViewMode>;
   copiedPath: Ref<string | null>;
   nestedNodes: ComputedRef<AttributeVisibleNode[]>;
@@ -82,7 +83,6 @@ export function useAttributeTree(source: Ref<unknown>): {
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
   const roots = computed((): AttributeTreeNode[] => {
-    if (!isRecord(source.value)) return [];
     const nodes: AttributeTreeNode[] = [];
     for (const [key, value] of Object.entries(source.value)) {
       insertDotted(nodes, "", key, value);
@@ -201,22 +201,6 @@ export function useAttributeTree(source: Ref<unknown>): {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function formatAttributeValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean")
-    return String(value);
-  if (value === null || value === undefined) return "null";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "[unserializable]";
-  }
-}
-
 function getOrCreate(
   siblings: AttributeTreeNode[],
   name: string,
@@ -239,7 +223,7 @@ function insertDotted(
   siblings: AttributeTreeNode[],
   basePath: string,
   dottedKey: string,
-  rawValue: unknown,
+  rawValue: JsonValue,
 ): void {
   const parts = dottedKey.split(".").filter((part) => part.length > 0);
   const segments = parts.length > 0 ? parts : [dottedKey];

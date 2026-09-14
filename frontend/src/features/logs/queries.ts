@@ -20,21 +20,23 @@ export const logKeys = {
 
 const LIVE_REFETCH_MS = 10000;
 
-type LogsCursor = string | undefined;
-
 export function useInfiniteLogsQuery(
   params: Ref<LogsFilters>,
   live: Ref<boolean> = ref(false),
 ): UseInfiniteQueryReturnType<InfiniteData<LogsPage>, Error> {
   return useInfiniteQuery({
     queryKey: computed(() => logKeys.list(params.value)),
-    queryFn: ({ pageParam }: { pageParam: LogsCursor }): Promise<LogsPage> =>
+    queryFn: ({
+      pageParam,
+    }: {
+      pageParam: string | undefined;
+    }): Promise<LogsPage> =>
       getLogs(
         pageParam === undefined
           ? { ...params.value }
           : { ...params.value, cursor: pageParam },
       ),
-    initialPageParam: undefined as LogsCursor,
+    initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });
@@ -52,7 +54,7 @@ export async function prefetchLogs(queryClient: QueryClient): Promise<void> {
     queryClient.prefetchInfiniteQuery({
       queryKey: logKeys.list({ ...DEFAULT_LOGS_FILTERS }),
       queryFn: (): Promise<LogsPage> => getLogs({ ...DEFAULT_LOGS_FILTERS }),
-      initialPageParam: undefined as LogsCursor,
+      initialPageParam: undefined as string | undefined,
     }),
     queryClient.prefetchQuery({
       queryKey: logKeys.services(),
