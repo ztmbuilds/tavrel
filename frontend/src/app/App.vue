@@ -29,7 +29,7 @@ onMounted(() => {
       : (callback) => setTimeout(callback, IDLE_FALLBACK_DELAY_MS);
 
   idle(() => {
-    void preloadRoute("spans");
+    void preloadRoute("traces");
   });
 });
 </script>

@@ -38,20 +38,20 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     activeIcon: dashboardActiveIcon,
   },
   {
-    label: "Services",
-    to: "/services",
-    routeName: "services",
-    match: ["services"],
-    icon: servicesIcon,
-    activeIcon: servicesActiveIcon,
-  },
-  {
     label: "Traces",
     to: "/traces",
     routeName: "traces",
     match: ["traces", "trace-detail"],
     icon: tracesIcon,
     activeIcon: tracesActiveIcon,
+  },
+  {
+    label: "Logs",
+    to: "/logs",
+    routeName: "logs",
+    match: ["logs"],
+    icon: logsIcon,
+    activeIcon: logsActiveIcon,
   },
   {
     label: "Spans",
@@ -62,12 +62,12 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     activeIcon: spansActiveIcon,
   },
   {
-    label: "Logs",
-    to: "/logs",
-    routeName: "logs",
-    match: ["logs"],
-    icon: logsIcon,
-    activeIcon: logsActiveIcon,
+    label: "Services",
+    to: "/services",
+    routeName: "services",
+    match: ["services"],
+    icon: servicesIcon,
+    activeIcon: servicesActiveIcon,
   },
 ];
 
@@ -76,8 +76,7 @@ const ITEM_CLASSES =
 
 const COLLAPSED_ITEM_CLASSES = "w-8 justify-center px-0";
 
-const ACTIVE_CLASSES =
-  "bg-active text-ink hover:bg-active hover:text-ink";
+const ACTIVE_CLASSES = "bg-active text-ink hover:bg-active hover:text-ink";
 
 const STORAGE_KEY = "app-sidebar-collapsed";
 
