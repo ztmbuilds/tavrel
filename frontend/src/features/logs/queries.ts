@@ -9,7 +9,7 @@ import {
 import { computed, ref, type Ref } from "vue";
 
 import { getLogs, getServices, type LogsPage } from "./api";
-import { DEFAULT_LOGS_FILTERS, type LogsFilters } from "./types";
+import type { LogsFilters } from "./types";
 
 export const logKeys = {
   all: ["logs"] as const,
@@ -50,15 +50,8 @@ export function useLogsServicesQuery(): UseQueryReturnType<string[], Error> {
 }
 
 export async function prefetchLogs(queryClient: QueryClient): Promise<void> {
-  await Promise.all([
-    queryClient.prefetchInfiniteQuery({
-      queryKey: logKeys.list({ ...DEFAULT_LOGS_FILTERS }),
-      queryFn: (): Promise<LogsPage> => getLogs({ ...DEFAULT_LOGS_FILTERS }),
-      initialPageParam: undefined as string | undefined,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: logKeys.services(),
-      queryFn: getServices,
-    }),
-  ]);
+  await queryClient.prefetchQuery({
+    queryKey: logKeys.services(),
+    queryFn: getServices,
+  });
 }

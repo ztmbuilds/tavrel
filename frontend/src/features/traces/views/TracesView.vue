@@ -34,10 +34,12 @@ import {
 } from "@/shared/composables/useRouteFilters";
 import { formatCount } from "@/shared/utils/format";
 import {
+  ALL_TIME,
   CUSTOM_RANGE,
   DAY_PRESETS,
   TIME_PRESETS,
   dayPresetRange,
+  defaultWindowStart,
   matchDayPreset,
 } from "@/shared/utils/date-range";
 import { diffMsPrecise, formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
@@ -54,7 +56,6 @@ const STATUS_OPTIONS: readonly {
 
 const SEARCH_DEBOUNCE_MS = 300;
 const PRESET_MATCH_TOLERANCE_MIN = 1;
-const DEFAULT_PRESET = "24h";
 
 const route = useRoute();
 const router = useRouter();
@@ -76,6 +77,7 @@ function filtersFromRoute(): TracesFilters {
   const end = readQueryParam(route, "end");
   if (start !== undefined) next.start = start;
   if (end !== undefined) next.end = end;
+  if (start === undefined && end === undefined) next.start = defaultWindowStart();
   return next;
 }
 
@@ -163,7 +165,7 @@ const environmentOptions = computed(() => {
 
 const activePreset = computed(() => {
   if (filters.value.start === undefined && filters.value.end === undefined)
-    return DEFAULT_PRESET;
+    return ALL_TIME;
   const day = matchDayPreset(
     filters.value.start,
     filters.value.end,
@@ -313,6 +315,10 @@ function setTimeRange(
 }
 
 function applyPreset(value: string): void {
+  if (value === ALL_TIME) {
+    setTimeRange(undefined, undefined);
+    return;
+  }
   const day = dayPresetRange(value);
   if (day !== undefined) {
     setTimeRange(day.start, day.end);
@@ -362,6 +368,7 @@ function clearAllFilters(): void {
     service: "all",
     environment: "all",
     order: filters.value.order,
+    start: defaultWindowStart(),
   };
   resetPage();
 }

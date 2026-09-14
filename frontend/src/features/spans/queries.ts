@@ -7,7 +7,7 @@ import {
 import { computed, ref, type Ref } from "vue";
 
 import { getServices, getSpans, type SpansPage } from "./api";
-import { DEFAULT_SPANS_FILTERS, type SpansListParams } from "./types";
+import type { SpansListParams } from "./types";
 
 export const spanKeys = {
   all: ["spans"] as const,
@@ -38,15 +38,8 @@ export function useServicesQuery(): UseQueryReturnType<string[], Error> {
 }
 
 export async function prefetchSpans(queryClient: QueryClient): Promise<void> {
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: spanKeys.list({ ...DEFAULT_SPANS_FILTERS }),
-      queryFn: (): Promise<SpansPage> =>
-        getSpans({ ...DEFAULT_SPANS_FILTERS }),
-    }),
-    queryClient.prefetchQuery({
-      queryKey: spanKeys.services(),
-      queryFn: getServices,
-    }),
-  ]);
+  await queryClient.prefetchQuery({
+    queryKey: spanKeys.services(),
+    queryFn: getServices,
+  });
 }

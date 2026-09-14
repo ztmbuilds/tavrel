@@ -30,10 +30,12 @@ import {
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
 import {
+  ALL_TIME,
   CUSTOM_RANGE,
   DAY_PRESETS,
   TIME_PRESETS,
   dayPresetRange,
+  defaultWindowStart,
   matchDayPreset,
 } from "@/shared/utils/date-range";
 import { formatCount } from "@/shared/utils/format";
@@ -76,6 +78,7 @@ function filtersFromRoute(): LogsFilters {
   const end = readQueryParam(route, "end");
   if (start !== undefined) next.start = start;
   if (end !== undefined) next.end = end;
+  if (start === undefined && end === undefined) next.start = defaultWindowStart();
   return next;
 }
 
@@ -162,7 +165,7 @@ const serviceOptions = computed(() => {
 
 const activePreset = computed(() => {
   if (filters.value.start === undefined && filters.value.end === undefined)
-    return "1h";
+    return ALL_TIME;
   const day = matchDayPreset(
     filters.value.start,
     filters.value.end,
@@ -318,6 +321,10 @@ function setTimeRange(
 }
 
 function applyPreset(value: string): void {
+  if (value === ALL_TIME) {
+    setTimeRange(undefined, undefined);
+    return;
+  }
   const day = dayPresetRange(value);
   if (day !== undefined) {
     setTimeRange(day.start, day.end);
@@ -360,6 +367,7 @@ function clearAllFilters(): void {
     service: "all",
     traceId: "",
     spanId: "",
+    start: defaultWindowStart(),
   };
   resetList();
 }

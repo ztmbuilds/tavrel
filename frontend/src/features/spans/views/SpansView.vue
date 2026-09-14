@@ -8,10 +8,12 @@ import SpanRow from "@/features/spans/components/SpanRow.vue";
 import { SPANS_PAGE_SIZE } from "@/features/spans/api";
 import { useServicesQuery, useSpansQuery } from "@/features/spans/queries";
 import {
+  ALL_TIME,
   CUSTOM_RANGE,
   DAY_PRESETS,
   TIME_PRESETS,
   dayPresetRange,
+  defaultWindowStart,
   matchDayPreset,
 } from "@/shared/utils/date-range";
 import {
@@ -70,6 +72,7 @@ function filtersFromRoute(): SpansFilters {
   const end = readQueryParam(route, "end");
   if (start !== undefined) next.start = start;
   if (end !== undefined) next.end = end;
+  if (start === undefined && end === undefined) next.start = defaultWindowStart();
   return next;
 }
 
@@ -135,7 +138,7 @@ const serviceOptions = computed(() => {
 
 const activePreset = computed(() => {
   if (filters.value.start === undefined && filters.value.end === undefined)
-    return "1h";
+    return ALL_TIME;
   const day = matchDayPreset(
     filters.value.start,
     filters.value.end,
@@ -265,6 +268,10 @@ function setTimeRange(
 }
 
 function applyPreset(value: string): void {
+  if (value === ALL_TIME) {
+    setTimeRange(undefined, undefined);
+    return;
+  }
   const day = dayPresetRange(value);
   if (day !== undefined) {
     setTimeRange(day.start, day.end);
@@ -303,6 +310,7 @@ function clearAllFilters(): void {
     search: "",
     status: "all",
     service: "all",
+    start: defaultWindowStart(),
   };
   resetPage();
 }

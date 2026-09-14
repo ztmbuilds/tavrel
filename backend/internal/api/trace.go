@@ -25,7 +25,6 @@ type TraceData struct {
 }
 
 const defaultTracesLimit = 20
-const defaultTracesLookback = 24 * time.Hour
 
 func newListTracesHandler(ts traceStore) AppHandler {
 
@@ -102,10 +101,6 @@ func newTraceListOptions(r *http.Request) (store.ListTracesOptions, error) {
 	}
 	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
 		return store.ListTracesOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
-	if options.Start == nil && options.End == nil {
-		start := time.Now().Add(-defaultTracesLookback)
-		options.Start = &start
 	}
 
 	return options, nil

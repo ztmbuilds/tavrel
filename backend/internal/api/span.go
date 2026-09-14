@@ -9,7 +9,6 @@ import (
 )
 
 const defaultSpansLimit = 25
-const defaultSpansLookback = time.Hour
 
 type spanStore interface {
 	ListSpans(ctx context.Context, options store.ListSpansOptions) (store.Page[store.Span, store.ListSpansCursor], error)
@@ -89,10 +88,6 @@ func newSpanListOptions(r *http.Request) (store.ListSpansOptions, error) {
 	}
 	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
 		return store.ListSpansOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
-	if options.Start == nil && options.End == nil {
-		start := time.Now().Add(-defaultSpansLookback)
-		options.Start = &start
 	}
 
 	return options, nil

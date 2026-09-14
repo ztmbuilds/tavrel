@@ -8,7 +8,6 @@ import (
 )
 
 const defaultLogsLimit = 30
-const defaultLogsLookback = time.Hour
 
 type logStore interface {
 	ListLogs(ctx context.Context, options store.ListLogsOptions) (store.Page[store.Log, store.ListLogsCursor], error)
@@ -85,10 +84,6 @@ func newLogListOptions(r *http.Request) (store.ListLogsOptions, error) {
 	}
 	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
 		return store.ListLogsOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
-	if options.Start == nil && options.End == nil {
-		start := time.Now().Add(-defaultLogsLookback)
-		options.Start = &start
 	}
 
 	return options, nil

@@ -1,3 +1,5 @@
+import { MS_PER_MINUTE } from "@/shared/utils/time";
+
 export interface TimePreset {
   value: string;
   label: string;
@@ -13,6 +15,14 @@ export const TIME_PRESETS: readonly TimePreset[] = [
 ];
 
 export const CUSTOM_RANGE = "custom";
+export const ALL_TIME = "all";
+
+export const DEFAULT_WINDOW_PRESET = "24h";
+export const DEFAULT_WINDOW_MINUTES = 1440;
+
+export function defaultWindowStart(now: number = Date.now()): string {
+  return new Date(now - DEFAULT_WINDOW_MINUTES * MS_PER_MINUTE).toISOString();
+}
 
 export const TODAY_PRESET = "today";
 export const YESTERDAY_PRESET = "yesterday";

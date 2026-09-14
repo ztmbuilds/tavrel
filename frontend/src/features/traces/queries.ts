@@ -17,7 +17,7 @@ import {
   getTraces,
   type TracesPage,
 } from "./api";
-import { DEFAULT_TRACES_FILTERS, type SpanLogWindow, type TraceDetail, type TracesListParams } from "./types";
+import type { SpanLogWindow, TraceDetail, TracesListParams } from "./types";
 
 export const traceKeys = {
   all: ["traces"] as const,
@@ -91,11 +91,6 @@ export function useTracesEnvironmentsQuery(): UseQueryReturnType<
 
 export async function prefetchTraces(queryClient: QueryClient): Promise<void> {
   await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: traceKeys.list({ ...DEFAULT_TRACES_FILTERS }),
-      queryFn: (): Promise<TracesPage> =>
-        getTraces({ ...DEFAULT_TRACES_FILTERS }),
-    }),
     queryClient.prefetchQuery({
       queryKey: traceKeys.services(),
       queryFn: getServices,

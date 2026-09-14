@@ -7,6 +7,7 @@ import chevronRightIcon from "@/assets/icons/chevron-right.svg";
 import Button from "@/shared/components/ui/Button.vue";
 import TimeInput from "@/shared/components/TimeInput.vue";
 import { cn } from "@/shared/utils/cn";
+import { ALL_TIME } from "@/shared/utils/date-range";
 import {
   civilToIso,
   compareCivilDate,
@@ -78,11 +79,12 @@ const customSummary = computed(() =>
 );
 
 const dateLabel = computed(() => {
+  if (props.active === ALL_TIME) return "All time";
   if (props.active === CUSTOM) return customSummary.value;
   const day = props.dayPresets.find((item) => item.value === props.active);
   if (day !== undefined) return day.label;
   const preset = props.presets.find((item) => item.value === props.active);
-  return preset === undefined ? "Last 1h" : `Last ${preset.label}`;
+  return preset === undefined ? "All time" : `Last ${preset.label}`;
 });
 
 const monthLabel = computed(() =>
@@ -355,6 +357,24 @@ function applyCustom(): void {
             @click="selectPreset(day.value)"
           >
             {{ day.label }}
+          </button>
+        </div>
+        <div class="border-subtle my-1 border-t" aria-hidden="true" />
+        <div role="group" aria-label="All time" @keydown="handleOptionsKeydown">
+          <button
+            type="button"
+            data-range-option="true"
+            :aria-pressed="active === ALL_TIME"
+            :class="
+              cn(
+                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
+                active === ALL_TIME &&
+                  'bg-active text-ink hover:bg-active hover:text-ink',
+              )
+            "
+            @click="selectPreset(ALL_TIME)"
+          >
+            All time
           </button>
         </div>
       </div>
