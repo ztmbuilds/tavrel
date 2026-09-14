@@ -5,7 +5,7 @@ import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
-import { formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
 
 const props = defineProps<{
   span: Span;
@@ -16,12 +16,11 @@ defineEmits<{
   openTrace: [traceId: string];
 }>();
 
-const durationMs = computed(() =>
-  Math.max(
-    Date.parse(props.span.endTime) - Date.parse(props.span.startTime),
-    0,
-  ),
-);
+const durationMs = computed(() => {
+  const value = diffMsPrecise(props.span.startTime, props.span.endTime);
+  if (Number.isNaN(value)) return 0;
+  return Math.max(value, 0);
+});
 
 const FULL_METER_PERCENT = 100;
 

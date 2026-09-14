@@ -2,7 +2,7 @@ import { computed, type Ref } from "vue";
 import { toSpanEventViews } from "@/shared/api/otel";
 import type { Span } from "@/shared/types/entities/span";
 import { serviceColor } from "@/shared/utils/service-color";
-import { formatDurationMs } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs } from "@/shared/utils/time";
 
 import type {
   SpanNode,
@@ -78,13 +78,11 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     const map = new Map<string, number>();
     for (const span of flatSpans.value) {
       if (span.parentSpanId === "") continue;
+      const duration = diffMsPrecise(span.startTime, span.endTime);
       map.set(
         span.parentSpanId,
         (map.get(span.parentSpanId) ?? 0) +
-          Math.max(
-            Date.parse(span.endTime) - Date.parse(span.startTime),
-            0,
-          ),
+          (Number.isNaN(duration) ? 0 : Math.max(duration, 0)),
       );
     }
     return map;
@@ -112,7 +110,9 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
   const totalDurationMs = computed((): number => {
     const trace = detail.value?.trace;
     if (trace === undefined) return 0;
-    return Math.max(Date.parse(trace.endTime) - Date.parse(trace.startTime), 0);
+    const value = diffMsPrecise(trace.startTime, trace.endTime);
+    if (Number.isNaN(value)) return 0;
+    return Math.max(value, 0);
   });
 
   const serviceLegend = computed((): ServiceLegendEntry[] => {
@@ -129,25 +129,27 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
   const errorSpans = computed((): Span[] =>
     flatSpans.value
       .filter((span) => span.status === "error")
-      .sort(
-        (a, b) =>
-          Date.parse(b.endTime) -
-          Date.parse(b.startTime) -
-          (Date.parse(a.endTime) - Date.parse(a.startTime)),
-      ),
+      .sort((a, b) => {
+        const durationA = diffMsPrecise(a.startTime, a.endTime);
+        const durationB = diffMsPrecise(b.startTime, b.endTime);
+        return (
+          (Number.isNaN(durationB) ? 0 : durationB) -
+          (Number.isNaN(durationA) ? 0 : durationA)
+        );
+      }),
   );
 
   const issues = computed((): TraceIssue[] =>
-    errorSpans.value.map((span) => ({
-      spanId: span.spanId,
-      name: span.name,
-      service: span.service,
-      durationMs: Math.max(
-        Date.parse(span.endTime) - Date.parse(span.startTime),
-        0,
-      ),
-      status: span.status,
-    })),
+    errorSpans.value.map((span) => {
+      const duration = diffMsPrecise(span.startTime, span.endTime);
+      return {
+        spanId: span.spanId,
+        name: span.name,
+        service: span.service,
+        durationMs: Number.isNaN(duration) ? 0 : Math.max(duration, 0),
+        status: span.status,
+      };
+    }),
   );
 
   const diagnosis = computed((): TraceDiagnosis => {
@@ -156,10 +158,8 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     if (top === undefined) {
       return { kind: "ok", spanId: null, spanName: "", suffix: "", tail: "" };
     }
-    const durationMs = Math.max(
-      Date.parse(top.endTime) - Date.parse(top.startTime),
-      0,
-    );
+    const rawDuration = diffMsPrecise(top.startTime, top.endTime);
+    const durationMs = Number.isNaN(rawDuration) ? 0 : Math.max(rawDuration, 0);
     const total = totalDurationMs.value;
     const percent = total > 0 ? Math.round((durationMs / total) * FULL_PCT) : 0;
     const detailText = errorDetail(top);
@@ -180,14 +180,15 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
   function spanStartMs(span: Span): number {
     const traceStart = detail.value?.trace.startTime;
     if (traceStart === undefined) return 0;
-    return Math.max(Date.parse(span.startTime) - Date.parse(traceStart), 0);
+    const value = diffMsPrecise(traceStart, span.startTime);
+    if (Number.isNaN(value)) return 0;
+    return Math.max(value, 0);
   }
 
   function spanDurationMs(span: Span): number {
-    return Math.max(
-      Date.parse(span.endTime) - Date.parse(span.startTime),
-      0,
-    );
+    const value = diffMsPrecise(span.startTime, span.endTime);
+    if (Number.isNaN(value)) return 0;
+    return Math.max(value, 0);
   }
 
   function selfTimeMs(spanId: string): number {

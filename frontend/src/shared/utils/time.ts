@@ -141,7 +141,37 @@ export function formatCivilDate(date: CivilDate): string {
   );
 }
 
+const US_PER_MS = 1000;
+const NS_PER_MS = 1000000;
+const NS_PER_SEC = 1000000000;
+const FRACTION_DIGITS = 9;
+
+function parseFractionNs(iso: string): number | null {
+  const match = /\.(\d+)(?:Z|[+-]\d{2}:?\d{2})?$/.exec(iso);
+  if (match === null) return 0;
+  const digits = match[1] ?? "";
+  if (!/^\d+$/.test(digits)) return null;
+  return Number(digits.slice(0, FRACTION_DIGITS).padEnd(FRACTION_DIGITS, "0"));
+}
+
+export function diffMsPrecise(startIso: string, endIso: string): number {
+  const startMs = Date.parse(startIso);
+  const endMs = Date.parse(endIso);
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return NaN;
+  const startNs = parseFractionNs(startIso);
+  const endNs = parseFractionNs(endIso);
+  if (startNs === null || endNs === null) return endMs - startMs;
+  const startSec = Math.floor(startMs / MS_PER_SECOND);
+  const endSec = Math.floor(endMs / MS_PER_SECOND);
+  return ((endSec - startSec) * NS_PER_SEC + (endNs - startNs)) / NS_PER_MS;
+}
+
 export function formatDurationMs(ms: number): string {
+  if (Number.isNaN(ms) || ms <= 0) return `0µs`;
+  if (ms < 1) {
+    if (ms < 1 / US_PER_MS) return `${Math.max(1, Math.round(ms * NS_PER_MS))}ns`;
+    return `${Math.round(ms * US_PER_MS)}µs`;
+  }
   if (ms < MS_PER_SECOND) return `${Math.round(ms)}ms`;
   const seconds = ms / MS_PER_SECOND;
   return `${seconds.toFixed(Number.isInteger(seconds) ? 0 : 2)}s`;

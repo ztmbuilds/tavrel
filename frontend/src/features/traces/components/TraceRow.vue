@@ -4,7 +4,7 @@ import { computed } from "vue";
 import type { Trace } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
-import { formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
 
 const props = defineProps<{
   trace: Trace;
@@ -17,12 +17,11 @@ defineEmits<{
 
 const FULL_METER_PERCENT = 100;
 
-const durationMs = computed(() =>
-  Math.max(
-    Date.parse(props.trace.endTime) - Date.parse(props.trace.startTime),
-    0,
-  ),
-);
+const durationMs = computed(() => {
+  const value = diffMsPrecise(props.trace.startTime, props.trace.endTime);
+  if (Number.isNaN(value)) return 0;
+  return Math.max(value, 0);
+});
 
 const durationLabel = computed(() => formatDurationMs(durationMs.value));
 

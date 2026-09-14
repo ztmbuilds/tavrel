@@ -4,7 +4,7 @@ import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
-import { formatDurationMs } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs } from "@/shared/utils/time";
 
 import SpanAttributes from "./SpanAttributes.vue";
 
@@ -44,7 +44,9 @@ const TABS: readonly { value: TraceDetailTab; label: string }[] = [
 ];
 
 function logOffsetMs(timestamp: string): number {
-  return Math.max(Date.parse(timestamp) - Date.parse(props.span.startTime), 0);
+  const offset = diffMsPrecise(props.span.startTime, timestamp);
+  if (Number.isNaN(offset)) return 0;
+  return Math.max(offset, 0);
 }
 </script>
 

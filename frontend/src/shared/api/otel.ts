@@ -1,5 +1,6 @@
 import type { Log, LogLevel } from "@/shared/types/entities/log";
 import type { Span, SpanKind, SpanStatus } from "@/shared/types/entities/span";
+import { diffMsPrecise } from "@/shared/utils/time";
 
 export type JsonValue =
   | string
@@ -219,10 +220,9 @@ export function toSpanEventViews(
   events: SpanEventDto[],
   spanStartTime: string,
 ): SpanEventViewInput[] {
-  const spanStartMs = Date.parse(spanStartTime);
   const views: SpanEventViewInput[] = [];
   for (const raw of events) {
-    const offsetMs = Math.max(Date.parse(raw.time) - spanStartMs, 0);
+    const offsetMs = Math.max(diffMsPrecise(spanStartTime, raw.time), 0);
     const view: SpanEventViewInput = {
       offsetMs: Number.isNaN(offsetMs) ? 0 : offsetMs,
       name: raw.name,

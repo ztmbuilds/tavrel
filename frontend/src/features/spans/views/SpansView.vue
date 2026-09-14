@@ -38,7 +38,7 @@ import {
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
 import { formatCount } from "@/shared/utils/format";
-import { formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
+import { diffMsPrecise, formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: SpanStatusFilter;
@@ -225,7 +225,7 @@ const emptyActionLabel = computed(() =>
 const maxDurationMs = computed(() => {
   let max = 0;
   for (const span of spans.value) {
-    const duration = Date.parse(span.endTime) - Date.parse(span.startTime);
+    const duration = diffMsPrecise(span.startTime, span.endTime);
     if (duration > max) max = duration;
   }
   return max;

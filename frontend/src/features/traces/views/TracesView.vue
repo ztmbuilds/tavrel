@@ -40,7 +40,7 @@ import {
   dayPresetRange,
   matchDayPreset,
 } from "@/shared/utils/date-range";
-import { formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
+import { diffMsPrecise, formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: TraceStatusFilter;
@@ -271,7 +271,7 @@ const emptyActionLabel = computed(() =>
 const maxDurationMs = computed(() => {
   let max = 0;
   for (const trace of traces.value) {
-    const duration = Date.parse(trace.endTime) - Date.parse(trace.startTime);
+    const duration = diffMsPrecise(trace.startTime, trace.endTime);
     if (duration > max) max = duration;
   }
   return max;
