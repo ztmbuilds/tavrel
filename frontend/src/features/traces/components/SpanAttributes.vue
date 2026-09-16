@@ -36,7 +36,7 @@ const {
     </div>
   </div>
   <div v-else>
-    <div class="mb-2 flex items-center justify-end">
+    <div class="mb-2 flex items-center justify-between">
       <div
         role="group"
         aria-label="Attribute view mode"
@@ -73,26 +73,25 @@ const {
           Flat
         </button>
       </div>
-    </div>
-
-    <div
-      v-if="mode === 'nested' && hasGroups"
-      class="mb-1 flex items-center justify-end gap-3"
-    >
-      <button
-        type="button"
-        class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
-        @click="expandAll"
+      <div
+        v-if="mode === 'nested' && hasGroups"
+        class="flex items-center gap-3"
       >
-        Expand all
-      </button>
-      <button
-        type="button"
-        class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
-        @click="collapseAll"
-      >
-        Collapse all
-      </button>
+        <button
+          type="button"
+          class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
+          @click="expandAll"
+        >
+          Expand all
+        </button>
+        <button
+          type="button"
+          class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
+          @click="collapseAll"
+        >
+          Collapse all
+        </button>
+      </div>
     </div>
 
     <div v-if="mode === 'nested'">
@@ -117,7 +116,7 @@ const {
           :style="virtualStyle"
           class="group border-subtle flex items-center gap-2 border-x-0 border-t-0 border-b py-2"
         >
-          <span class="w-44 shrink-0 font-mono text-xs break-words"
+          <span class="w-44 shrink-0 font-mono text-xs wrap-break-word"
             ><span class="text-tertiary">{{ row.namespace }}</span
             ><span class="text-secondary">{{ row.leaf }}</span></span
           >
