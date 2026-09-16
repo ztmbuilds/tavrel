@@ -1,3 +1,4 @@
+import type { SharedTime } from "@/shared/composables/useGlobalTimeRange";
 import type { Span, SpanStatus } from "@/shared/types/entities/span";
 import type { Trace } from "@/shared/types/entities/trace";
 
@@ -5,14 +6,12 @@ export type TraceStatusFilter = "all" | "error" | "ok";
 
 export type TraceOrder = "asc" | "desc";
 
-export interface TracesFilters {
+export interface TracesFilters extends SharedTime {
   search: string;
   status: TraceStatusFilter;
   service: string;
   environment: string;
   order: TraceOrder;
-  start?: string;
-  end?: string;
 }
 
 export interface TracesListParams extends TracesFilters {

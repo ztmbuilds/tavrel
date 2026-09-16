@@ -38,6 +38,6 @@ export function useRouteQuerySync(
     () => {
       void router.replace({ query: toQuery() });
     },
-    { deep: true },
+    { deep: true, immediate: true },
   );
 }

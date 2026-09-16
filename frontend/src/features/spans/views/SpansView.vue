@@ -13,7 +13,6 @@ import {
   DAY_PRESETS,
   TIME_PRESETS,
   dayPresetRange,
-  defaultWindowStart,
   matchDayPreset,
 } from "@/shared/utils/date-range";
 import {
@@ -39,6 +38,13 @@ import {
   useDebouncedSearch,
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
+import {
+  RANGE_ALL,
+  extractTime,
+  persistTime,
+  resolveInitialTime,
+  timeToQuery,
+} from "@/shared/composables/useGlobalTimeRange";
 import { formatCount } from "@/shared/utils/format";
 import { diffMsPrecise, formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
 
@@ -68,12 +74,7 @@ function filtersFromRoute(): SpansFilters {
         : "all",
     service: readQueryParam(route, "service") ?? "all",
   };
-  const start = readQueryParam(route, "start");
-  const end = readQueryParam(route, "end");
-  if (start !== undefined) next.start = start;
-  if (end !== undefined) next.end = end;
-  if (start === undefined && end === undefined) next.start = defaultWindowStart();
-  return next;
+  return { ...next, ...resolveInitialTime(route) };
 }
 
 const filters = ref<SpansFilters>(filtersFromRoute());
@@ -94,9 +95,7 @@ function filtersToQuery(): Record<string, string> {
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.status !== "all") query.status = filters.value.status;
   if (filters.value.service !== "all") query.service = filters.value.service;
-  if (filters.value.start !== undefined) query.start = filters.value.start;
-  if (filters.value.end !== undefined) query.end = filters.value.end;
-  return query;
+  return { ...query, ...timeToQuery(filters.value) };
 }
 
 useRouteQuerySync(filters, filtersToQuery);
@@ -137,6 +136,7 @@ const serviceOptions = computed(() => {
 });
 
 const activePreset = computed(() => {
+  if (filters.value.range === RANGE_ALL) return ALL_TIME;
   if (filters.value.start === undefined && filters.value.end === undefined)
     return ALL_TIME;
   const day = matchDayPreset(
@@ -255,15 +255,19 @@ function resetPage(): void {
 function setTimeRange(
   start: string | undefined,
   end: string | undefined,
+  preset?: string,
 ): void {
   const next: SpansFilters = {
     search: filters.value.search,
     status: filters.value.status,
     service: filters.value.service,
   };
+  if (start === undefined && end === undefined) next.range = RANGE_ALL;
   if (start !== undefined) next.start = start;
   if (end !== undefined) next.end = end;
+  if (preset !== undefined && next.range === undefined) next.preset = preset;
   filters.value = next;
+  persistTime(next);
   resetPage();
 }
 
@@ -274,7 +278,7 @@ function applyPreset(value: string): void {
   }
   const day = dayPresetRange(value);
   if (day !== undefined) {
-    setTimeRange(day.start, day.end);
+    setTimeRange(day.start, day.end, value);
     return;
   }
   const preset = TIME_PRESETS.find((item) => item.value === value);
@@ -282,6 +286,7 @@ function applyPreset(value: string): void {
   setTimeRange(
     new Date(Date.now() - preset.minutes * MS_PER_MINUTE).toISOString(),
     undefined,
+    value,
   );
 }
 
@@ -296,9 +301,8 @@ function clearFacets(): void {
     search: "",
     status: "all",
     service: "all",
+    ...extractTime(filters.value),
   };
-  if (filters.value.start !== undefined) next.start = filters.value.start;
-  if (filters.value.end !== undefined) next.end = filters.value.end;
   filters.value = next;
   resetPage();
 }
@@ -310,8 +314,9 @@ function clearAllFilters(): void {
     search: "",
     status: "all",
     service: "all",
-    start: defaultWindowStart(),
+    range: RANGE_ALL,
   };
+  persistTime(filters.value);
   resetPage();
 }
 

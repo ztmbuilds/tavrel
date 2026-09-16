@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 
 import PreloadLink from "@/shared/components/PreloadLink.vue";
 
+import { preserveTimeQuery } from "@/shared/composables/useGlobalTimeRange";
+
 import { cn } from "@/shared/utils/cn";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
 import dashboardIcon from "@/assets/icons/dashboard.svg";
@@ -100,6 +102,10 @@ function isActive(item: NavItem): boolean {
   return item.match.includes(activeRouteName.value);
 }
 
+function navTo(path: string): { path: string; query: Record<string, string> } {
+  return { path, query: preserveTimeQuery(route.query) };
+}
+
 function handleToggle(): void {
   isCollapsed.value = !isCollapsed.value;
   try {
@@ -149,7 +155,7 @@ function handleToggle(): void {
     <PreloadLink
       v-for="item in OBSERVE_ITEMS"
       :key="item.label"
-      :to="item.to"
+      :to="navTo(item.to)"
       :route-name="item.routeName"
       :title="item.label"
       :aria-label="item.label"

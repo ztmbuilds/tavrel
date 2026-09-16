@@ -1,11 +1,11 @@
+import type { SharedTime } from "@/shared/composables/useGlobalTimeRange";
+
 export type SpanStatusFilter = "all" | "error" | "ok";
 
-export interface SpansFilters {
+export interface SpansFilters extends SharedTime {
   search: string;
   status: SpanStatusFilter;
   service: string;
-  start?: string;
-  end?: string;
 }
 
 export interface SpansListParams extends SpansFilters {
