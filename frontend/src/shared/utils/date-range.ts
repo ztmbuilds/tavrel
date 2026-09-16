@@ -1,5 +1,3 @@
-import { MS_PER_MINUTE } from "@/shared/utils/time";
-
 export interface TimePreset {
   value: string;
   label: string;
@@ -19,10 +17,6 @@ export const ALL_TIME = "all";
 
 export const DEFAULT_WINDOW_PRESET = "24h";
 export const DEFAULT_WINDOW_MINUTES = 1440;
-
-export function defaultWindowStart(now: number = Date.now()): string {
-  return new Date(now - DEFAULT_WINDOW_MINUTES * MS_PER_MINUTE).toISOString();
-}
 
 export const TODAY_PRESET = "today";
 export const YESTERDAY_PRESET = "yesterday";
@@ -53,23 +47,5 @@ export function dayPresetRange(value: string): { start?: string; end?: string } 
       end: today.toISOString(),
     };
   }
-  return undefined;
-}
-
-export function matchDayPreset(
-  start: string | undefined,
-  end: string | undefined,
-  toleranceMs: number,
-): string | undefined {
-  if (start === undefined) return undefined;
-  const todayMs = startOfToday().getTime();
-  if (Math.abs(Date.parse(start) - todayMs) < toleranceMs && end === undefined)
-    return TODAY_PRESET;
-  if (
-    end !== undefined &&
-    Math.abs(Date.parse(start) - (todayMs - MS_PER_DAY)) < toleranceMs &&
-    Math.abs(Date.parse(end) - todayMs) < toleranceMs
-  )
-    return YESTERDAY_PRESET;
   return undefined;
 }

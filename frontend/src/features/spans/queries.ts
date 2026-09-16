@@ -6,6 +6,8 @@ import {
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
 
+import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
+
 import { getServices, getSpans, type SpansPage } from "./api";
 import type { SpansListParams } from "./types";
 
@@ -24,7 +26,8 @@ export function useSpansQuery(
 ): UseQueryReturnType<SpansPage, Error> {
   return useQuery({
     queryKey: computed(() => spanKeys.list(params.value)),
-    queryFn: (): Promise<SpansPage> => getSpans(params.value),
+    queryFn: (): Promise<SpansPage> =>
+      getSpans({ ...params.value, ...resolveWindow(params.value) }),
     placeholderData: keepPreviousData,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });

@@ -11,9 +11,3 @@ export interface SpansFilters extends SharedTime {
 export interface SpansListParams extends SpansFilters {
   cursor?: string;
 }
-
-export const DEFAULT_SPANS_FILTERS: SpansFilters = {
-  search: "",
-  status: "all",
-  service: "all",
-};

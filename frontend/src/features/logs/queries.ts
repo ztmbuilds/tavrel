@@ -8,6 +8,8 @@ import {
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
 
+import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
+
 import { getLogs, getServices, type LogsPage } from "./api";
 import type { LogsFilters } from "./types";
 
@@ -30,12 +32,14 @@ export function useInfiniteLogsQuery(
       pageParam,
     }: {
       pageParam: string | undefined;
-    }): Promise<LogsPage> =>
-      getLogs(
+    }): Promise<LogsPage> => {
+      const window = resolveWindow(params.value);
+      return getLogs(
         pageParam === undefined
-          ? { ...params.value }
-          : { ...params.value, cursor: pageParam },
-      ),
+          ? { ...params.value, ...window }
+          : { ...params.value, ...window, cursor: pageParam },
+      );
+    },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),

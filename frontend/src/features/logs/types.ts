@@ -13,11 +13,3 @@ export interface LogsFilters extends SharedTime {
 export interface LogsListParams extends LogsFilters {
   cursor?: string;
 }
-
-export const DEFAULT_LOGS_FILTERS: LogsFilters = {
-  search: "",
-  level: "all",
-  service: "all",
-  traceId: "",
-  spanId: "",
-};

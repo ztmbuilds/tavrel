@@ -30,22 +30,20 @@ import {
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
 import {
-  RANGE_ALL,
   extractTime,
   persistTime,
   resolveInitialTime,
   timeToQuery,
+  type SharedTime,
 } from "@/shared/composables/useGlobalTimeRange";
 import {
   ALL_TIME,
   CUSTOM_RANGE,
   DAY_PRESETS,
   TIME_PRESETS,
-  dayPresetRange,
-  matchDayPreset,
 } from "@/shared/utils/date-range";
 import { formatCount } from "@/shared/utils/format";
-import { formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
+import { formatDateTimeRange } from "@/shared/utils/time";
 
 const LEVEL_OPTIONS: readonly {
   value: LogLevelFilter;
@@ -59,7 +57,6 @@ const LEVEL_OPTIONS: readonly {
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
-const PRESET_MATCH_TOLERANCE_MIN = 1;
 const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
@@ -67,7 +64,7 @@ const router = useRouter();
 
 function filtersFromRoute(): LogsFilters {
   const levelRaw = readQueryParam(route, "level");
-  const next: LogsFilters = {
+  return {
     search: readQueryParam(route, "search") ?? "",
     level:
       levelRaw === "info" ||
@@ -79,8 +76,8 @@ function filtersFromRoute(): LogsFilters {
     service: readQueryParam(route, "service") ?? "all",
     traceId: readQueryParam(route, "traceId") ?? "",
     spanId: readQueryParam(route, "spanId") ?? "",
+    ...resolveInitialTime(route),
   };
-  return { ...next, ...resolveInitialTime(route) };
 }
 
 const filters = ref<LogsFilters>(filtersFromRoute());
@@ -162,27 +159,6 @@ const serviceOptions = computed(() => {
   return [{ value: "all", label: "All services" }, ...options];
 });
 
-const activePreset = computed(() => {
-  if (filters.value.range === RANGE_ALL) return ALL_TIME;
-  if (filters.value.start === undefined && filters.value.end === undefined)
-    return ALL_TIME;
-  const day = matchDayPreset(
-    filters.value.start,
-    filters.value.end,
-    PRESET_MATCH_TOLERANCE_MIN * MS_PER_MINUTE,
-  );
-  if (day !== undefined) return day;
-  if (filters.value.end !== undefined || filters.value.start === undefined)
-    return CUSTOM_RANGE;
-  const minutesAgo =
-    (Date.now() - Date.parse(filters.value.start)) / MS_PER_MINUTE;
-  const match = TIME_PRESETS.find(
-    (preset) =>
-      Math.abs(preset.minutes - minutesAgo) < PRESET_MATCH_TOLERANCE_MIN,
-  );
-  return match?.value ?? CUSTOM_RANGE;
-});
-
 const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
@@ -190,8 +166,7 @@ const filtersActive = computed(
     filters.value.service !== "all" ||
     filters.value.traceId !== "" ||
     filters.value.spanId !== "" ||
-    filters.value.start !== undefined ||
-    filters.value.end !== undefined,
+    filters.value.range !== ALL_TIME,
 );
 
 const facetsActive = computed(
@@ -238,11 +213,11 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Message",
       value: filters.value.search,
     });
-  if (filters.value.start !== undefined || filters.value.end !== undefined) {
+  if (filters.value.range !== ALL_TIME) {
     const preset = TIME_PRESETS.find(
-      (item) => item.value === activePreset.value,
+      (item) => item.value === filters.value.range,
     );
-    const day = DAY_PRESETS.find((item) => item.value === activePreset.value);
+    const day = DAY_PRESETS.find((item) => item.value === filters.value.range);
     let value: string;
     if (preset !== undefined) value = `Last ${preset.label}`;
     else if (day !== undefined) value = day.label;
@@ -303,48 +278,37 @@ function scrollToTop(): void {
   scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function setTimeRange(
-  start: string | undefined,
-  end: string | undefined,
-  preset?: string,
-): void {
-  const next: LogsFilters = {
+function updateTime(time: SharedTime): void {
+  filters.value = {
     search: filters.value.search,
     level: filters.value.level,
     service: filters.value.service,
     traceId: filters.value.traceId,
     spanId: filters.value.spanId,
+    ...time,
   };
-  if (start === undefined && end === undefined) next.range = RANGE_ALL;
-  if (start !== undefined) next.start = start;
-  if (end !== undefined) next.end = end;
-  if (preset !== undefined && next.range === undefined) next.preset = preset;
-  filters.value = next;
-  persistTime(next);
+  persistTime(filters.value);
   resetList();
 }
 
 function applyPreset(value: string): void {
   if (value === ALL_TIME) {
-    setTimeRange(undefined, undefined);
+    updateTime({ range: ALL_TIME });
     return;
   }
-  const day = dayPresetRange(value);
-  if (day !== undefined) {
-    setTimeRange(day.start, day.end, value);
-    return;
-  }
-  const preset = TIME_PRESETS.find((item) => item.value === value);
-  if (preset === undefined) return;
-  setTimeRange(
-    new Date(Date.now() - preset.minutes * MS_PER_MINUTE).toISOString(),
-    undefined,
-    value,
-  );
+  if (
+    TIME_PRESETS.some((item) => item.value === value) ||
+    DAY_PRESETS.some((item) => item.value === value)
+  )
+    updateTime({ range: value });
 }
 
 function applyCustomRange(range: { start?: string; end?: string }): void {
-  setTimeRange(range.start, range.end);
+  if (range.start === undefined && range.end === undefined) return;
+  const time: SharedTime = { range: CUSTOM_RANGE };
+  if (range.start !== undefined) time.start = range.start;
+  if (range.end !== undefined) time.end = range.end;
+  updateTime(time);
 }
 
 function clearFacets(): void {
@@ -371,7 +335,7 @@ function clearAllFilters(): void {
     service: "all",
     traceId: "",
     spanId: "",
-    range: RANGE_ALL,
+    range: ALL_TIME,
   };
   persistTime(filters.value);
   resetList();
@@ -383,7 +347,7 @@ function removeChip(key: string): void {
     filters.value = { ...filters.value, service: "all" };
   else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
   else if (key === "spanId") filters.value = { ...filters.value, spanId: "" };
-  else if (key === "timerange") setTimeRange(undefined, undefined);
+  else if (key === "timerange") updateTime({ range: ALL_TIME });
   else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";
@@ -422,7 +386,7 @@ function openTrace(traceId: string): void {
         <DateRangePicker
           :presets="TIME_PRESETS"
           :day-presets="DAY_PRESETS"
-          :active="activePreset"
+          :active="filters.range"
           :start="filters.start"
           :end="filters.end"
           @preset="applyPreset"

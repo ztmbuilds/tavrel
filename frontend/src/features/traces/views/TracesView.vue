@@ -33,11 +33,11 @@ import {
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
 import {
-  RANGE_ALL,
   extractTime,
   persistTime,
   resolveInitialTime,
   timeToQuery,
+  type SharedTime,
 } from "@/shared/composables/useGlobalTimeRange";
 import { formatCount } from "@/shared/utils/format";
 import {
@@ -45,10 +45,8 @@ import {
   CUSTOM_RANGE,
   DAY_PRESETS,
   TIME_PRESETS,
-  dayPresetRange,
-  matchDayPreset,
 } from "@/shared/utils/date-range";
-import { diffMsPrecise, formatDateTimeRange, MS_PER_MINUTE } from "@/shared/utils/time";
+import { diffMsPrecise, formatDateTimeRange } from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: TraceStatusFilter;
@@ -61,7 +59,6 @@ const STATUS_OPTIONS: readonly {
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
-const PRESET_MATCH_TOLERANCE_MIN = 1;
 
 const route = useRoute();
 const router = useRouter();
@@ -69,7 +66,7 @@ const router = useRouter();
 function filtersFromRoute(): TracesFilters {
   const statusRaw = readQueryParam(route, "status");
   const orderRaw = readQueryParam(route, "order");
-  const next: TracesFilters = {
+  return {
     search: readQueryParam(route, "search") ?? "",
     status:
       statusRaw === "error" || statusRaw === "ok" || statusRaw === "all"
@@ -78,8 +75,8 @@ function filtersFromRoute(): TracesFilters {
     service: readQueryParam(route, "service") ?? "all",
     environment: readQueryParam(route, "environment") ?? "all",
     order: orderRaw === "asc" ? "asc" : "desc",
+    ...resolveInitialTime(route),
   };
-  return { ...next, ...resolveInitialTime(route) };
 }
 
 const filters = ref<TracesFilters>(filtersFromRoute());
@@ -162,35 +159,13 @@ const environmentOptions = computed(() => {
   return [{ value: "all", label: "All environments" }, ...options];
 });
 
-const activePreset = computed(() => {
-  if (filters.value.range === RANGE_ALL) return ALL_TIME;
-  if (filters.value.start === undefined && filters.value.end === undefined)
-    return ALL_TIME;
-  const day = matchDayPreset(
-    filters.value.start,
-    filters.value.end,
-    PRESET_MATCH_TOLERANCE_MIN * MS_PER_MINUTE,
-  );
-  if (day !== undefined) return day;
-  if (filters.value.end !== undefined || filters.value.start === undefined)
-    return CUSTOM_RANGE;
-  const minutesAgo =
-    (Date.now() - Date.parse(filters.value.start)) / MS_PER_MINUTE;
-  const match = TIME_PRESETS.find(
-    (preset) =>
-      Math.abs(preset.minutes - minutesAgo) < PRESET_MATCH_TOLERANCE_MIN,
-  );
-  return match?.value ?? CUSTOM_RANGE;
-});
-
 const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
     filters.value.service !== "all" ||
     filters.value.environment !== "all" ||
-    filters.value.start !== undefined ||
-    filters.value.end !== undefined,
+    filters.value.range !== ALL_TIME,
 );
 
 const facetsActive = computed(
@@ -227,11 +202,11 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Root operation",
       value: filters.value.search,
     });
-  if (filters.value.start !== undefined || filters.value.end !== undefined) {
+  if (filters.value.range !== ALL_TIME) {
     const preset = TIME_PRESETS.find(
-      (item) => item.value === activePreset.value,
+      (item) => item.value === filters.value.range,
     );
-    const day = DAY_PRESETS.find((item) => item.value === activePreset.value);
+    const day = DAY_PRESETS.find((item) => item.value === filters.value.range);
     let value: string;
     if (preset !== undefined) value = `Last ${preset.label}`;
     else if (day !== undefined) value = day.label;
@@ -297,48 +272,37 @@ function resetPage(): void {
   cursorHistory.value = [];
 }
 
-function setTimeRange(
-  start: string | undefined,
-  end: string | undefined,
-  preset?: string,
-): void {
-  const next: TracesFilters = {
+function updateTime(time: SharedTime): void {
+  filters.value = {
     search: filters.value.search,
     status: filters.value.status,
     service: filters.value.service,
     environment: filters.value.environment,
     order: filters.value.order,
+    ...time,
   };
-  if (start === undefined && end === undefined) next.range = RANGE_ALL;
-  if (start !== undefined) next.start = start;
-  if (end !== undefined) next.end = end;
-  if (preset !== undefined && next.range === undefined) next.preset = preset;
-  filters.value = next;
-  persistTime(next);
+  persistTime(filters.value);
   resetPage();
 }
 
 function applyPreset(value: string): void {
   if (value === ALL_TIME) {
-    setTimeRange(undefined, undefined);
+    updateTime({ range: ALL_TIME });
     return;
   }
-  const day = dayPresetRange(value);
-  if (day !== undefined) {
-    setTimeRange(day.start, day.end, value);
-    return;
-  }
-  const preset = TIME_PRESETS.find((item) => item.value === value);
-  if (preset === undefined) return;
-  setTimeRange(
-    new Date(Date.now() - preset.minutes * MS_PER_MINUTE).toISOString(),
-    undefined,
-    value,
-  );
+  if (
+    TIME_PRESETS.some((item) => item.value === value) ||
+    DAY_PRESETS.some((item) => item.value === value)
+  )
+    updateTime({ range: value });
 }
 
 function applyCustomRange(range: { start?: string; end?: string }): void {
-  setTimeRange(range.start, range.end);
+  if (range.start === undefined && range.end === undefined) return;
+  const time: SharedTime = { range: CUSTOM_RANGE };
+  if (range.start !== undefined) time.start = range.start;
+  if (range.end !== undefined) time.end = range.end;
+  updateTime(time);
 }
 
 function toggleOrder(): void {
@@ -372,7 +336,7 @@ function clearAllFilters(): void {
     service: "all",
     environment: "all",
     order: filters.value.order,
-    range: RANGE_ALL,
+    range: ALL_TIME,
   };
   persistTime(filters.value);
   resetPage();
@@ -382,7 +346,7 @@ function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: "all" };
-  else if (key === "timerange") setTimeRange(undefined, undefined);
+  else if (key === "timerange") updateTime({ range: ALL_TIME });
   else if (key === "environment")
     filters.value = { ...filters.value, environment: "all" };
   else if (key === "search") {
@@ -433,7 +397,7 @@ function openTrace(traceId: string): void {
         <DateRangePicker
           :presets="TIME_PRESETS"
           :day-presets="DAY_PRESETS"
-          :active="activePreset"
+          :active="filters.range"
           :start="filters.start"
           :end="filters.end"
           @preset="applyPreset"

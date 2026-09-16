@@ -18,14 +18,6 @@ export interface TracesListParams extends TracesFilters {
   cursor?: string;
 }
 
-export const DEFAULT_TRACES_FILTERS: TracesFilters = {
-  search: "",
-  status: "all",
-  service: "all",
-  environment: "all",
-  order: "desc",
-};
-
 export interface SpanNode {
   span: Span;
   children: SpanNode[];

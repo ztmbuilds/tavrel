@@ -7,6 +7,7 @@ import {
 import { computed, ref, type Ref } from "vue";
 
 import { ApiError } from "@/shared/api/client";
+import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 import type { Log } from "@/shared/types/entities/log";
 
 import {
@@ -39,7 +40,8 @@ export function useTracesQuery(
 ): UseQueryReturnType<TracesPage, Error> {
   return useQuery({
     queryKey: computed(() => traceKeys.list(params.value)),
-    queryFn: (): Promise<TracesPage> => getTraces(params.value),
+    queryFn: (): Promise<TracesPage> =>
+      getTraces({ ...params.value, ...resolveWindow(params.value) }),
     placeholderData: keepPreviousData,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });

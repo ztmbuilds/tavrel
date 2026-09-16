@@ -108,9 +108,11 @@ export function formatDateTimeRange(
     }
     return `${formatShortDateTime(start)} – ${formatShortDateTime(end)}`;
   }
-  const startLabel = start === undefined ? "…" : formatShortDateTime(start);
-  const endLabel = end === undefined ? "…" : formatShortDateTime(end);
-  return `${startLabel} – ${endLabel}`;
+  if (start !== undefined && end === undefined)
+    return `Since ${formatShortDateTime(start)}`;
+  if (start === undefined && end !== undefined)
+    return `Before ${formatShortDateTime(end)}`;
+  return "…";
 }
 
 export function compareCivilDate(a: CivilDate, b: CivilDate): number {
