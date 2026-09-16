@@ -38,10 +38,6 @@ const showAsync = computed(() => isAsyncSpan(props.node.span.kind));
 
 const startMs = computed(() => context.spanStartMs(props.node.span));
 const durationMs = computed(() => context.spanDurationMs(props.node.span));
-const selfPct = computed(() => {
-  if (durationMs.value <= 0) return 0;
-  return Math.min(context.selfTimeMs(props.node.span.spanId) / durationMs.value, 1) * FULL_PCT;
-});
 
 const barGeom = computed(() => {
   const windowMs = context.totalMs.value;
@@ -170,17 +166,13 @@ function onChevron(event: MouseEvent): void {
       </div>
       <div class="relative h-full flex-1 overflow-hidden px-4" aria-hidden="true">
         <div
-          class="absolute top-1/2 h-4 -translate-y-1/2 rounded-[3px] opacity-55"
+          class="absolute top-1/2 h-4 -translate-y-1/2 rounded-[3px]"
           :style="{
             left: `${barGeom.left}%`,
             width: `${barGeom.width}%`,
             background: barBackground,
           }"
         >
-          <div
-            class="absolute top-0 bottom-0 left-0 rounded-[3px]"
-            :style="{ width: `${selfPct}%`, background: barBackground }"
-          />
           <span
             v-if="!labelFitsAfterBar"
             class="text-heading absolute top-1/2 right-1.5 -translate-y-1/2 text-[0.6875rem] font-medium whitespace-nowrap tabular-nums"

@@ -1,17 +1,17 @@
 const SERVICE_COLORS: readonly string[] = [
-  "#7C9CD6",
-  "#8FBF9F",
-  "#D6A5C9",
-  "#E0B454",
-  "#7FC4C4",
-  "#C99B7C",
-  "#A5A8E0",
-  "#B8C47C",
-  "#E29A9A",
-  "#9AC7E0",
+  "#5E8FD7",
+  "#4CA381",
+  "#BE6DB0",
+  "#C0911A",
+  "#3FA3A3",
+  "#B07A45",
+  "#7F83D6",
+  "#8FA33A",
+  "#CC6B78",
+  "#4E9BCD",
 ];
 
-const FALLBACK_SERVICE_COLOR = "#7C9CD6";
+const FALLBACK_SERVICE_COLOR = "#5E8FD7";
 const NAME_HASH_FACTOR = 31;
 
 function hashServiceName(name: string): number {
