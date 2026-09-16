@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import checkOkIcon from "@/assets/icons/check-ok.svg";
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
 import copyIcon from "@/assets/icons/copy.svg";
 import type { TraceStatus } from "@/shared/types/entities/trace";
@@ -58,13 +59,18 @@ const statusLabel = computed(() =>
     >
       <span>trace&nbsp;{{ shortTraceId }}</span>
       <img
-        :src="copyIcon"
+        :src="copied ? checkOkIcon : copyIcon"
         alt=""
         aria-hidden="true"
-        class="size-3 opacity-0 transition-opacity duration-120 ease-out group-hover:opacity-100 group-focus-visible:opacity-100"
+        class="size-3 transition-opacity duration-120 ease-out"
+        :class="
+          copied
+            ? 'opacity-100'
+            : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
+        "
       />
     </button>
-    <span v-if="copied" class="text-ok text-[0.6875rem] font-medium" role="status"
+    <span v-if="copied" class="sr-only" role="status"
       >Copied</span
     >
     <div class="flex-1" />
