@@ -6,6 +6,7 @@ export interface SpansFilters extends SharedTime {
   search: string;
   status: SpanStatusFilter;
   service: string[];
+  environment: string[];
 }
 
 export interface SpansListParams extends SpansFilters {

@@ -87,6 +87,13 @@ const rowLabel = computed(
       </span>
     </div>
     <div
+      class="text-tertiary w-[5.5rem] shrink-0 truncate pt-0.5 text-xs max-[56.25rem]:hidden"
+      :title="log.environment"
+      aria-hidden="true"
+    >
+      {{ log.environment }}
+    </div>
+    <div
       :class="
         cn(
           'text-primary min-w-0 flex-1 truncate text-[0.78125rem] leading-relaxed',
@@ -122,6 +129,10 @@ const rowLabel = computed(
       <div class="flex gap-1">
         <dt class="text-tertiary">service&nbsp;</dt>
         <dd class="text-primary m-0">{{ log.service }}</dd>
+      </div>
+      <div v-if="log.environment !== ''" class="flex gap-1">
+        <dt class="text-tertiary">environment&nbsp;</dt>
+        <dd class="text-primary m-0">{{ log.environment }}</dd>
       </div>
       <div class="flex gap-1">
         <dt class="text-tertiary">level&nbsp;</dt>

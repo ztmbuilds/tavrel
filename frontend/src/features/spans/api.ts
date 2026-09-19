@@ -29,6 +29,7 @@ export async function getSpans(params: SpansListParams): Promise<SpansPage> {
   if (params.search !== "") query.search = params.search;
   if (params.status !== "all") query.status = params.status;
   if (params.service.length > 0) query.service = params.service;
+  if (params.environment.length > 0) query.environment = params.environment;
   if (params.start !== undefined) query.start = params.start;
   if (params.end !== undefined) query.end = params.end;
   if (params.cursor !== undefined) query.cursor = params.cursor;

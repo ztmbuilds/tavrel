@@ -11,6 +11,7 @@ import {
 } from "@/features/logs/queries";
 import { type LogsFilters, type LogLevelFilter } from "@/features/logs/types";
 import { useLogsInfiniteScroll } from "@/features/logs/composables/useLogsInfiniteScroll";
+import { useEnvironmentsQuery } from "@/shared/queries/environments";
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
@@ -76,6 +77,7 @@ function filtersFromRoute(): LogsFilters {
         ? levelRaw
         : "all",
     service: readQueryParamList(route, "service"),
+    environment: readQueryParamList(route, "environment"),
     traceId: readQueryParam(route, "traceId") ?? "",
     spanId: readQueryParam(route, "spanId") ?? "",
     ...resolveInitialTime(route),
@@ -102,6 +104,8 @@ function filtersToQuery(): Record<string, string | string[]> {
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.level !== "all") query.level = filters.value.level;
   if (filters.value.service.length > 0) query.service = filters.value.service;
+  if (filters.value.environment.length > 0)
+    query.environment = filters.value.environment;
   if (filters.value.traceId !== "") query.traceId = filters.value.traceId;
   if (filters.value.spanId !== "") query.spanId = filters.value.spanId;
   return { ...query, ...timeToQuery(filters.value) };
@@ -120,6 +124,7 @@ const {
   isFetchNextPageError,
 } = useInfiniteLogsQuery(filters, live);
 const servicesQuery = useLogsServicesQuery();
+const environmentsQuery = useEnvironmentsQuery();
 
 const logs = computed(
   () => logsData.value?.pages.flatMap((page) => page.logs) ?? [],
@@ -156,11 +161,26 @@ const serviceOptions = computed(() => {
   return [{ value: "all", label: "All services" }, ...options];
 });
 
+const environmentOptions = computed(() => {
+  const environments = environmentsQuery.data.value ?? [];
+  const options = environments.map((environment) => ({
+    value: environment,
+    label: environment,
+  }));
+  for (const selected of filters.value.environment) {
+    if (!options.some((option) => option.value === selected)) {
+      options.unshift({ value: selected, label: selected });
+    }
+  }
+  return [{ value: "all", label: "All environments" }, ...options];
+});
+
 const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.level !== "all" ||
     filters.value.service.length > 0 ||
+    filters.value.environment.length > 0 ||
     filters.value.traceId !== "" ||
     filters.value.spanId !== "" ||
     filters.value.range !== ALL_TIME,
@@ -171,6 +191,7 @@ const facetsActive = computed(
     filters.value.search !== "" ||
     filters.value.level !== "all" ||
     filters.value.service.length > 0 ||
+    filters.value.environment.length > 0 ||
     filters.value.traceId !== "" ||
     filters.value.spanId !== "",
 );
@@ -195,6 +216,12 @@ const activeChips = computed((): ActiveFilterChip[] => {
       key: "service",
       label: "Service",
       value: filters.value.service.join(", "),
+    });
+  if (filters.value.environment.length > 0)
+    chips.push({
+      key: "environment",
+      label: "Environment",
+      value: filters.value.environment.join(", "),
     });
   if (filters.value.traceId !== "")
     chips.push({
@@ -280,6 +307,7 @@ function updateTime(time: SharedTime): void {
     search: filters.value.search,
     level: filters.value.level,
     service: filters.value.service,
+    environment: filters.value.environment,
     traceId: filters.value.traceId,
     spanId: filters.value.spanId,
     ...time,
@@ -315,6 +343,7 @@ function clearFacets(): void {
     search: "",
     level: "all",
     service: [],
+    environment: [],
     traceId: "",
     spanId: "",
     ...extractTime(filters.value),
@@ -330,6 +359,7 @@ function clearAllFilters(): void {
     search: "",
     level: "all",
     service: [],
+    environment: [],
     traceId: "",
     spanId: "",
     range: ALL_TIME,
@@ -342,6 +372,8 @@ function removeChip(key: string): void {
   if (key === "level") filters.value = { ...filters.value, level: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: [] };
+  else if (key === "environment")
+    filters.value = { ...filters.value, environment: [] };
   else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
   else if (key === "spanId") filters.value = { ...filters.value, spanId: "" };
   else if (key === "timerange") updateTime({ range: ALL_TIME });
@@ -401,6 +433,14 @@ function openTrace(traceId: string): void {
           v-model="filters.service"
           label="Service"
           :options="serviceOptions"
+          trigger-class="max-w-64"
+          @update:model-value="resetList"
+        />
+        <ServiceSelect
+          v-model="filters.environment"
+          label="Environment"
+          :options="environmentOptions"
+          search-placeholder="Search environments…"
           trigger-class="max-w-64"
           @update:model-value="resetList"
         />
@@ -474,6 +514,11 @@ function openTrace(traceId: string): void {
               class="text-tertiary w-[7.375rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
             >
               Service
+            </div>
+            <div
+              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
+            >
+              Environment
             </div>
             <div
               class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"

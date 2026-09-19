@@ -11,7 +11,6 @@ import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 import type { Log } from "@/shared/types/entities/log";
 
 import {
-  getEnvironments,
   getServices,
   getSpanLogs,
   getTraceDetail,
@@ -29,7 +28,6 @@ export const traceKeys = {
   spanLogs: (traceId: string, window: SpanLogWindow | null) =>
     [...traceKeys.all, "span-logs", traceId, window] as const,
   services: () => [...traceKeys.all, "services"] as const,
-  environments: () => [...traceKeys.all, "environments"] as const,
 };
 
 const LIVE_REFETCH_MS = 10000;
@@ -81,25 +79,9 @@ export function useTracesServicesQuery(): UseQueryReturnType<string[], Error> {
   });
 }
 
-export function useTracesEnvironmentsQuery(): UseQueryReturnType<
-  string[],
-  Error
-> {
-  return useQuery({
-    queryKey: traceKeys.environments(),
-    queryFn: getEnvironments,
-  });
-}
-
 export async function prefetchTraces(queryClient: QueryClient): Promise<void> {
-  await Promise.all([
-    queryClient.prefetchQuery({
-      queryKey: traceKeys.services(),
-      queryFn: getServices,
-    }),
-    queryClient.prefetchQuery({
-      queryKey: traceKeys.environments(),
-      queryFn: getEnvironments,
-    }),
-  ]);
+  await queryClient.prefetchQuery({
+    queryKey: traceKeys.services(),
+    queryFn: getServices,
+  });
 }

@@ -6,6 +6,7 @@ export interface LogsFilters extends SharedTime {
   search: string;
   level: LogLevelFilter;
   service: string[];
+  environment: string[];
   traceId: string;
   spanId: string;
 }

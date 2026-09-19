@@ -40,12 +40,6 @@ interface TracesResponse {
   meta: { nextCursor: string | null; total?: number | null };
 }
 
-interface EnvironmentsResponse {
-  message: string;
-  data: string[];
-  meta: { nextCursor: string | null };
-}
-
 function toTrace(dto: TraceDto): Trace {
   return {
     traceId: dto.traceId,
@@ -88,12 +82,6 @@ export async function getTraces(params: TracesListParams): Promise<TracesPage> {
 
 export async function getServices(): Promise<string[]> {
   const response = await apiFetch<StringListResponse>("/api/v1/services");
-  return response.data;
-}
-
-export async function getEnvironments(): Promise<string[]> {
-  const response =
-    await apiFetch<EnvironmentsResponse>("/api/v1/environments");
   return response.data;
 }
 

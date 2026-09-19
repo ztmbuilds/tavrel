@@ -102,6 +102,7 @@ export interface SpanDto {
   traceId: string;
   parentSpanId: string;
   service: string;
+  environment: string;
   name: string;
   kind: number;
   statusCode: number;
@@ -164,6 +165,7 @@ export function toSpan(dto: SpanDto): Span {
     traceId: dto.traceId,
     parentSpanId: dto.parentSpanId,
     service: dto.service,
+    environment: dto.environment,
     name: dto.name,
     kind: toSpanKind(dto.kind),
     status: toSpanStatus(dto.statusCode),

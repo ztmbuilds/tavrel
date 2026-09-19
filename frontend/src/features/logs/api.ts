@@ -29,6 +29,7 @@ export async function getLogs(params: LogsListParams): Promise<LogsPage> {
   if (params.search !== "") query.search = params.search;
   if (params.level !== "all") query.level = params.level;
   if (params.service.length > 0) query.service = params.service;
+  if (params.environment.length > 0) query.environment = params.environment;
   if (params.traceId !== "") query.traceId = params.traceId;
   if (params.spanId !== "") query.spanId = params.spanId;
   if (params.start !== undefined) query.start = params.start;

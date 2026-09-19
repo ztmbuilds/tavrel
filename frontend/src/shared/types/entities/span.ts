@@ -15,6 +15,7 @@ export interface Span {
   traceId: string;
   parentSpanId: string;
   service: string;
+  environment: string;
   name: string;
   kind: SpanKind;
   status: SpanStatus;

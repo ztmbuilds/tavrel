@@ -16,6 +16,7 @@ import {
   type SpansListParams,
   type SpanStatusFilter,
 } from "@/features/spans/types";
+import { useEnvironmentsQuery } from "@/shared/queries/environments";
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
@@ -70,6 +71,7 @@ function filtersFromRoute(): SpansFilters {
         ? statusRaw
         : "all",
     service: readQueryParamList(route, "service"),
+    environment: readQueryParamList(route, "environment"),
     ...resolveInitialTime(route),
   };
 }
@@ -92,6 +94,8 @@ function filtersToQuery(): Record<string, string | string[]> {
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.status !== "all") query.status = filters.value.status;
   if (filters.value.service.length > 0) query.service = filters.value.service;
+  if (filters.value.environment.length > 0)
+    query.environment = filters.value.environment;
   return { ...query, ...timeToQuery(filters.value) };
 }
 
@@ -109,6 +113,7 @@ const {
   refetch,
 } = useSpansQuery(listParams, live);
 const servicesQuery = useServicesQuery();
+const environmentsQuery = useEnvironmentsQuery();
 
 const spans = computed(() => spansData.value?.spans ?? []);
 const total = computed(() => spansData.value?.total ?? null);
@@ -127,11 +132,26 @@ const serviceOptions = computed(() => {
   return [{ value: "all", label: "All services" }, ...options];
 });
 
+const environmentOptions = computed(() => {
+  const environments = environmentsQuery.data.value ?? [];
+  const options = environments.map((environment) => ({
+    value: environment,
+    label: environment,
+  }));
+  for (const selected of filters.value.environment) {
+    if (!options.some((option) => option.value === selected)) {
+      options.unshift({ value: selected, label: selected });
+    }
+  }
+  return [{ value: "all", label: "All environments" }, ...options];
+});
+
 const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
     filters.value.service.length > 0 ||
+    filters.value.environment.length > 0 ||
     filters.value.range !== ALL_TIME,
 );
 
@@ -139,7 +159,8 @@ const facetsActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
-    filters.value.service.length > 0,
+    filters.value.service.length > 0 ||
+    filters.value.environment.length > 0,
 );
 
 const activeChips = computed((): ActiveFilterChip[] => {
@@ -155,6 +176,12 @@ const activeChips = computed((): ActiveFilterChip[] => {
       key: "service",
       label: "Service",
       value: filters.value.service.join(", "),
+    });
+  if (filters.value.environment.length > 0)
+    chips.push({
+      key: "environment",
+      label: "Environment",
+      value: filters.value.environment.join(", "),
     });
   if (filters.value.search !== "")
     chips.push({ key: "search", label: "Name", value: filters.value.search });
@@ -227,6 +254,7 @@ function updateTime(time: SharedTime): void {
     search: filters.value.search,
     status: filters.value.status,
     service: filters.value.service,
+    environment: filters.value.environment,
     ...time,
   };
   persistTime(filters.value);
@@ -260,6 +288,7 @@ function clearFacets(): void {
     search: "",
     status: "all",
     service: [],
+    environment: [],
     ...extractTime(filters.value),
   };
   filters.value = next;
@@ -273,6 +302,7 @@ function clearAllFilters(): void {
     search: "",
     status: "all",
     service: [],
+    environment: [],
     range: ALL_TIME,
   };
   persistTime(filters.value);
@@ -283,6 +313,8 @@ function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service")
     filters.value = { ...filters.value, service: [] };
+  else if (key === "environment")
+    filters.value = { ...filters.value, environment: [] };
   else if (key === "timerange") updateTime({ range: ALL_TIME });
   else if (key === "search") {
     searchInput.value = "";
@@ -353,6 +385,14 @@ function openTrace(traceId: string): void {
           trigger-class="max-w-64"
           @update:model-value="resetPage"
         />
+        <ServiceSelect
+          v-model="filters.environment"
+          label="Environment"
+          :options="environmentOptions"
+          search-placeholder="Search environments…"
+          trigger-class="max-w-64"
+          @update:model-value="resetPage"
+        />
         <div class="ml-auto flex shrink-0 items-center gap-3">
           <button
             v-if="facetsActive"
@@ -410,6 +450,11 @@ function openTrace(traceId: string): void {
             class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
           >
             Span
+          </div>
+          <div
+            class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+          >
+            Environment
           </div>
           <div class="w-[8.125rem] shrink-0 max-[53.75rem]:hidden" />
           <div

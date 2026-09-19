@@ -89,6 +89,13 @@ const rowLabel = computed(
       </div>
     </div>
     <div
+      class="text-tertiary w-[5.5rem] shrink-0 truncate text-xs max-[53.75rem]:hidden"
+      :title="span.environment"
+      aria-hidden="true"
+    >
+      {{ span.environment }}
+    </div>
+    <div
       class="bg-surface relative h-3.5 w-[8.125rem] shrink-0 overflow-hidden rounded-sm max-[53.75rem]:hidden"
       aria-hidden="true"
     >

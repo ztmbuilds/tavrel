@@ -6,13 +6,14 @@ import arrowUpIcon from "@/assets/icons/arrow-up.svg";
 
 import TraceRow from "@/features/traces/components/TraceRow.vue";
 import { TRACES_PAGE_SIZE } from "@/features/traces/api";
-import { useTracesEnvironmentsQuery, useTracesQuery, useTracesServicesQuery } from "@/features/traces/queries";
+import { useTracesQuery, useTracesServicesQuery } from "@/features/traces/queries";
 import {
   type TraceOrder,
   type TracesFilters,
   type TracesListParams,
   type TraceStatusFilter,
 } from "@/features/traces/types";
+import { useEnvironmentsQuery } from "@/shared/queries/environments";
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
@@ -118,7 +119,7 @@ const {
   refetch,
 } = useTracesQuery(listParams, live);
 const servicesQuery = useTracesServicesQuery();
-const environmentsQuery = useTracesEnvironmentsQuery();
+const environmentsQuery = useEnvironmentsQuery();
 
 const traces = computed(() => tracesData.value?.traces ?? []);
 const total = computed(() => tracesData.value?.total ?? null);
