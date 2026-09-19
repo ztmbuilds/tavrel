@@ -51,6 +51,7 @@ func newLogListOptions(r *http.Request) (store.ListLogsOptions, error) {
 	}
 
 	options.Services = queryValues(r, "service")
+	options.Environments = queryValues(r, "environment")
 
 	switch v := query.Get("level"); v {
 	case "", "all":

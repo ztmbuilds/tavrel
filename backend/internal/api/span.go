@@ -49,6 +49,7 @@ func newSpanListOptions(r *http.Request) (store.ListSpansOptions, error) {
 	}
 
 	options.Services = queryValues(r, "service")
+	options.Environments = queryValues(r, "environment")
 
 	switch v := query.Get("status"); v {
 	case "", "all":

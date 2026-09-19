@@ -49,13 +49,14 @@ type ListTracesOptions struct {
 }
 type ListLogsOptions struct {
 	ListOptions[ListLogsCursor]
-	Search   string
-	Level    *LogLevel
-	Services []string
-	TraceID  string
-	SpanID   string
-	Start    *time.Time
-	End      *time.Time
+	Search       string
+	Level        *LogLevel
+	Services     []string
+	Environments []string
+	TraceID      string
+	SpanID       string
+	Start        *time.Time
+	End          *time.Time
 }
 
 type LogLevel string
@@ -65,15 +66,17 @@ const (
 	LogLevelWarn  LogLevel = "warn"
 	LogLevelError LogLevel = "error"
 )
+
 type ListSpansOptions struct {
 	ListOptions[ListSpansCursor]
-	TraceID  string
-	Search   string
-	Status   *StatusCode
-	Kind     *SpanKind
-	Services []string
-	Start    *time.Time
-	End      *time.Time
+	TraceID      string
+	Search       string
+	Status       *StatusCode
+	Kind         *SpanKind
+	Services     []string
+	Environments []string
+	Start        *time.Time
+	End          *time.Time
 }
 
 type Trace struct {

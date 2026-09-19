@@ -149,6 +149,7 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 
 		query := `INSERT OR IGNORE INTO spans (span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events) VALUES`
 
+		//underlying array size is set to the total number of spans * the number of fields in each span (currently 13)
 		values := make([]any, 0, len(spanBatch)*13)
 
 		for _, span := range spanBatch {
@@ -492,7 +493,12 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		serviceClause = "service IN " + inPlaceholders(len(options.Services))
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((? IS NULL) OR (timestamp_ns,id) < (?,?)) AND (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE) AND (? IS NULL OR severity_number >= ?) AND (? IS NULL OR severity_number <= ?) AND ` + serviceClause + ` AND (? = '' OR trace_id = ?) AND (? = '' OR span_id = ?) AND (? IS NULL OR timestamp_ns >= ?) AND (? IS NULL OR timestamp_ns <= ?) ORDER BY timestamp_ns DESC, id DESC LIMIT (?)`
+	envClause := "1=1"
+	if len(options.Environments) > 0 {
+		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+	}
+
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((? IS NULL) OR (timestamp_ns,id) < (?,?)) AND (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE) AND (? IS NULL OR severity_number >= ?) AND (? IS NULL OR severity_number <= ?) AND ` + serviceClause + ` AND (? = '' OR trace_id = ?) AND (? = '' OR span_id = ?) AND (? IS NULL OR timestamp_ns >= ?) AND (? IS NULL OR timestamp_ns <= ?) AND ` + envClause + ` ORDER BY timestamp_ns DESC, id DESC LIMIT (?)`
 
 	args := []any{
 		timeStampNs,
@@ -514,8 +520,9 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		startNS,
 		startNS,
 		endNS,
-		endNS,
-		fetchLimit)
+		endNS)
+	args = appendStrings(args, options.Environments)
+	args = append(args, fetchLimit)
 
 	rows, err := s.readDB.QueryContext(ctx, query, args...)
 
@@ -580,7 +587,8 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 	AND (? = '' OR trace_id = ?)
 	AND (? = '' OR span_id = ?)
 	AND (? IS NULL OR timestamp_ns >= ?)
-	AND (? IS NULL OR timestamp_ns <= ?)`
+	AND (? IS NULL OR timestamp_ns <= ?)
+	AND ` + envClause + ` `
 
 	countArgs := []any{
 		options.Search,
@@ -600,6 +608,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		startNS,
 		endNS,
 		endNS)
+	countArgs = appendStrings(countArgs, options.Environments)
 
 	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return page, err
@@ -680,7 +689,12 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		serviceClause = "service IN " + inPlaceholders(len(options.Services))
 	}
 
-	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
+	envClause := "1=1"
+	if len(options.Environments) > 0 {
+		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+	}
+
+	query := `SELECT span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
 	FROM spans
 	WHERE ((? IS NULL) OR (start_time_ns,span_id) < (?,?))
 	AND (? = '' OR trace_id = ?)
@@ -691,6 +705,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	AND ` + serviceClause + `
 	AND (? IS NULL OR start_time_ns >= ?)
 	AND (? IS NULL OR start_time_ns <= ?)
+	AND ` + envClause + `
 	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?)`
 
 	args := []any{
@@ -709,7 +724,9 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		kind,
 	}
 	args = appendStrings(args, options.Services)
-	args = append(args, startNS, startNS, endNS, endNS, fetchLimit)
+	args = append(args, startNS, startNS, endNS, endNS)
+	args = appendStrings(args, options.Environments)
+	args = append(args, fetchLimit)
 
 	rows, err := s.readDB.QueryContext(ctx, query, args...)
 
@@ -734,6 +751,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 			&s.TraceID,
 			&s.ParentSpanID,
 			&s.Service,
+			&s.Environment,
 			&s.Name,
 			&kind,
 			&startTimeNS,
@@ -777,7 +795,8 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	AND (? IS NULL OR kind = ?)
 	AND ` + serviceClause + `
 	AND (? IS NULL OR start_time_ns >= ?)
-	AND (? IS NULL OR start_time_ns <= ?)`
+	AND (? IS NULL OR start_time_ns <= ?)
+	AND ` + envClause + ` `
 
 	countArgs := []any{
 		options.TraceID,
@@ -793,6 +812,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	}
 	countArgs = appendStrings(countArgs, options.Services)
 	countArgs = append(countArgs, startNS, startNS, endNS, endNS)
+	countArgs = appendStrings(countArgs, options.Environments)
 
 	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return page, err
@@ -837,7 +857,7 @@ func (s *SQLiteStore) ListServices(ctx context.Context) ([]string, error) {
 }
 
 func (s *SQLiteStore) ListEnvironments(ctx context.Context) ([]string, error) {
-	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT environment FROM traces WHERE environment IS NOT NULL AND environment != '' ORDER BY environment`)
+	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT environment FROM (SELECT environment FROM spans UNION SELECT environment FROM logs) WHERE environment IS NOT NULL AND environment != '' ORDER BY environment`)
 	if err != nil {
 		return nil, err
 	}
