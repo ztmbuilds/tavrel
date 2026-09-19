@@ -147,10 +147,9 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 
 		placeholders := make([]string, 0, len(spanBatch))
 
-		query := `INSERT OR IGNORE INTO spans (span_id, trace_id, parent_span_id, service, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events) VALUES`
+		query := `INSERT OR IGNORE INTO spans (span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events) VALUES`
 
-		//underlying array size is set to the total number of spans * the number of fields in each span (currently 12)
-		values := make([]any, 0, len(spanBatch)*12)
+		values := make([]any, 0, len(spanBatch)*13)
 
 		for _, span := range spanBatch {
 			attributes, err := json.Marshal(span.Attributes)
@@ -163,13 +162,14 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 				events = []byte("[]")
 			}
 
-			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?,?)")
+			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
 			values = append(values,
 				span.SpanID,
 				span.TraceID,
 				span.ParentSpanID,
 				span.Service,
+				span.Environment,
 				span.Name,
 				int32(span.Kind),
 				span.StartTime.UnixNano(),

@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS spans (
     trace_id TEXT NOT NULL,
     parent_span_id TEXT,
     service TEXT NOT NULL,
+    environment TEXT,
     name TEXT NOT NULL,
     kind INTEGER NOT NULL DEFAULT 0,
     start_time_ns INTEGER NOT NULL,

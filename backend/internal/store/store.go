@@ -140,6 +140,7 @@ type Span struct {
 	TraceID       string         `json:"traceId"`
 	ParentSpanID  string         `json:"parentSpanId"`
 	Service       string         `json:"service"`
+	Environment   string         `json:"environment"`
 	Name          string         `json:"name"`
 	Kind          SpanKind       `json:"kind"`
 	StatusCode    StatusCode     `json:"statusCode"`

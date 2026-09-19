@@ -97,6 +97,7 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					TraceID:       hex.EncodeToString(s.TraceId),
 					ParentSpanID:  hex.EncodeToString(s.ParentSpanId),
 					Service:       serviceName,
+					Environment:   environment,
 					Name:          s.Name,
 					Kind:          store.SpanKind(s.Kind),
 					StartTime:     time.Unix(0, int64(s.StartTimeUnixNano)),
