@@ -24,7 +24,7 @@ const props = withDefaults(
   },
 );
 
-const modelValue = defineModel<string>({ required: true });
+const modelValue = defineModel<string[]>({ required: true });
 
 const open = ref(false);
 const filter = ref("");
@@ -33,14 +33,25 @@ const triggerRef = ref<HTMLButtonElement | null>(null);
 const searchRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);
 
-const selectedLabel = computed(
-  () =>
-    props.options.find((option) => option.value === modelValue.value)?.label ??
-    modelValue.value,
-);
-
 const pinnedOption = computed(() =>
   props.options.find((option) => option.value === "all"),
+);
+
+const selectedLabels = computed(() => {
+  if (modelValue.value.length === 0)
+    return [pinnedOption.value?.label ?? "All"];
+  return modelValue.value.map(
+    (value) =>
+      props.options.find((option) => option.value === value)?.label ?? value,
+  );
+});
+
+const firstLabel = computed(
+  () => selectedLabels.value[0] ?? pinnedOption.value?.label ?? "All",
+);
+
+const extraCount = computed(() =>
+  selectedLabels.value.length > 1 ? selectedLabels.value.length - 1 : 0,
 );
 
 const serviceRows = computed(() => {
@@ -50,6 +61,10 @@ const serviceRows = computed(() => {
       option.value !== "all" && option.label.toLowerCase().includes(query),
   );
 });
+
+function isSelected(value: string): boolean {
+  return modelValue.value.includes(value);
+}
 
 function close(returnFocus: boolean): void {
   open.value = false;
@@ -68,9 +83,16 @@ function toggle(): void {
   });
 }
 
-function select(value: string): void {
-  modelValue.value = value;
-  close(true);
+function toggleValue(value: string): void {
+  if (value === "all") {
+    modelValue.value = [];
+    return;
+  }
+  if (isSelected(value)) {
+    modelValue.value = modelValue.value.filter((item) => item !== value);
+  } else {
+    modelValue.value = [...modelValue.value, value];
+  }
 }
 
 function handleOutside(event: PointerEvent): void {
@@ -132,13 +154,20 @@ function handlePanelKeydown(event: KeyboardEvent): void {
     >
       <span aria-hidden="true">{{ props.label }}</span>
       <span class="text-primary min-w-0 flex-1 truncate text-left">{{
-        selectedLabel
+        firstLabel
       }}</span>
+      <span
+        v-if="extraCount > 0"
+        aria-hidden="true"
+        class="bg-hover text-secondary shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium tabular-nums"
+        >+{{ extraCount }}</span
+      >
       <img :src="chevronDownIcon" alt="" class="size-2.5 shrink-0" />
     </button>
     <div
       v-if="open"
       role="listbox"
+      aria-multiselectable="true"
       :aria-label="`${props.label} options`"
       class="border-default bg-raised absolute top-[calc(100%+0.375rem)] left-0 z-30 w-55 rounded-lg border p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
       @keydown="handlePanelKeydown"
@@ -162,33 +191,33 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           @click.stop
         />
       </div>
-      <div ref="listRef" class="max-h-60 overflow-y-auto">
+      <div ref="listRef" class="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
         <button
           v-if="pinnedOption !== undefined"
           type="button"
           role="option"
-          :aria-selected="modelValue === pinnedOption.value"
+          :aria-selected="modelValue.length === 0"
           :class="
             cn(
               'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] text-secondary outline-none select-none hover:bg-hover hover:text-primary',
-              modelValue === pinnedOption.value && 'bg-active text-ink hover:bg-active hover:text-ink',
+              modelValue.length === 0 && 'bg-hover text-primary',
             )
           "
-          @click="select(pinnedOption.value)"
+          @click="toggleValue(pinnedOption.value)"
         >
           <span
             :class="
               cn(
                 'flex size-3.5 shrink-0 items-center justify-center rounded border',
-                modelValue === pinnedOption.value
-                  ? 'border-ink'
+                modelValue.length === 0
+                  ? 'border-signal bg-signal'
                   : 'border-strong',
               )
             "
             aria-hidden="true"
           >
             <img
-              v-if="modelValue === pinnedOption.value"
+              v-if="modelValue.length === 0"
               :src="checkIcon"
               alt=""
               class="size-2.5"
@@ -206,26 +235,28 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :key="option.value"
           type="button"
           role="option"
-          :aria-selected="modelValue === option.value"
+          :aria-selected="isSelected(option.value)"
           :class="
             cn(
               'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] text-secondary outline-none select-none hover:bg-hover hover:text-primary',
-              modelValue === option.value && 'bg-active text-ink hover:bg-active hover:text-ink',
+              isSelected(option.value) && 'bg-hover text-primary',
             )
           "
-          @click="select(option.value)"
+          @click="toggleValue(option.value)"
         >
           <span
             :class="
               cn(
                 'flex size-3.5 shrink-0 items-center justify-center rounded border',
-                modelValue === option.value ? 'border-ink' : 'border-strong',
+                isSelected(option.value)
+                  ? 'border-signal bg-signal'
+                  : 'border-strong',
               )
             "
             aria-hidden="true"
           >
             <img
-              v-if="modelValue === option.value"
+              v-if="isSelected(option.value)"
               :src="checkIcon"
               alt=""
               class="size-2.5"

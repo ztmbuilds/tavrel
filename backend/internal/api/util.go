@@ -7,6 +7,23 @@ import (
 	"strconv"
 )
 
+func queryValues(r *http.Request, key string) []string {
+	values := r.URL.Query()[key]
+	out := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+	for _, v := range values {
+		if v == "" {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
 func newListOptions[C any](r *http.Request) store.ListOptions[C] {
 	limit := 50
 

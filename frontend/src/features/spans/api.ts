@@ -23,13 +23,12 @@ export interface SpansPage {
 }
 
 export async function getSpans(params: SpansListParams): Promise<SpansPage> {
-  const query: Record<string, string | number | undefined> = {
+  const query: Record<string, string | number | string[] | undefined> = {
     limit: SPANS_PAGE_SIZE,
   };
   if (params.search !== "") query.search = params.search;
   if (params.status !== "all") query.status = params.status;
-  if (params.service !== "" && params.service !== "all")
-    query.service = params.service;
+  if (params.service.length > 0) query.service = params.service;
   if (params.start !== undefined) query.start = params.start;
   if (params.end !== undefined) query.end = params.end;
   if (params.cursor !== undefined) query.cursor = params.cursor;

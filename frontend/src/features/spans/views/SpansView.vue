@@ -32,6 +32,7 @@ import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import {
   readQueryParam,
+  readQueryParamList,
   useDebouncedSearch,
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
@@ -68,7 +69,7 @@ function filtersFromRoute(): SpansFilters {
       statusRaw === "error" || statusRaw === "ok" || statusRaw === "all"
         ? statusRaw
         : "all",
-    service: readQueryParam(route, "service") ?? "all",
+    service: readQueryParamList(route, "service"),
     ...resolveInitialTime(route),
   };
 }
@@ -86,11 +87,11 @@ watch(debouncedQuery, (value) => {
   resetPage();
 });
 
-function filtersToQuery(): Record<string, string> {
-  const query: Record<string, string> = {};
+function filtersToQuery(): Record<string, string | string[]> {
+  const query: Record<string, string | string[]> = {};
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.status !== "all") query.status = filters.value.status;
-  if (filters.value.service !== "all") query.service = filters.value.service;
+  if (filters.value.service.length > 0) query.service = filters.value.service;
   return { ...query, ...timeToQuery(filters.value) };
 }
 
@@ -118,14 +119,10 @@ const serviceOptions = computed(() => {
     value: service,
     label: service,
   }));
-  if (
-    filters.value.service !== "all" &&
-    !options.some((option) => option.value === filters.value.service)
-  ) {
-    options.unshift({
-      value: filters.value.service,
-      label: filters.value.service,
-    });
+  for (const selected of filters.value.service) {
+    if (!options.some((option) => option.value === selected)) {
+      options.unshift({ value: selected, label: selected });
+    }
   }
   return [{ value: "all", label: "All services" }, ...options];
 });
@@ -134,7 +131,7 @@ const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
-    filters.value.service !== "all" ||
+    filters.value.service.length > 0 ||
     filters.value.range !== ALL_TIME,
 );
 
@@ -142,7 +139,7 @@ const facetsActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
-    filters.value.service !== "all",
+    filters.value.service.length > 0,
 );
 
 const activeChips = computed((): ActiveFilterChip[] => {
@@ -153,11 +150,11 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Status",
       value: filters.value.status === "error" ? "Errors" : "OK",
     });
-  if (filters.value.service !== "all")
+  if (filters.value.service.length > 0)
     chips.push({
       key: "service",
       label: "Service",
-      value: filters.value.service,
+      value: filters.value.service.join(", "),
     });
   if (filters.value.search !== "")
     chips.push({ key: "search", label: "Name", value: filters.value.search });
@@ -262,7 +259,7 @@ function clearFacets(): void {
   const next: SpansFilters = {
     search: "",
     status: "all",
-    service: "all",
+    service: [],
     ...extractTime(filters.value),
   };
   filters.value = next;
@@ -275,7 +272,7 @@ function clearAllFilters(): void {
   filters.value = {
     search: "",
     status: "all",
-    service: "all",
+    service: [],
     range: ALL_TIME,
   };
   persistTime(filters.value);
@@ -285,7 +282,7 @@ function clearAllFilters(): void {
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service")
-    filters.value = { ...filters.value, service: "all" };
+    filters.value = { ...filters.value, service: [] };
   else if (key === "timerange") updateTime({ range: ALL_TIME });
   else if (key === "search") {
     searchInput.value = "";

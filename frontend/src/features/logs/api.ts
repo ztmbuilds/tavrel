@@ -23,13 +23,12 @@ export interface LogsPage {
 }
 
 export async function getLogs(params: LogsListParams): Promise<LogsPage> {
-  const query: Record<string, string | number | undefined> = {
+  const query: Record<string, string | number | string[] | undefined> = {
     limit: LOGS_PAGE_SIZE,
   };
   if (params.search !== "") query.search = params.search;
   if (params.level !== "all") query.level = params.level;
-  if (params.service !== "" && params.service !== "all")
-    query.service = params.service;
+  if (params.service.length > 0) query.service = params.service;
   if (params.traceId !== "") query.traceId = params.traceId;
   if (params.spanId !== "") query.spanId = params.spanId;
   if (params.start !== undefined) query.start = params.start;

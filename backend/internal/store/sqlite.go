@@ -260,6 +260,26 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 }
 
+func inPlaceholders(n int) string {
+	var b strings.Builder
+	b.WriteByte('(')
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteByte('?')
+	}
+	b.WriteByte(')')
+	return b.String()
+}
+
+func appendStrings(args []any, vals []string) []any {
+	for _, v := range vals {
+		args = append(args, v)
+	}
+	return args
+}
+
 func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error) {
 
 	var startTimeNS *int64
@@ -304,27 +324,41 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		orderDir = "ASC"
 	}
 
-	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
-	 traces WHERE ((?1 IS NULL) OR (start_time_ns,trace_id) ` + comparator + ` (?1, ?2))
-	 AND (?3 = '' OR root_name LIKE ?4 ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ?4 ESCAPE '\' COLLATE NOCASE)
-	 AND (?5 IS NULL OR error = ?5)
-	 AND (?6 = '' OR EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service = ?6))
-	 AND (?7 IS NULL OR start_time_ns >= ?7)
-	 AND (?8 IS NULL OR start_time_ns <= ?8)
-	 AND (?9 = '' OR environment = ?9)
-	 ORDER BY start_time_ns ` + orderDir + `, trace_id ` + orderDir + ` LIMIT (?10) `
+	serviceClause := "1=1"
+	if len(options.Services) > 0 {
+		serviceClause = "EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service IN " + inPlaceholders(len(options.Services)) + ")"
+	}
+	envClause := "1=1"
+	if len(options.Environments) > 0 {
+		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+	}
 
-	rows, err := s.readDB.QueryContext(ctx, query,
+	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
+	 traces WHERE ((? IS NULL) OR (start_time_ns,trace_id) ` + comparator + ` (?, ?))
+	 AND (? = '' OR root_name LIKE ? ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ? ESCAPE '\' COLLATE NOCASE)
+	 AND (? IS NULL OR error = ?)
+	 AND ` + serviceClause + `
+	 AND (? IS NULL OR start_time_ns >= ?)
+	 AND (? IS NULL OR start_time_ns <= ?)
+	 AND ` + envClause + `
+	 ORDER BY start_time_ns ` + orderDir + `, trace_id ` + orderDir + ` LIMIT (?) `
+
+	args := []any{
+		startTimeNS,
 		startTimeNS,
 		traceID,
 		options.Search,
 		likePattern,
+		likePattern,
 		errorEquals,
-		options.Service,
-		startNS,
-		endNS,
-		options.Environment,
-		fetchLimit)
+		errorEquals,
+	}
+	args = appendStrings(args, options.Services)
+	args = append(args, startNS, startNS, endNS, endNS)
+	args = appendStrings(args, options.Environments)
+	args = append(args, fetchLimit)
+
+	rows, err := s.readDB.QueryContext(ctx, query, args...)
 
 	if err != nil {
 		return page, err
@@ -367,21 +401,25 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM traces
-	 WHERE (?1 = '' OR root_name LIKE ?2 ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ?2 ESCAPE '\' COLLATE NOCASE)
-	 AND (?3 IS NULL OR error = ?3)
-	 AND (?4 = '' OR EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service = ?4))
-	 AND (?5 IS NULL OR start_time_ns >= ?5)
-	 AND (?6 IS NULL OR start_time_ns <= ?6)
-	 AND (?7 = '' OR environment = ?7)`
+	 WHERE (? = '' OR root_name LIKE ? ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ? ESCAPE '\' COLLATE NOCASE)
+	 AND (? IS NULL OR error = ?)
+	 AND ` + serviceClause + `
+	 AND (? IS NULL OR start_time_ns >= ?)
+	 AND (? IS NULL OR start_time_ns <= ?)
+	 AND ` + envClause
 
-	if err := s.readDB.QueryRowContext(ctx, countQuery,
+	countArgs := []any{
 		options.Search,
 		likePattern,
+		likePattern,
 		errorEquals,
-		options.Service,
-		startNS,
-		endNS,
-		options.Environment).Scan(&total); err != nil {
+		errorEquals,
+	}
+	countArgs = appendStrings(countArgs, options.Services)
+	countArgs = append(countArgs, startNS, startNS, endNS, endNS)
+	countArgs = appendStrings(countArgs, options.Environments)
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return page, err
 	}
 	page.Total = &total
@@ -449,21 +487,37 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		likePattern = "%" + escapeLike(options.Search) + "%"
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((?1 IS NULL) OR (timestamp_ns,id) < (?1,?2)) AND (?3 = '' OR body LIKE ?4 ESCAPE '\' COLLATE NOCASE) AND (?5 IS NULL OR severity_number >= ?5) AND (?6 IS NULL OR severity_number <= ?6) AND (?7 = '' OR service = ?7) AND (?8 = '' OR trace_id = ?8) AND (?9 = '' OR span_id = ?9) AND (?10 IS NULL OR timestamp_ns >= ?10) AND (?11 IS NULL OR timestamp_ns <= ?11) ORDER BY timestamp_ns DESC, id DESC LIMIT (?12)`
+	serviceClause := "1=1"
+	if len(options.Services) > 0 {
+		serviceClause = "service IN " + inPlaceholders(len(options.Services))
+	}
 
-	rows, err := s.readDB.QueryContext(ctx, query,
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((? IS NULL) OR (timestamp_ns,id) < (?,?)) AND (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE) AND (? IS NULL OR severity_number >= ?) AND (? IS NULL OR severity_number <= ?) AND ` + serviceClause + ` AND (? = '' OR trace_id = ?) AND (? = '' OR span_id = ?) AND (? IS NULL OR timestamp_ns >= ?) AND (? IS NULL OR timestamp_ns <= ?) ORDER BY timestamp_ns DESC, id DESC LIMIT (?)`
+
+	args := []any{
+		timeStampNs,
 		timeStampNs,
 		id,
 		options.Search,
 		likePattern,
 		levelMin,
+		levelMin,
 		levelMax,
-		options.Service,
+		levelMax,
+	}
+	args = appendStrings(args, options.Services)
+	args = append(args,
+		options.TraceID,
 		options.TraceID,
 		options.SpanID,
+		options.SpanID,
+		startNS,
 		startNS,
 		endNS,
+		endNS,
 		fetchLimit)
+
+	rows, err := s.readDB.QueryContext(ctx, query, args...)
 
 	if err != nil {
 		return page, err
@@ -519,25 +573,35 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM logs
-	WHERE (?1 = '' OR body LIKE ?2 ESCAPE '\' COLLATE NOCASE)
-	AND (?3 IS NULL OR severity_number >= ?3)
-	AND (?4 IS NULL OR severity_number <= ?4)
-	AND (?5 = '' OR service = ?5)
-	AND (?6 = '' OR trace_id = ?6)
-	AND (?7 = '' OR span_id = ?7)
-	AND (?8 IS NULL OR timestamp_ns >= ?8)
-	AND (?9 IS NULL OR timestamp_ns <= ?9)`
+	WHERE (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE)
+	AND (? IS NULL OR severity_number >= ?)
+	AND (? IS NULL OR severity_number <= ?)
+	AND ` + serviceClause + `
+	AND (? = '' OR trace_id = ?)
+	AND (? = '' OR span_id = ?)
+	AND (? IS NULL OR timestamp_ns >= ?)
+	AND (? IS NULL OR timestamp_ns <= ?)`
 
-	if err := s.readDB.QueryRowContext(ctx, countQuery,
+	countArgs := []any{
 		options.Search,
 		likePattern,
 		levelMin,
+		levelMin,
 		levelMax,
-		options.Service,
+		levelMax,
+	}
+	countArgs = appendStrings(countArgs, options.Services)
+	countArgs = append(countArgs,
+		options.TraceID,
 		options.TraceID,
 		options.SpanID,
+		options.SpanID,
 		startNS,
-		endNS).Scan(&total); err != nil {
+		startNS,
+		endNS,
+		endNS)
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return page, err
 	}
 	page.Total = &total
@@ -611,32 +675,43 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		likePattern = "%" + escapeLike(options.Search) + "%"
 	}
 
+	serviceClause := "1=1"
+	if len(options.Services) > 0 {
+		serviceClause = "service IN " + inPlaceholders(len(options.Services))
+	}
+
 	query := `SELECT span_id, trace_id, parent_span_id, service,name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
 	FROM spans
-	WHERE ((?1 IS NULL) OR (start_time_ns,span_id) < (?1,?2))
-	AND (?3 = '' OR trace_id = ?3)
-	AND (?4 = '' OR name LIKE ?5 ESCAPE '\' COLLATE NOCASE)
-	AND (?6 IS NULL OR status_code = ?6)
-	AND (?7 IS NULL OR status_code != ?7)
-	AND (?8 IS NULL OR kind = ?8)
-	AND (?9 = '' OR service = ?9)
-	AND (?10 IS NULL OR start_time_ns >= ?10)
-	AND (?11 IS NULL OR start_time_ns <= ?11)
-	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?12)`
+	WHERE ((? IS NULL) OR (start_time_ns,span_id) < (?,?))
+	AND (? = '' OR trace_id = ?)
+	AND (? = '' OR name LIKE ? ESCAPE '\' COLLATE NOCASE)
+	AND (? IS NULL OR status_code = ?)
+	AND (? IS NULL OR status_code != ?)
+	AND (? IS NULL OR kind = ?)
+	AND ` + serviceClause + `
+	AND (? IS NULL OR start_time_ns >= ?)
+	AND (? IS NULL OR start_time_ns <= ?)
+	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?)`
 
-	rows, err := s.readDB.QueryContext(ctx, query,
+	args := []any{
+		startTimeNS,
 		startTimeNS,
 		spanID,
+		options.TraceID,
 		options.TraceID,
 		options.Search,
 		likePattern,
 		statusEquals,
+		statusEquals,
+		statusNotEquals,
 		statusNotEquals,
 		kind,
-		options.Service,
-		startNS,
-		endNS,
-		fetchLimit)
+		kind,
+	}
+	args = appendStrings(args, options.Services)
+	args = append(args, startNS, startNS, endNS, endNS, fetchLimit)
+
+	rows, err := s.readDB.QueryContext(ctx, query, args...)
 
 	if err != nil {
 		return page, err
@@ -695,25 +770,31 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 
 	var total int64
 	countQuery := `SELECT COUNT(*) FROM spans
-	WHERE (?1 = '' OR trace_id = ?1)
-	AND (?2 = '' OR name LIKE ?3 ESCAPE '\' COLLATE NOCASE)
-	AND (?4 IS NULL OR status_code = ?4)
-	AND (?5 IS NULL OR status_code != ?5)
-	AND (?6 IS NULL OR kind = ?6)
-	AND (?7 = '' OR service = ?7)
-	AND (?8 IS NULL OR start_time_ns >= ?8)
-	AND (?9 IS NULL OR start_time_ns <= ?9)`
+	WHERE (? = '' OR trace_id = ?)
+	AND (? = '' OR name LIKE ? ESCAPE '\' COLLATE NOCASE)
+	AND (? IS NULL OR status_code = ?)
+	AND (? IS NULL OR status_code != ?)
+	AND (? IS NULL OR kind = ?)
+	AND ` + serviceClause + `
+	AND (? IS NULL OR start_time_ns >= ?)
+	AND (? IS NULL OR start_time_ns <= ?)`
 
-	if err := s.readDB.QueryRowContext(ctx, countQuery,
+	countArgs := []any{
+		options.TraceID,
 		options.TraceID,
 		options.Search,
 		likePattern,
 		statusEquals,
+		statusEquals,
+		statusNotEquals,
 		statusNotEquals,
 		kind,
-		options.Service,
-		startNS,
-		endNS).Scan(&total); err != nil {
+		kind,
+	}
+	countArgs = appendStrings(countArgs, options.Services)
+	countArgs = append(countArgs, startNS, startNS, endNS, endNS)
+
+	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
 		return page, err
 	}
 	page.Total = &total

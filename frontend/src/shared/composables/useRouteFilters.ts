@@ -10,6 +10,20 @@ export function readQueryParam(
   return undefined;
 }
 
+export function readQueryParamList(
+  route: RouteLocationNormalizedLoaded,
+  name: string,
+): string[] {
+  const raw = route.query[name];
+  const values = Array.isArray(raw) ? raw : raw === undefined ? [] : [raw];
+  const out: string[] = [];
+  for (const value of values) {
+    if (typeof value !== "string" || value === "" || value === "all") continue;
+    if (!out.includes(value)) out.push(value);
+  }
+  return out;
+}
+
 export function useDebouncedSearch(
   searchInput: Ref<string>,
   delayMs: number,
@@ -30,7 +44,7 @@ export function useDebouncedSearch(
 
 export function useRouteQuerySync(
   filters: Ref<object>,
-  toQuery: () => Record<string, string>,
+  toQuery: () => Record<string, string | string[]>,
 ): void {
   const router = useRouter();
   watch(

@@ -66,15 +66,13 @@ export interface TracesPage {
 }
 
 export async function getTraces(params: TracesListParams): Promise<TracesPage> {
-  const query: Record<string, string | number | undefined> = {
+  const query: Record<string, string | number | string[] | undefined> = {
     limit: TRACES_PAGE_SIZE,
   };
   if (params.search !== "") query.search = params.search;
   if (params.status !== "all") query.status = params.status;
-  if (params.service !== "" && params.service !== "all")
-    query.service = params.service;
-  if (params.environment !== "" && params.environment !== "all")
-    query.environment = params.environment;
+  if (params.service.length > 0) query.service = params.service;
+  if (params.environment.length > 0) query.environment = params.environment;
   if (params.order !== "desc") query.order = params.order;
   if (params.start !== undefined) query.start = params.start;
   if (params.end !== undefined) query.end = params.end;

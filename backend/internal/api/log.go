@@ -43,15 +43,14 @@ func newLogListOptions(r *http.Request) (store.ListLogsOptions, error) {
 	if v := query.Get("search"); v != "" {
 		options.Search = v
 	}
-	if v := query.Get("service"); v != "" {
-		options.Service = v
-	}
 	if v := query.Get("traceId"); v != "" {
 		options.TraceID = v
 	}
 	if v := query.Get("spanId"); v != "" {
 		options.SpanID = v
 	}
+
+	options.Services = queryValues(r, "service")
 
 	switch v := query.Get("level"); v {
 	case "", "all":

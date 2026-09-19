@@ -24,7 +24,7 @@ export class ApiError extends Error {
 }
 
 interface ApiFetchOptions {
-  query?: Record<string, string | number | undefined>;
+  query?: Record<string, string | number | string[] | undefined>;
   config?: Omit<RequestInit, "method" | "body">;
 }
 
@@ -57,7 +57,12 @@ function buildUrl(
   if (!query) return path;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined) params.append(key, String(value));
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) params.append(key, item);
+    } else {
+      params.append(key, String(value));
+    }
   }
   const suffix = params.toString();
   if (!suffix) return path;

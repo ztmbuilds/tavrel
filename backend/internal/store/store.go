@@ -39,23 +39,23 @@ type ListSpansCursor struct {
 
 type ListTracesOptions struct {
 	ListOptions[ListTracesCursor]
-	Search      string
-	ErrorFilter *bool
-	Service     string
-	Environment string
-	Start       *time.Time
-	End         *time.Time
-	Ascending   bool
+	Search       string
+	ErrorFilter  *bool
+	Services     []string
+	Environments []string
+	Start        *time.Time
+	End          *time.Time
+	Ascending    bool
 }
 type ListLogsOptions struct {
 	ListOptions[ListLogsCursor]
-	Search  string
-	Level   *LogLevel
-	Service string
-	TraceID string
-	SpanID  string
-	Start   *time.Time
-	End     *time.Time
+	Search   string
+	Level    *LogLevel
+	Services []string
+	TraceID  string
+	SpanID   string
+	Start    *time.Time
+	End      *time.Time
 }
 
 type LogLevel string
@@ -67,13 +67,13 @@ const (
 )
 type ListSpansOptions struct {
 	ListOptions[ListSpansCursor]
-	TraceID string
-	Search  string
-	Status  *StatusCode
-	Kind    *SpanKind
-	Service string
-	Start   *time.Time
-	End     *time.Time
+	TraceID  string
+	Search   string
+	Status   *StatusCode
+	Kind     *SpanKind
+	Services []string
+	Start    *time.Time
+	End      *time.Time
 }
 
 type Trace struct {

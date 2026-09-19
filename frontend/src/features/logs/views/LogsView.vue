@@ -27,6 +27,7 @@ import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import {
   readQueryParam,
+  readQueryParamList,
   useDebouncedSearch,
   useRouteQuerySync,
 } from "@/shared/composables/useRouteFilters";
@@ -74,7 +75,7 @@ function filtersFromRoute(): LogsFilters {
       levelRaw === "all"
         ? levelRaw
         : "all",
-    service: readQueryParam(route, "service") ?? "all",
+    service: readQueryParamList(route, "service"),
     traceId: readQueryParam(route, "traceId") ?? "",
     spanId: readQueryParam(route, "spanId") ?? "",
     ...resolveInitialTime(route),
@@ -96,11 +97,11 @@ watch(debouncedQuery, (value) => {
   resetList();
 });
 
-function filtersToQuery(): Record<string, string> {
-  const query: Record<string, string> = {};
+function filtersToQuery(): Record<string, string | string[]> {
+  const query: Record<string, string | string[]> = {};
   if (filters.value.search !== "") query.search = filters.value.search;
   if (filters.value.level !== "all") query.level = filters.value.level;
-  if (filters.value.service !== "all") query.service = filters.value.service;
+  if (filters.value.service.length > 0) query.service = filters.value.service;
   if (filters.value.traceId !== "") query.traceId = filters.value.traceId;
   if (filters.value.spanId !== "") query.spanId = filters.value.spanId;
   return { ...query, ...timeToQuery(filters.value) };
@@ -147,14 +148,10 @@ const serviceOptions = computed(() => {
     value: service,
     label: service,
   }));
-  if (
-    filters.value.service !== "all" &&
-    !options.some((option) => option.value === filters.value.service)
-  ) {
-    options.unshift({
-      value: filters.value.service,
-      label: filters.value.service,
-    });
+  for (const selected of filters.value.service) {
+    if (!options.some((option) => option.value === selected)) {
+      options.unshift({ value: selected, label: selected });
+    }
   }
   return [{ value: "all", label: "All services" }, ...options];
 });
@@ -163,7 +160,7 @@ const filtersActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.level !== "all" ||
-    filters.value.service !== "all" ||
+    filters.value.service.length > 0 ||
     filters.value.traceId !== "" ||
     filters.value.spanId !== "" ||
     filters.value.range !== ALL_TIME,
@@ -173,7 +170,7 @@ const facetsActive = computed(
   () =>
     filters.value.search !== "" ||
     filters.value.level !== "all" ||
-    filters.value.service !== "all" ||
+    filters.value.service.length > 0 ||
     filters.value.traceId !== "" ||
     filters.value.spanId !== "",
 );
@@ -193,11 +190,11 @@ const activeChips = computed((): ActiveFilterChip[] => {
       label: "Level",
       value: LEVEL_LABELS[filters.value.level],
     });
-  if (filters.value.service !== "all")
+  if (filters.value.service.length > 0)
     chips.push({
       key: "service",
       label: "Service",
-      value: filters.value.service,
+      value: filters.value.service.join(", "),
     });
   if (filters.value.traceId !== "")
     chips.push({
@@ -317,7 +314,7 @@ function clearFacets(): void {
   const next: LogsFilters = {
     search: "",
     level: "all",
-    service: "all",
+    service: [],
     traceId: "",
     spanId: "",
     ...extractTime(filters.value),
@@ -332,7 +329,7 @@ function clearAllFilters(): void {
   filters.value = {
     search: "",
     level: "all",
-    service: "all",
+    service: [],
     traceId: "",
     spanId: "",
     range: ALL_TIME,
@@ -344,7 +341,7 @@ function clearAllFilters(): void {
 function removeChip(key: string): void {
   if (key === "level") filters.value = { ...filters.value, level: "all" };
   else if (key === "service")
-    filters.value = { ...filters.value, service: "all" };
+    filters.value = { ...filters.value, service: [] };
   else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
   else if (key === "spanId") filters.value = { ...filters.value, spanId: "" };
   else if (key === "timerange") updateTime({ range: ALL_TIME });

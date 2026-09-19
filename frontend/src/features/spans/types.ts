@@ -5,7 +5,7 @@ export type SpanStatusFilter = "all" | "error" | "ok";
 export interface SpansFilters extends SharedTime {
   search: string;
   status: SpanStatusFilter;
-  service: string;
+  service: string[];
 }
 
 export interface SpansListParams extends SpansFilters {

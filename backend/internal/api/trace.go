@@ -58,12 +58,9 @@ func newTraceListOptions(r *http.Request) (store.ListTracesOptions, error) {
 	if v := query.Get("search"); v != "" {
 		options.Search = v
 	}
-	if v := query.Get("service"); v != "" {
-		options.Service = v
-	}
-	if v := query.Get("environment"); v != "" {
-		options.Environment = v
-	}
+
+	options.Services = queryValues(r, "service")
+	options.Environments = queryValues(r, "environment")
 
 	switch v := query.Get("status"); v {
 	case "", "all":

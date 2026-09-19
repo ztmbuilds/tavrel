@@ -9,8 +9,8 @@ export type TraceOrder = "asc" | "desc";
 export interface TracesFilters extends SharedTime {
   search: string;
   status: TraceStatusFilter;
-  service: string;
-  environment: string;
+  service: string[];
+  environment: string[];
   order: TraceOrder;
 }
 
