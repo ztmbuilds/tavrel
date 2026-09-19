@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import xIcon from "@/assets/icons/x.svg";
+import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
@@ -213,8 +214,8 @@ function logOffsetMs(timestamp: string): number {
       </template>
 
       <template v-else>
-        <div v-if="logsPending" class="px-2 py-6 text-center" role="status">
-          <div class="text-heading text-[0.78125rem] font-semibold">Loading logs…</div>
+        <div v-if="logsPending" class="flex justify-center px-2 py-6">
+          <LoadingSpinner size="sm" label="Loading logs" />
         </div>
         <div v-else-if="logsError" class="px-2 py-6 text-center" role="alert">
           <div class="text-heading mb-1 text-[0.78125rem] font-semibold">Couldn’t load logs</div>

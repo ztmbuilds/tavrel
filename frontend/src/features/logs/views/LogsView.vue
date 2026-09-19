@@ -3,7 +3,6 @@ import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg";
-import refreshIcon from "@/assets/icons/refresh.svg";
 
 import LogRow from "@/features/logs/components/LogRow.vue";
 import {
@@ -20,6 +19,8 @@ import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
 import LiveToggle from "@/shared/components/LiveToggle.vue";
+import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
+import LoadingState from "@/shared/components/LoadingState.vue";
 import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
@@ -112,7 +113,6 @@ const {
   isPending,
   isError,
   refetch,
-  isFetching,
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
@@ -416,13 +416,6 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
-          <img
-            v-if="isFetching && !isPending"
-            :src="refreshIcon"
-            alt=""
-            aria-hidden="true"
-            class="size-3.5 shrink-0 animate-spin opacity-70"
-          />
           <span
             v-if="resultCount !== null"
             class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
@@ -443,13 +436,7 @@ function openTrace(traceId: string): void {
         tabindex="-1"
         @scroll="onScrollerScroll"
       >
-        <div
-          v-if="isPending"
-          class="text-tertiary flex flex-col items-center gap-1.5 px-5 py-12 text-center text-[0.8125rem]"
-          role="status"
-        >
-          <span class="text-heading text-sm font-semibold">Loading logs…</span>
-        </div>
+        <LoadingState v-if="isPending" label="Loading logs" />
         <div
           v-else-if="isError"
           class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
@@ -515,15 +502,7 @@ function openTrace(traceId: string): void {
             class="flex flex-col items-center gap-2 px-5 py-4 text-center"
           >
             <template v-if="isFetchingNextPage">
-              <img
-                :src="refreshIcon"
-                alt=""
-                aria-hidden="true"
-                class="size-3.5 shrink-0 animate-spin opacity-70"
-              />
-              <span class="text-tertiary text-[0.78125rem]" role="status"
-                >Loading more logs…</span
-              >
+              <LoadingSpinner size="xs" label="Loading more logs" />
             </template>
             <template v-else-if="isFetchNextPageError">
               <span class="text-tertiary text-[0.78125rem]" role="alert"

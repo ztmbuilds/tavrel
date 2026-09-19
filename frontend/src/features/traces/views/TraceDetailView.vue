@@ -24,6 +24,7 @@ import { ApiError } from "@/shared/api/client";
 import { toSpanEventViews } from "@/shared/api/otel";
 import Button from "@/shared/components/ui/Button.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
+import LoadingState from "@/shared/components/LoadingState.vue";
 import type { Span } from "@/shared/types/entities/span";
 import { truncateTraceId } from "@/shared/utils/format";
 import {
@@ -289,13 +290,7 @@ function copyTraceId(): void {
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
     <a class="skip-link" href="#waterfall">Skip to spans</a>
-    <div
-      v-if="detailQuery.isPending.value"
-      class="text-tertiary flex flex-col items-center gap-1.5 px-5 py-12 text-center text-[0.8125rem]"
-      role="status"
-    >
-      <span class="text-heading text-sm font-semibold">Loading trace…</span>
-    </div>
+    <LoadingState v-if="detailQuery.isPending.value" label="Loading trace" />
     <div
       v-else-if="detailQuery.isError.value"
       class="flex min-h-0 flex-1 flex-col items-center justify-center px-5"

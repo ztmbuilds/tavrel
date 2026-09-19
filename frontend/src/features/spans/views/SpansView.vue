@@ -2,8 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import refreshIcon from "@/assets/icons/refresh.svg";
-
 import SpanRow from "@/features/spans/components/SpanRow.vue";
 import { SPANS_PAGE_SIZE } from "@/features/spans/api";
 import { useServicesQuery, useSpansQuery } from "@/features/spans/queries";
@@ -26,6 +24,7 @@ import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
 import LiveToggle from "@/shared/components/LiveToggle.vue";
+import LoadingState from "@/shared/components/LoadingState.vue";
 import Pager from "@/shared/components/Pager.vue";
 import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
@@ -107,7 +106,6 @@ const {
   isPending,
   isError,
   refetch,
-  isFetching,
 } = useSpansQuery(listParams, live);
 const servicesQuery = useServicesQuery();
 
@@ -367,13 +365,6 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
-          <img
-            v-if="isFetching && !isPending"
-            :src="refreshIcon"
-            alt=""
-            aria-hidden="true"
-            class="size-3.5 shrink-0 animate-spin opacity-70"
-          />
           <span
             v-if="resultCount !== null"
             class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
@@ -391,13 +382,7 @@ function openTrace(traceId: string): void {
       aria-label="Spans"
       tabindex="-1"
     >
-      <div
-        v-if="isPending"
-        class="text-tertiary flex flex-col items-center gap-1.5 px-5 py-12 text-center text-[0.8125rem]"
-        role="status"
-      >
-        <span class="text-heading text-sm font-semibold">Loading spans…</span>
-      </div>
+      <LoadingState v-if="isPending" label="Loading spans" />
       <div
         v-else-if="isError"
         class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
