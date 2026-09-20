@@ -5,13 +5,13 @@ import { useRoute, useRouter } from "vue-router";
 import arrowUpIcon from "@/assets/icons/arrow-up.svg";
 
 import LogRow from "@/features/logs/components/LogRow.vue";
-import {
-  useInfiniteLogsQuery,
-  useLogsServicesQuery,
-} from "@/features/logs/queries";
+import { useInfiniteLogsQuery } from "@/features/logs/queries";
 import { type LogsFilters, type LogLevelFilter } from "@/features/logs/types";
 import { useLogsInfiniteScroll } from "@/features/logs/composables/useLogsInfiniteScroll";
-import { useEnvironmentsQuery } from "@/shared/queries/environments";
+import {
+  useEnvironmentsQuery,
+  useServicesQuery,
+} from "@/shared/queries/filter-options";
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
@@ -123,7 +123,7 @@ const {
   isFetchingNextPage,
   isFetchNextPageError,
 } = useInfiniteLogsQuery(filters, live);
-const servicesQuery = useLogsServicesQuery();
+const servicesQuery = useServicesQuery();
 const environmentsQuery = useEnvironmentsQuery();
 
 const logs = computed(

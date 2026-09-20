@@ -2,7 +2,6 @@ import { apiFetch } from "@/shared/api/client";
 import {
   toLog,
   type LogDto,
-  type StringListResponse,
 } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 
@@ -42,9 +41,4 @@ export async function getLogs(params: LogsListParams): Promise<LogsPage> {
     nextCursor: response.meta.nextCursor,
     total: response.meta.total ?? null,
   };
-}
-
-export async function getServices(): Promise<string[]> {
-  const response = await apiFetch<StringListResponse>("/api/v1/services");
-  return response.data;
 }

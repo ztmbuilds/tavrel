@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 
 import SpanRow from "@/features/spans/components/SpanRow.vue";
 import { SPANS_PAGE_SIZE } from "@/features/spans/api";
-import { useServicesQuery, useSpansQuery } from "@/features/spans/queries";
+import { useSpansQuery } from "@/features/spans/queries";
 import {
   ALL_TIME,
   CUSTOM_RANGE,
@@ -16,7 +16,10 @@ import {
   type SpansListParams,
   type SpanStatusFilter,
 } from "@/features/spans/types";
-import { useEnvironmentsQuery } from "@/shared/queries/environments";
+import {
+  useEnvironmentsQuery,
+  useServicesQuery,
+} from "@/shared/queries/filter-options";
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";

@@ -17,7 +17,9 @@ export const routes: readonly RouteRecordRaw[] = [
         meta: {
           preload: {
             prefetchQueries: () =>
-              import("@/features/traces/queries").then((m) => m.prefetchTraces),
+              import("@/shared/queries/filter-options").then(
+                (m) => m.prefetchFilterOptions,
+              ),
           },
         },
       },
@@ -33,7 +35,9 @@ export const routes: readonly RouteRecordRaw[] = [
         meta: {
           preload: {
             prefetchQueries: () =>
-              import("@/features/spans/queries").then((m) => m.prefetchSpans),
+              import("@/shared/queries/filter-options").then(
+                (m) => m.prefetchFilterOptions,
+              ),
           },
         },
       },
@@ -44,7 +48,9 @@ export const routes: readonly RouteRecordRaw[] = [
         meta: {
           preload: {
             prefetchQueries: () =>
-              import("@/features/logs/queries").then((m) => m.prefetchLogs),
+              import("@/shared/queries/filter-options").then(
+                (m) => m.prefetchFilterOptions,
+              ),
           },
         },
       },

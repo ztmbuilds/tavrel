@@ -1,7 +1,6 @@
 import {
   keepPreviousData,
   useQuery,
-  type QueryClient,
   type UseQueryReturnType,
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
@@ -11,7 +10,6 @@ import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 import type { Log } from "@/shared/types/entities/log";
 
 import {
-  getServices,
   getSpanLogs,
   getTraceDetail,
   getTraces,
@@ -27,7 +25,6 @@ export const traceKeys = {
   detail: (id: string) => [...traceKeys.details(), id] as const,
   spanLogs: (traceId: string, window: SpanLogWindow | null) =>
     [...traceKeys.all, "span-logs", traceId, window] as const,
-  services: () => [...traceKeys.all, "services"] as const,
 };
 
 const LIVE_REFETCH_MS = 10000;
@@ -70,18 +67,5 @@ export function useTraceSpanLogsQuery(
       return getSpanLogs(traceId.value, current.spanId, current.start, current.end);
     },
     enabled: computed(() => window.value !== null),
-  });
-}
-export function useTracesServicesQuery(): UseQueryReturnType<string[], Error> {
-  return useQuery({
-    queryKey: traceKeys.services(),
-    queryFn: getServices,
-  });
-}
-
-export async function prefetchTraces(queryClient: QueryClient): Promise<void> {
-  await queryClient.prefetchQuery({
-    queryKey: traceKeys.services(),
-    queryFn: getServices,
   });
 }

@@ -4,7 +4,6 @@ import {
   toSpan,
   type LogDto,
   type SpanDto,
-  type StringListResponse,
 } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 import type { SpanKind } from "@/shared/types/entities/span";
@@ -78,11 +77,6 @@ export async function getTraces(params: TracesListParams): Promise<TracesPage> {
     nextCursor: response.meta.nextCursor,
     total: response.meta.total ?? null,
   };
-}
-
-export async function getServices(): Promise<string[]> {
-  const response = await apiFetch<StringListResponse>("/api/v1/services");
-  return response.data;
 }
 
 interface SpanNodeDto {
