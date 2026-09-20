@@ -74,6 +74,13 @@ function logOffsetMs(timestamp: string): number {
           aria-hidden="true"
         />
         {{ span.service }} · {{ span.kind }}
+        <span
+          v-if="span.environment !== ''"
+          class="border-default bg-surface text-secondary inline-flex shrink-0 items-center rounded-full border px-2 py-px text-[0.6875rem] font-medium"
+          :title="`Environment: ${span.environment}`"
+        >
+          {{ span.environment }}
+        </span>
         <span class="sr-only">, status {{ span.status }}</span>
       </div>
       <nav class="text-tertiary mt-2.5 flex flex-wrap items-center gap-0.5 text-[0.71875rem] leading-relaxed" aria-label="Span path">
