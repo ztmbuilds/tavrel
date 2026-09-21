@@ -124,9 +124,6 @@ const selectedSelfMs = computed(() =>
 const selectedChildCount = computed(() =>
   selectedId.value === null ? 0 : graph.childCount(selectedId.value),
 );
-const selectedAncestors = computed(() =>
-  selectedId.value === null ? [] : graph.ancestors(selectedId.value),
-);
 const selectedPercent = computed(() => {
   if (graph.totalDurationMs.value <= 0) return 0;
   return Math.round((selectedDurationMs.value / graph.totalDurationMs.value) * FULL_PCT);
@@ -384,7 +381,6 @@ function copyTraceId(): void {
           <SpanPanel
             v-model:active-tab="activeTab"
             :span="selectedSpan"
-            :ancestors="selectedAncestors"
             :child-count="selectedChildCount"
             :self-time-ms="selectedSelfMs"
             :percent-of-trace="selectedPercent"
@@ -398,7 +394,6 @@ function copyTraceId(): void {
             :logs-pending="spanLogsQuery.isPending.value"
             :logs-error="spanLogsQuery.isError.value"
             @close="selectedId = null"
-            @select-ancestor="select"
             @retry-logs="void spanLogsQuery.refetch()"
           />
         </aside>

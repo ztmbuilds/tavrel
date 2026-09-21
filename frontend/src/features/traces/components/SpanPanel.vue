@@ -9,12 +9,10 @@ import { diffMsPrecise, formatDurationMs } from "@/shared/utils/time";
 
 import SpanAttributes from "./SpanAttributes.vue";
 
-import type { AncestorEntry } from "../composables/useTraceGraph";
 import type { SpanEventView, TraceDetailTab } from "../types";
 
 const props = defineProps<{
   span: Span;
-  ancestors: AncestorEntry[];
   childCount: number;
   selfTimeMs: number;
   percentOfTrace: number;
@@ -31,7 +29,6 @@ const props = defineProps<{
 
 defineEmits<{
   close: [];
-  selectAncestor: [spanId: string];
   retryLogs: [];
 }>();
 
@@ -83,18 +80,6 @@ function logOffsetMs(timestamp: string): number {
         </span>
         <span class="sr-only">, status {{ span.status }}</span>
       </div>
-      <nav class="text-tertiary mt-2.5 flex flex-wrap items-center gap-0.5 text-[0.71875rem] leading-relaxed" aria-label="Span path">
-        <template v-for="(ancestor, index) in ancestors" :key="ancestor.spanId">
-          <button
-            type="button"
-            class="hover:bg-hover hover:text-secondary cursor-pointer rounded border-none bg-transparent px-1.5 py-0.5 transition-colors duration-120 ease-out"
-            @click="$emit('selectAncestor', ancestor.spanId)"
-          >
-            {{ ancestor.name }}
-          </button>
-          <span v-if="index < ancestors.length - 1" class="text-strong" aria-hidden="true">›</span>
-        </template>
-      </nav>
     </div>
 
     <div class="border-subtle flex shrink-0 gap-0.5 border-b px-5" role="tablist" aria-label="Span detail views">

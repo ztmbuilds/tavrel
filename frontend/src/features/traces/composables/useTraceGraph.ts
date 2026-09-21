@@ -16,11 +16,6 @@ export interface ServiceLegendEntry {
   color: string;
 }
 
-export interface AncestorEntry {
-  spanId: string;
-  name: string;
-}
-
 const ERRNO_PATTERN =
   /\b(ENOENT|EACCES|EPERM|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|ENETUNREACH|EADDRINUSE|EEXIST|ENOSPC|EROFS|EISDIR|ENOTDIR|ELOOP|EMSGSIZE|EPROTO|EBADF)\b/;
 
@@ -181,7 +176,6 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
   spanDurationMs: (span: Span) => number;
   selfTimeMs: (spanId: string) => number;
   childCount: (spanId: string) => number;
-  ancestors: (spanId: string) => AncestorEntry[];
   findSpan: (spanId: string) => Span | null;
   visibleSpans: (collapsed: Ref<Set<string>>) => Span[];
 } {
@@ -337,17 +331,6 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     return childCounts.value.get(spanId) ?? 0;
   }
 
-  function ancestors(spanId: string): AncestorEntry[] {
-    const chain: AncestorEntry[] = [];
-    let current = byId.value.get(spanId);
-    while (current !== undefined) {
-      chain.unshift({ spanId: current.spanId, name: current.name });
-      if (current.parentSpanId === "") break;
-      current = byId.value.get(current.parentSpanId);
-    }
-    return chain;
-  }
-
   function findSpan(spanId: string): Span | null {
     return byId.value.get(spanId) ?? null;
   }
@@ -379,7 +362,6 @@ export function useTraceGraph(detail: Ref<TraceDetail | undefined>): {
     spanDurationMs,
     selfTimeMs,
     childCount,
-    ancestors,
     findSpan,
     visibleSpans,
   };
