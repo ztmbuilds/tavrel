@@ -400,10 +400,7 @@ function openTrace(traceId: string): void {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead
-      title="Logs"
-      subtitle="Log lines, linked to the trace and span that produced them."
-    />
+    <PageHead title="Logs" />
     <FilterBar label="Filter logs">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1">

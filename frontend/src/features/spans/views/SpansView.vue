@@ -366,10 +366,7 @@ function openTrace(traceId: string): void {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead
-      title="Spans"
-      subtitle="Every unit of work recorded, independent of which trace it belongs to."
-    />
+    <PageHead title="Spans" />
     <FilterBar label="Filter spans">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1">

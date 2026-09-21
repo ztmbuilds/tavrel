@@ -389,10 +389,7 @@ function openTrace(traceId: string): void {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead
-      title="Traces"
-      subtitle="Every request that entered the system, root operation first."
-    />
+    <PageHead title="Traces" />
     <FilterBar label="Filter traces">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1">
