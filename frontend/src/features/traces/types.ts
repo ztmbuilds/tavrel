@@ -57,6 +57,7 @@ export interface TraceDiagnosis {
   kind: "error" | "ok";
   spanId: string | null;
   spanName: string;
-  suffix: string;
+  service: string;
+  headline: string;
   tail: string;
 }

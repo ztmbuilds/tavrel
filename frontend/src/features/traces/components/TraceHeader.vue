@@ -137,13 +137,14 @@ const statusLabel = computed(() =>
     >
       <span class="bg-error mt-1.5 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
       <span>
+        {{ diagnosis.headline }} —
         <button
           type="button"
           class="text-heading cursor-pointer border-none bg-transparent p-0 font-semibold underline decoration-strong decoration-dotted underline-offset-4 hover:text-signal-hover"
           @click="$emit('select', diagnosis.spanId)"
         >
-          {{ diagnosis.spanName }}</button
-        >{{ diagnosis.suffix }}{{ diagnosis.tail }}
+          {{ diagnosis.service }} · {{ diagnosis.spanName }}</button
+        >{{ diagnosis.tail }}
       </span>
     </p>
     <p
