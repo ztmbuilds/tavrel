@@ -5,14 +5,13 @@ import { useRoute, useRouter } from "vue-router";
 import arrowUpIcon from "@/assets/icons/arrow-up.svg";
 
 import TraceRow from "@/features/traces/components/TraceRow.vue";
-import { TRACES_PAGE_SIZE } from "@/features/traces/api";
-import { useTracesQuery } from "@/features/traces/queries";
+import { useInfiniteTracesQuery } from "@/features/traces/queries";
 import {
   type TraceOrder,
   type TracesFilters,
-  type TracesListParams,
   type TraceStatusFilter,
 } from "@/features/traces/types";
+import { useInfiniteScroll } from "@/shared/composables/useInfiniteScroll";
 import {
   useEnvironmentsQuery,
   useServicesQuery,
@@ -25,8 +24,8 @@ import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
 import LiveToggle from "@/shared/components/LiveToggle.vue";
+import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import LoadingState from "@/shared/components/LoadingState.vue";
-import Pager from "@/shared/components/Pager.vue";
 import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
@@ -64,6 +63,7 @@ const STATUS_OPTIONS: readonly {
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
+const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
 const router = useRouter();
@@ -86,15 +86,16 @@ function filtersFromRoute(): TracesFilters {
 
 const filters = ref<TracesFilters>(filtersFromRoute());
 const searchInput = ref(filters.value.search);
-const cursor = ref<string | undefined>(undefined);
-const cursorHistory = ref<(string | undefined)[]>([]);
 const debouncedQuery = useDebouncedSearch(searchInput, SEARCH_DEBOUNCE_MS);
 const live = ref(false);
+const scrollerEl = ref<Element | null>(null);
+const sentinelEl = ref<Element | null>(null);
+const showBackToTop = ref(false);
 
 watch(debouncedQuery, (value) => {
   if (value === filters.value.search) return;
   filters.value = { ...filters.value, search: value };
-  resetPage();
+  resetList();
 });
 
 function filtersToQuery(): Record<string, string | string[]> {
@@ -110,22 +111,39 @@ function filtersToQuery(): Record<string, string | string[]> {
 
 useRouteQuerySync(filters, filtersToQuery);
 
-const listParams = computed((): TracesListParams => {
-  if (cursor.value === undefined) return { ...filters.value };
-  return { ...filters.value, cursor: cursor.value };
-});
-
 const {
   data: tracesData,
   isPending,
   isError,
   refetch,
-} = useTracesQuery(listParams, live);
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isFetchNextPageError,
+} = useInfiniteTracesQuery(filters, live);
 const servicesQuery = useServicesQuery();
 const environmentsQuery = useEnvironmentsQuery();
 
-const traces = computed(() => tracesData.value?.traces ?? []);
-const total = computed(() => tracesData.value?.total ?? null);
+const traces = computed(
+  () => tracesData.value?.pages.flatMap((page) => page.traces) ?? [],
+);
+const total = computed(() => tracesData.value?.pages[0]?.total ?? null);
+
+const canLoadMore = computed(
+  () => hasNextPage.value && !isFetchingNextPage.value,
+);
+
+function loadMore(): void {
+  if (!canLoadMore.value) return;
+  void fetchNextPage();
+}
+
+useInfiniteScroll({
+  sentinel: sentinelEl,
+  scroller: scrollerEl,
+  canLoadMore,
+  onLoadMore: loadMore,
+});
 
 const serviceOptions = computed(() => {
   const services = servicesQuery.data.value ?? [];
@@ -250,22 +268,31 @@ const maxDurationMs = computed(() => {
   return max;
 });
 
-const pageIndex = computed(() => cursorHistory.value.length);
-const showingFrom = computed(() =>
-  traces.value.length === 0 ? 0 : pageIndex.value * TRACES_PAGE_SIZE + 1,
-);
-const showingTo = computed(
-  () => pageIndex.value * TRACES_PAGE_SIZE + traces.value.length,
-);
-const hasPrev = computed(() => cursorHistory.value.length > 0);
-const hasNext = computed(() => {
-  const next = tracesData.value?.nextCursor;
-  return next !== undefined && next !== null;
+const loadedCount = computed(() => {
+  if (total.value === null) return null;
+  return `${formatCount(traces.value.length)} of ${formatCount(total.value)} traces`;
 });
 
-function resetPage(): void {
-  cursor.value = undefined;
-  cursorHistory.value = [];
+const endOfListLabel = computed(() => {
+  const count = total.value;
+  if (count === null) return "No more traces";
+  return count === 1
+    ? "Showing the only trace"
+    : `Showing all ${formatCount(count)} traces`;
+});
+
+function resetList(): void {
+  showBackToTop.value = false;
+  scrollerEl.value?.scrollTo({ top: 0 });
+}
+
+function onScrollerScroll(event: Event): void {
+  if (!(event.target instanceof HTMLElement)) return;
+  showBackToTop.value = event.target.scrollTop > BACK_TO_TOP_THRESHOLD_PX;
+}
+
+function scrollToTop(): void {
+  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function updateTime(time: SharedTime): void {
@@ -278,7 +305,7 @@ function updateTime(time: SharedTime): void {
     ...time,
   };
   persistTime(filters.value);
-  resetPage();
+  resetList();
 }
 
 function applyPreset(value: string): void {
@@ -305,7 +332,7 @@ function toggleOrder(): void {
   const order: TraceOrder =
     filters.value.order === "desc" ? "asc" : "desc";
   filters.value = { ...filters.value, order };
-  resetPage();
+  resetList();
 }
 
 function clearFacets(): void {
@@ -320,7 +347,7 @@ function clearFacets(): void {
     ...extractTime(filters.value),
   };
   filters.value = next;
-  resetPage();
+  resetList();
 }
 
 function clearAllFilters(): void {
@@ -335,13 +362,16 @@ function clearAllFilters(): void {
     range: ALL_TIME,
   };
   persistTime(filters.value);
-  resetPage();
+  resetList();
 }
 
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
   else if (key === "service") filters.value = { ...filters.value, service: [] };
-  else if (key === "timerange") updateTime({ range: ALL_TIME });
+  else if (key === "timerange") {
+    updateTime({ range: ALL_TIME });
+    return;
+  }
   else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
   else if (key === "search") {
@@ -349,22 +379,7 @@ function removeChip(key: string): void {
     debouncedQuery.value = "";
     filters.value = { ...filters.value, search: "" };
   } else return;
-  resetPage();
-}
-
-function nextPage(): void {
-  const next = tracesData.value?.nextCursor;
-  if (next === undefined || next === null) return;
-  cursorHistory.value = [...cursorHistory.value, cursor.value];
-  cursor.value = next;
-}
-
-function prevPage(): void {
-  if (cursorHistory.value.length === 0) return;
-  const history = [...cursorHistory.value];
-  const previous = history.pop();
-  cursorHistory.value = history;
-  cursor.value = previous;
+  resetList();
 }
 
 function openTrace(traceId: string): void {
@@ -388,7 +403,7 @@ function openTrace(traceId: string): void {
             placeholder="Filter by root operation or trace ID"
           />
         </div>
-        <LiveToggle v-model="live" @update:model-value="resetPage" />
+        <LiveToggle v-model="live" @update:model-value="resetList" />
         <DateRangePicker
           :presets="TIME_PRESETS"
           :day-presets="DAY_PRESETS"
@@ -404,14 +419,14 @@ function openTrace(traceId: string): void {
           v-model="filters.status"
           :options="STATUS_OPTIONS"
           group-label="Trace status"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <ServiceSelect
           v-model="filters.service"
           label="Service"
           :options="serviceOptions"
           trigger-class="max-w-64"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <ServiceSelect
           v-model="filters.environment"
@@ -419,7 +434,7 @@ function openTrace(traceId: string): void {
           :options="environmentOptions"
           search-placeholder="Search environments…"
           trigger-class="max-w-64"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <div class="ml-auto flex shrink-0 items-center gap-3">
           <button
@@ -440,105 +455,140 @@ function openTrace(traceId: string): void {
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
     </FilterBar>
-    <div
-      id="trace-list"
-      class="border-subtle bg-panel mx-4 mb-3 min-h-0 flex-1 overflow-y-auto rounded-xl border"
-      role="list"
-      aria-label="Traces"
-      tabindex="-1"
-    >
-      <LoadingState v-if="isPending" label="Loading traces" />
+    <div class="relative mx-4 mb-3 min-h-0 flex-1">
       <div
-        v-else-if="isError"
-        class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
-        role="alert"
+        id="trace-list"
+        ref="scrollerEl"
+        class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
+        role="list"
+        aria-label="Traces"
+        tabindex="-1"
+        @scroll="onScrollerScroll"
       >
-        <span class="text-heading text-sm font-semibold"
-          >Couldn’t load traces</span
-        >
-        <span class="leading-relaxed"
-          >Something went wrong fetching traces. Try again.</span
-        >
-        <Button variant="secondary" @click="refetch()">Retry</Button>
-      </div>
-      <EmptyState
-        v-else-if="traces.length === 0"
-        :title="emptyTitle"
-        :message="emptyMessage"
-        :action-label="emptyActionLabel"
-        @clear="clearAllFilters"
-      />
-      <template v-else>
+        <LoadingState v-if="isPending" label="Loading traces" />
         <div
-          class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
+          v-else-if="isError"
+          class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
+          role="alert"
         >
-          <div
-            class="text-tertiary w-[3.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
-            aria-hidden="true"
+          <span class="text-heading text-sm font-semibold"
+            >Couldn’t load traces</span
           >
-            ID
-          </div>
-          <div
-            class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
-            aria-hidden="true"
+          <span class="leading-relaxed"
+            >Something went wrong fetching traces. Try again.</span
           >
-            Trace
-          </div>
+          <Button variant="secondary" @click="refetch()">Retry</Button>
+        </div>
+        <EmptyState
+          v-else-if="traces.length === 0"
+          :title="emptyTitle"
+          :message="emptyMessage"
+          :action-label="emptyActionLabel"
+          @clear="clearAllFilters"
+        />
+        <template v-else>
           <div
-            class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
-            aria-hidden="true"
+            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
           >
-            Environment
+            <div
+              class="text-tertiary w-[3.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              aria-hidden="true"
+            >
+              ID
+            </div>
+            <div
+              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+              aria-hidden="true"
+            >
+              Trace
+            </div>
+            <div
+              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
+              aria-hidden="true"
+            >
+              Environment
+            </div>
+            <div
+              class="w-[9.375rem] shrink-0 max-[53.75rem]:hidden"
+              aria-hidden="true"
+            />
+            <div
+              class="text-tertiary w-[3.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              aria-hidden="true"
+            >
+              Duration
+            </div>
+            <div
+              class="text-tertiary w-[3.875rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
+              aria-hidden="true"
+            >
+              Spans
+            </div>
+            <button
+              type="button"
+              class="text-tertiary hover:text-primary flex w-[4.625rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
+              :aria-label="sortAriaLabel"
+              @click="toggleOrder"
+            >
+              <span>Time</span>
+              <img
+                :src="arrowUpIcon"
+                alt=""
+                class="size-3 shrink-0 transition-transform duration-120 ease-out"
+                :class="{ 'rotate-180': filters.order === 'desc' }"
+              />
+            </button>
           </div>
-          <div
-            class="w-[9.375rem] shrink-0 max-[53.75rem]:hidden"
-            aria-hidden="true"
+          <TraceRow
+            v-for="trace in traces"
+            :key="trace.traceId"
+            :trace="trace"
+            :max-duration-ms="maxDurationMs"
+            @open-trace="openTrace"
           />
           <div
-            class="text-tertiary w-[3.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
-            aria-hidden="true"
+            ref="sentinelEl"
+            class="flex flex-col items-center gap-2 px-5 py-4 text-center"
           >
-            Duration
+            <template v-if="isFetchingNextPage">
+              <LoadingSpinner size="xs" label="Loading more traces" />
+            </template>
+            <template v-else-if="isFetchNextPageError">
+              <span class="text-tertiary text-[0.78125rem]" role="alert"
+                >Couldn’t load more traces.</span
+              >
+              <Button variant="secondary" @click="loadMore()">Retry</Button>
+            </template>
+            <template v-else-if="hasNextPage">
+              <span
+                v-if="loadedCount !== null"
+                class="text-tertiary text-[0.78125rem] tabular-nums"
+                role="status"
+                >{{ loadedCount }}</span
+              >
+              <Button variant="secondary" @click="loadMore()"
+                >Load more traces</Button
+              >
+            </template>
+            <span
+              v-else
+              class="text-tertiary text-[0.78125rem] tabular-nums"
+              role="status"
+              >{{ endOfListLabel }}</span
+            >
           </div>
-          <div
-            class="text-tertiary w-[3.875rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
-            aria-hidden="true"
-          >
-            Spans
-          </div>
-          <button
-            type="button"
-            class="text-tertiary hover:text-primary flex w-[4.625rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
-            :aria-label="sortAriaLabel"
-            @click="toggleOrder"
-          >
-            <span>Time</span>
-            <img
-              :src="arrowUpIcon"
-              alt=""
-              class="size-3 shrink-0 transition-transform duration-120 ease-out"
-              :class="{ 'rotate-180': filters.order === 'desc' }"
-            />
-          </button>
-        </div>
-        <TraceRow
-          v-for="trace in traces"
-          :key="trace.traceId"
-          :trace="trace"
-          :max-duration-ms="maxDurationMs"
-          @open-trace="openTrace"
-        />
-      </template>
+        </template>
+      </div>
+      <button
+        v-show="showBackToTop"
+        type="button"
+        aria-label="Back to top of traces"
+        title="Back to top"
+        class="border-default bg-raised hover:border-strong hover:bg-hover absolute right-4 bottom-4 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border shadow-lg transition-colors duration-120 ease-out"
+        @click="scrollToTop"
+      >
+        <img :src="arrowUpIcon" alt="" aria-hidden="true" class="size-4" />
+      </button>
     </div>
-    <Pager
-      :from="showingFrom"
-      :to="showingTo"
-      :total="total"
-      :has-prev="hasPrev"
-      :has-next="hasNext"
-      item-name="traces"
-      @prev="prevPage"
-      @next="nextPage"
-    />
   </div>
 </template>

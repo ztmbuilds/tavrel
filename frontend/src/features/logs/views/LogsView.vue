@@ -7,7 +7,7 @@ import arrowUpIcon from "@/assets/icons/arrow-up.svg";
 import LogRow from "@/features/logs/components/LogRow.vue";
 import { useInfiniteLogsQuery } from "@/features/logs/queries";
 import { type LogsFilters, type LogLevelFilter } from "@/features/logs/types";
-import { useLogsInfiniteScroll } from "@/features/logs/composables/useLogsInfiniteScroll";
+import { useInfiniteScroll } from "@/shared/composables/useInfiniteScroll";
 import {
   useEnvironmentsQuery,
   useServicesQuery,
@@ -140,7 +140,7 @@ function loadMore(): void {
   void fetchNextPage();
 }
 
-useLogsInfiniteScroll({
+useInfiniteScroll({
   sentinel: sentinelEl,
   scroller: scrollerEl,
   canLoadMore,
@@ -376,7 +376,10 @@ function removeChip(key: string): void {
     filters.value = { ...filters.value, environment: [] };
   else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
   else if (key === "spanId") filters.value = { ...filters.value, spanId: "" };
-  else if (key === "timerange") updateTime({ range: ALL_TIME });
+  else if (key === "timerange") {
+    updateTime({ range: ALL_TIME });
+    return;
+  }
   else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";

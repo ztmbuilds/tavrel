@@ -2,9 +2,10 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
+import arrowUpIcon from "@/assets/icons/arrow-up.svg";
+
 import SpanRow from "@/features/spans/components/SpanRow.vue";
-import { SPANS_PAGE_SIZE } from "@/features/spans/api";
-import { useSpansQuery } from "@/features/spans/queries";
+import { useInfiniteSpansQuery } from "@/features/spans/queries";
 import {
   ALL_TIME,
   CUSTOM_RANGE,
@@ -13,9 +14,9 @@ import {
 } from "@/shared/utils/date-range";
 import {
   type SpansFilters,
-  type SpansListParams,
   type SpanStatusFilter,
 } from "@/features/spans/types";
+import { useInfiniteScroll } from "@/shared/composables/useInfiniteScroll";
 import {
   useEnvironmentsQuery,
   useServicesQuery,
@@ -28,8 +29,8 @@ import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
 import LiveToggle from "@/shared/components/LiveToggle.vue";
+import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import LoadingState from "@/shared/components/LoadingState.vue";
-import Pager from "@/shared/components/Pager.vue";
 import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
@@ -61,6 +62,7 @@ const STATUS_OPTIONS: readonly {
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
+const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
 const router = useRouter();
@@ -81,15 +83,16 @@ function filtersFromRoute(): SpansFilters {
 
 const filters = ref<SpansFilters>(filtersFromRoute());
 const searchInput = ref(filters.value.search);
-const cursor = ref<string | undefined>(undefined);
-const cursorHistory = ref<(string | undefined)[]>([]);
 const debouncedQuery = useDebouncedSearch(searchInput, SEARCH_DEBOUNCE_MS);
 const live = ref(false);
+const scrollerEl = ref<Element | null>(null);
+const sentinelEl = ref<Element | null>(null);
+const showBackToTop = ref(false);
 
 watch(debouncedQuery, (value) => {
   if (value === filters.value.search) return;
   filters.value = { ...filters.value, search: value };
-  resetPage();
+  resetList();
 });
 
 function filtersToQuery(): Record<string, string | string[]> {
@@ -104,22 +107,39 @@ function filtersToQuery(): Record<string, string | string[]> {
 
 useRouteQuerySync(filters, filtersToQuery);
 
-const listParams = computed((): SpansListParams => {
-  if (cursor.value === undefined) return { ...filters.value };
-  return { ...filters.value, cursor: cursor.value };
-});
-
 const {
   data: spansData,
   isPending,
   isError,
   refetch,
-} = useSpansQuery(listParams, live);
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isFetchNextPageError,
+} = useInfiniteSpansQuery(filters, live);
 const servicesQuery = useServicesQuery();
 const environmentsQuery = useEnvironmentsQuery();
 
-const spans = computed(() => spansData.value?.spans ?? []);
-const total = computed(() => spansData.value?.total ?? null);
+const spans = computed(
+  () => spansData.value?.pages.flatMap((page) => page.spans) ?? [],
+);
+const total = computed(() => spansData.value?.pages[0]?.total ?? null);
+
+const canLoadMore = computed(
+  () => hasNextPage.value && !isFetchingNextPage.value,
+);
+
+function loadMore(): void {
+  if (!canLoadMore.value) return;
+  void fetchNextPage();
+}
+
+useInfiniteScroll({
+  sentinel: sentinelEl,
+  scroller: scrollerEl,
+  canLoadMore,
+  onLoadMore: loadMore,
+});
 
 const serviceOptions = computed(() => {
   const services = servicesQuery.data.value ?? [];
@@ -234,22 +254,31 @@ const maxDurationMs = computed(() => {
   return max;
 });
 
-const pageIndex = computed(() => cursorHistory.value.length);
-const showingFrom = computed(() =>
-  spans.value.length === 0 ? 0 : pageIndex.value * SPANS_PAGE_SIZE + 1,
-);
-const showingTo = computed(
-  () => pageIndex.value * SPANS_PAGE_SIZE + spans.value.length,
-);
-const hasPrev = computed(() => cursorHistory.value.length > 0);
-const hasNext = computed(() => {
-  const next = spansData.value?.nextCursor;
-  return next !== undefined && next !== null;
+const loadedCount = computed(() => {
+  if (total.value === null) return null;
+  return `${formatCount(spans.value.length)} of ${formatCount(total.value)} spans`;
 });
 
-function resetPage(): void {
-  cursor.value = undefined;
-  cursorHistory.value = [];
+const endOfListLabel = computed(() => {
+  const count = total.value;
+  if (count === null) return "No more spans";
+  return count === 1
+    ? "Showing the only span"
+    : `Showing all ${formatCount(count)} spans`;
+});
+
+function resetList(): void {
+  showBackToTop.value = false;
+  scrollerEl.value?.scrollTo({ top: 0 });
+}
+
+function onScrollerScroll(event: Event): void {
+  if (!(event.target instanceof HTMLElement)) return;
+  showBackToTop.value = event.target.scrollTop > BACK_TO_TOP_THRESHOLD_PX;
+}
+
+function scrollToTop(): void {
+  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function updateTime(time: SharedTime): void {
@@ -261,7 +290,7 @@ function updateTime(time: SharedTime): void {
     ...time,
   };
   persistTime(filters.value);
-  resetPage();
+  resetList();
 }
 
 function applyPreset(value: string): void {
@@ -295,7 +324,7 @@ function clearFacets(): void {
     ...extractTime(filters.value),
   };
   filters.value = next;
-  resetPage();
+  resetList();
 }
 
 function clearAllFilters(): void {
@@ -309,7 +338,7 @@ function clearAllFilters(): void {
     range: ALL_TIME,
   };
   persistTime(filters.value);
-  resetPage();
+  resetList();
 }
 
 function removeChip(key: string): void {
@@ -318,28 +347,16 @@ function removeChip(key: string): void {
     filters.value = { ...filters.value, service: [] };
   else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
-  else if (key === "timerange") updateTime({ range: ALL_TIME });
+  else if (key === "timerange") {
+    updateTime({ range: ALL_TIME });
+    return;
+  }
   else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";
     filters.value = { ...filters.value, search: "" };
   } else return;
-  resetPage();
-}
-
-function nextPage(): void {
-  const next = spansData.value?.nextCursor;
-  if (next === undefined || next === null) return;
-  cursorHistory.value = [...cursorHistory.value, cursor.value];
-  cursor.value = next;
-}
-
-function prevPage(): void {
-  if (cursorHistory.value.length === 0) return;
-  const history = [...cursorHistory.value];
-  const previous = history.pop();
-  cursorHistory.value = history;
-  cursor.value = previous;
+  resetList();
 }
 
 function openTrace(traceId: string): void {
@@ -363,7 +380,7 @@ function openTrace(traceId: string): void {
             placeholder="Filter by span name, e.g. GET /cart"
           />
         </div>
-        <LiveToggle v-model="live" @update:model-value="resetPage" />
+        <LiveToggle v-model="live" @update:model-value="resetList" />
         <DateRangePicker
           :presets="TIME_PRESETS"
           :day-presets="DAY_PRESETS"
@@ -379,14 +396,14 @@ function openTrace(traceId: string): void {
           v-model="filters.status"
           :options="STATUS_OPTIONS"
           group-label="Span status"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <ServiceSelect
           v-model="filters.service"
           label="Service"
           :options="serviceOptions"
           trigger-class="max-w-64"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <ServiceSelect
           v-model="filters.environment"
@@ -394,7 +411,7 @@ function openTrace(traceId: string): void {
           :options="environmentOptions"
           search-placeholder="Search environments…"
           trigger-class="max-w-64"
-          @update:model-value="resetPage"
+          @update:model-value="resetList"
         />
         <div class="ml-auto flex shrink-0 items-center gap-3">
           <button
@@ -415,80 +432,115 @@ function openTrace(traceId: string): void {
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
     </FilterBar>
-    <div
-      id="span-list"
-      class="border-subtle bg-panel mx-4 mb-3 min-h-0 flex-1 overflow-y-auto rounded-xl border"
-      role="list"
-      aria-label="Spans"
-      tabindex="-1"
-    >
-      <LoadingState v-if="isPending" label="Loading spans" />
+    <div class="relative mx-4 mb-3 min-h-0 flex-1">
       <div
-        v-else-if="isError"
-        class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
-        role="alert"
+        id="span-list"
+        ref="scrollerEl"
+        class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
+        role="list"
+        aria-label="Spans"
+        tabindex="-1"
+        @scroll="onScrollerScroll"
       >
-        <span class="text-heading text-sm font-semibold"
-          >Couldn’t load spans</span
-        >
-        <span class="leading-relaxed"
-          >Something went wrong fetching spans. Try again.</span
-        >
-        <Button variant="secondary" @click="refetch()">Retry</Button>
-      </div>
-      <EmptyState
-        v-else-if="spans.length === 0"
-        :title="emptyTitle"
-        :message="emptyMessage"
-        :action-label="emptyActionLabel"
-        @clear="clearAllFilters"
-      />
-      <template v-else>
+        <LoadingState v-if="isPending" label="Loading spans" />
         <div
-          class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
-          aria-hidden="true"
+          v-else-if="isError"
+          class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
+          role="alert"
         >
-          <div class="w-4 shrink-0" />
-          <div
-            class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+          <span class="text-heading text-sm font-semibold"
+            >Couldn’t load spans</span
           >
-            Span
-          </div>
-          <div
-            class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+          <span class="leading-relaxed"
+            >Something went wrong fetching spans. Try again.</span
           >
-            Environment
-          </div>
-          <div class="w-[8.125rem] shrink-0 max-[53.75rem]:hidden" />
-          <div
-            class="text-tertiary w-[3.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
-          >
-            Duration
-          </div>
-          <div
-            class="text-tertiary w-[4.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
-          >
-            Time
-          </div>
+          <Button variant="secondary" @click="refetch()">Retry</Button>
         </div>
-        <SpanRow
-          v-for="span in spans"
-          :key="span.spanId"
-          :span="span"
-          :max-duration-ms="maxDurationMs"
-          @open-trace="openTrace"
+        <EmptyState
+          v-else-if="spans.length === 0"
+          :title="emptyTitle"
+          :message="emptyMessage"
+          :action-label="emptyActionLabel"
+          @clear="clearAllFilters"
         />
-      </template>
+        <template v-else>
+          <div
+            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
+            aria-hidden="true"
+          >
+            <div class="w-4 shrink-0" />
+            <div
+              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+            >
+              Span
+            </div>
+            <div
+              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+            >
+              Environment
+            </div>
+            <div class="w-[8.125rem] shrink-0 max-[53.75rem]:hidden" />
+            <div
+              class="text-tertiary w-[3.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+            >
+              Duration
+            </div>
+            <div
+              class="text-tertiary w-[4.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+            >
+              Time
+            </div>
+          </div>
+          <SpanRow
+            v-for="span in spans"
+            :key="span.spanId"
+            :span="span"
+            :max-duration-ms="maxDurationMs"
+            @open-trace="openTrace"
+          />
+          <div
+            ref="sentinelEl"
+            class="flex flex-col items-center gap-2 px-5 py-4 text-center"
+          >
+            <template v-if="isFetchingNextPage">
+              <LoadingSpinner size="xs" label="Loading more spans" />
+            </template>
+            <template v-else-if="isFetchNextPageError">
+              <span class="text-tertiary text-[0.78125rem]" role="alert"
+                >Couldn’t load more spans.</span
+              >
+              <Button variant="secondary" @click="loadMore()">Retry</Button>
+            </template>
+            <template v-else-if="hasNextPage">
+              <span
+                v-if="loadedCount !== null"
+                class="text-tertiary text-[0.78125rem] tabular-nums"
+                role="status"
+                >{{ loadedCount }}</span
+              >
+              <Button variant="secondary" @click="loadMore()"
+                >Load more spans</Button
+              >
+            </template>
+            <span
+              v-else
+              class="text-tertiary text-[0.78125rem] tabular-nums"
+              role="status"
+              >{{ endOfListLabel }}</span
+            >
+          </div>
+        </template>
+      </div>
+      <button
+        v-show="showBackToTop"
+        type="button"
+        aria-label="Back to top of spans"
+        title="Back to top"
+        class="border-default bg-raised hover:border-strong hover:bg-hover absolute right-4 bottom-4 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border shadow-lg transition-colors duration-120 ease-out"
+        @click="scrollToTop"
+      >
+        <img :src="arrowUpIcon" alt="" aria-hidden="true" class="size-4" />
+      </button>
     </div>
-    <Pager
-      :from="showingFrom"
-      :to="showingTo"
-      :total="total"
-      :has-prev="hasPrev"
-      :has-next="hasNext"
-      item-name="spans"
-      @prev="prevPage"
-      @next="nextPage"
-    />
   </div>
 </template>

@@ -1,32 +1,43 @@
 import {
-  keepPreviousData,
-  useQuery,
-  type UseQueryReturnType,
+  useInfiniteQuery,
+  type InfiniteData,
+  type UseInfiniteQueryReturnType,
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
 
 import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 
 import { getSpans, type SpansPage } from "./api";
-import type { SpansListParams } from "./types";
+import type { SpansFilters } from "./types";
 
 export const spanKeys = {
   all: ["spans"] as const,
   lists: () => [...spanKeys.all, "list"] as const,
-  list: (params: SpansListParams) => [...spanKeys.lists(), params] as const,
+  list: (params: SpansFilters) => [...spanKeys.lists(), params] as const,
 };
 
 const LIVE_REFETCH_MS = 10000;
 
-export function useSpansQuery(
-  params: Ref<SpansListParams>,
+export function useInfiniteSpansQuery(
+  params: Ref<SpansFilters>,
   live: Ref<boolean> = ref(false),
-): UseQueryReturnType<SpansPage, Error> {
-  return useQuery({
+): UseInfiniteQueryReturnType<InfiniteData<SpansPage>, Error> {
+  return useInfiniteQuery({
     queryKey: computed(() => spanKeys.list(params.value)),
-    queryFn: (): Promise<SpansPage> =>
-      getSpans({ ...params.value, ...resolveWindow(params.value) }),
-    placeholderData: keepPreviousData,
+    queryFn: ({
+      pageParam,
+    }: {
+      pageParam: string | undefined;
+    }): Promise<SpansPage> => {
+      const window = resolveWindow(params.value);
+      return getSpans(
+        pageParam === undefined
+          ? { ...params.value, ...window }
+          : { ...params.value, ...window, cursor: pageParam },
+      );
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });
 }

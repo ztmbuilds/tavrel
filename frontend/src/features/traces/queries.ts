@@ -1,6 +1,8 @@
 import {
-  keepPreviousData,
+  useInfiniteQuery,
   useQuery,
+  type InfiniteData,
+  type UseInfiniteQueryReturnType,
   type UseQueryReturnType,
 } from "@tanstack/vue-query";
 import { computed, ref, type Ref } from "vue";
@@ -15,12 +17,12 @@ import {
   getTraces,
   type TracesPage,
 } from "./api";
-import type { SpanLogWindow, TraceDetail, TracesListParams } from "./types";
+import type { SpanLogWindow, TraceDetail, TracesFilters } from "./types";
 
 export const traceKeys = {
   all: ["traces"] as const,
   lists: () => [...traceKeys.all, "list"] as const,
-  list: (params: TracesListParams) => [...traceKeys.lists(), params] as const,
+  list: (params: TracesFilters) => [...traceKeys.lists(), params] as const,
   details: () => [...traceKeys.all, "detail"] as const,
   detail: (id: string) => [...traceKeys.details(), id] as const,
   spanLogs: (traceId: string, window: SpanLogWindow | null) =>
@@ -29,15 +31,26 @@ export const traceKeys = {
 
 const LIVE_REFETCH_MS = 10000;
 
-export function useTracesQuery(
-  params: Ref<TracesListParams>,
+export function useInfiniteTracesQuery(
+  params: Ref<TracesFilters>,
   live: Ref<boolean> = ref(false),
-): UseQueryReturnType<TracesPage, Error> {
-  return useQuery({
+): UseInfiniteQueryReturnType<InfiniteData<TracesPage>, Error> {
+  return useInfiniteQuery({
     queryKey: computed(() => traceKeys.list(params.value)),
-    queryFn: (): Promise<TracesPage> =>
-      getTraces({ ...params.value, ...resolveWindow(params.value) }),
-    placeholderData: keepPreviousData,
+    queryFn: ({
+      pageParam,
+    }: {
+      pageParam: string | undefined;
+    }): Promise<TracesPage> => {
+      const window = resolveWindow(params.value);
+      return getTraces(
+        pageParam === undefined
+          ? { ...params.value, ...window }
+          : { ...params.value, ...window, cursor: pageParam },
+      );
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     refetchInterval: computed(() => (live.value ? LIVE_REFETCH_MS : false)),
   });
 }

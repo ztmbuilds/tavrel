@@ -2,16 +2,14 @@ import { onMounted, onUnmounted, watch, type Ref } from "vue";
 
 const PREFETCH_MARGIN_PX = "600px";
 
-interface LogsInfiniteScrollOptions {
+interface InfiniteScrollOptions {
   sentinel: Ref<Element | null>;
   scroller: Ref<Element | null>;
   canLoadMore: Ref<boolean>;
   onLoadMore: () => void;
 }
 
-export function useLogsInfiniteScroll(
-  options: LogsInfiniteScrollOptions,
-): void {
+export function useInfiniteScroll(options: InfiniteScrollOptions): void {
   let observer: IntersectionObserver | undefined;
 
   function disconnect(): void {
