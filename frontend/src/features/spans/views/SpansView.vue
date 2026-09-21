@@ -486,7 +486,7 @@ function openTrace(traceId: string): void {
               Duration
             </div>
             <div
-              class="text-tertiary w-[4.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[10.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
             >
               Time
             </div>

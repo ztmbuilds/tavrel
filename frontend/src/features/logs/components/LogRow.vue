@@ -5,7 +5,7 @@ import type { Log } from "@/shared/types/entities/log";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
-import { formatRelativeTime, formatShortDateTimeMs } from "@/shared/utils/time";
+import { formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
 const props = defineProps<{
   log: Log;
   expanded: boolean;
@@ -18,7 +18,7 @@ defineEmits<{
 
 const relativeLabel = computed(() => formatRelativeTime(props.log.timestamp));
 
-const dateTimeLabel = computed(() => formatShortDateTimeMs(props.log.timestamp));
+const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.log.timestamp));
 
 const shortTraceId = computed(() => truncateTraceId(props.log.traceId));
 

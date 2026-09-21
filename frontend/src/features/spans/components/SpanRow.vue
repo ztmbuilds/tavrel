@@ -5,7 +5,7 @@ import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
-import { diffMsPrecise, formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs, formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
 
 const props = defineProps<{
   span: Span;
@@ -28,6 +28,8 @@ const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
 const relativeLabel = computed(() => formatRelativeTime(props.span.startTime));
 
+const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.span.startTime));
+
 const shortTraceId = computed(() => truncateTraceId(props.span.traceId));
 
 const meterWidth = computed(() => {
@@ -40,7 +42,7 @@ const meterWidth = computed(() => {
 
 const rowLabel = computed(
   () =>
-    `${props.span.name}, ${props.span.service}, ${durationLabel.value}, ${relativeLabel.value}`,
+    `${props.span.name}, ${props.span.service}, ${durationLabel.value}, ${dateTimeLabel.value}`,
 );
 </script>
 
@@ -115,9 +117,10 @@ const rowLabel = computed(
       {{ durationLabel }}
     </div>
     <div
-      class="text-tertiary w-[4.625rem] shrink-0 text-right font-mono text-xs tabular-nums"
+      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right font-mono text-xs tabular-nums"
+      :title="relativeLabel"
     >
-      {{ relativeLabel }}
+      {{ dateTimeLabel }}
     </div>
   </div>
 </template>

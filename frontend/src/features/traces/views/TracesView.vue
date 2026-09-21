@@ -526,7 +526,7 @@ function openTrace(traceId: string): void {
             </div>
             <button
               type="button"
-              class="text-tertiary hover:text-primary flex w-[4.625rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
+              class="text-tertiary hover:text-primary flex w-[10.75rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
               :aria-label="sortAriaLabel"
               @click="toggleOrder"
             >

@@ -4,7 +4,7 @@ import { computed } from "vue";
 import type { Trace } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
-import { diffMsPrecise, formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
+import { diffMsPrecise, formatDurationMs, formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
 
 const props = defineProps<{
   trace: Trace;
@@ -27,6 +27,8 @@ const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
 const relativeLabel = computed(() => formatRelativeTime(props.trace.startTime));
 
+const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.trace.startTime));
+
 const shortTraceId = computed(() => truncateTraceId(props.trace.traceId));
 
 const meterWidth = computed(() => {
@@ -39,7 +41,7 @@ const meterWidth = computed(() => {
 
 const rowLabel = computed(
   () =>
-    `${props.trace.rootName}, ${props.trace.status}, ${durationLabel.value}, ${props.trace.spanCount} spans, ${relativeLabel.value}`,
+    `${props.trace.rootName}, ${props.trace.status}, ${durationLabel.value}, ${props.trace.spanCount} spans, ${dateTimeLabel.value}`,
 );
 </script>
 
@@ -107,9 +109,10 @@ const rowLabel = computed(
       {{ trace.spanCount }}
     </div>
     <div
-      class="text-tertiary w-[4.625rem] shrink-0 text-right font-mono text-xs tabular-nums max-[40rem]:hidden"
+      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right font-mono text-xs tabular-nums max-[40rem]:hidden"
+      :title="relativeLabel"
     >
-      {{ relativeLabel }}
+      {{ dateTimeLabel }}
     </div>
   </div>
 </template>
