@@ -8,10 +8,13 @@ import WaterfallRow from "@/features/traces/components/WaterfallRow.vue";
 import { useTraceGraph } from "@/features/traces/composables/useTraceGraph";
 import {
   DEFAULT_LABEL_WIDTH_REM,
+  DEFAULT_PANEL_WIDTH_REM,
   LABEL_RESIZE_STEP_REM,
   MAX_LABEL_WIDTH_REM,
   MIN_LABEL_WIDTH_REM,
+  MIN_PANEL_WIDTH_REM,
   NARROW_LABEL_WIDTH_REM,
+  PANEL_RESIZE_STEP_REM,
   waterfallKey,
 } from "@/features/traces/composables/waterfall-context";
 import { isAsyncSpan } from "@/features/traces/api";
@@ -40,6 +43,8 @@ const MIN_POSITION_WIDTH_PCT = 0.5;
 const GRID_LINE_COUNT = 6;
 const COPY_FLASH_MS = 1600;
 const NARROW_VIEWPORT_PX = 760;
+const PANEL_OVERLAY_PX = 1100;
+const OVERLAY_PANEL_FRACTION = 0.9;
 const PX_PER_REM = 16;
 const SINGLE_ROOT_DEPTH = 1;
 const MULTI_ROOT_DEPTH = 2;
@@ -61,11 +66,13 @@ const copied = ref(false);
 const collapsed = ref<Set<string>>(new Set<string>());
 const waterfallEl = ref<HTMLDivElement | null>(null);
 const waterfallWrapEl = ref<HTMLDivElement | null>(null);
+const contentEl = ref<HTMLDivElement | null>(null);
 const labelWidth = ref(
   window.innerWidth <= NARROW_VIEWPORT_PX
     ? NARROW_LABEL_WIDTH_REM
     : DEFAULT_LABEL_WIDTH_REM,
 );
+const panelWidth = ref(DEFAULT_PANEL_WIDTH_REM);
 
 let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -162,6 +169,7 @@ watch(idRef, () => {
     window.innerWidth <= NARROW_VIEWPORT_PX
       ? NARROW_LABEL_WIDTH_REM
       : DEFAULT_LABEL_WIDTH_REM;
+  panelWidth.value = DEFAULT_PANEL_WIDTH_REM;
 });
 
 onUnmounted(() => {
@@ -270,6 +278,51 @@ function onLabelResizeKey(event: KeyboardEvent): void {
   }
 }
 
+function resetPanelWidth(): void {
+  panelWidth.value = DEFAULT_PANEL_WIDTH_REM;
+}
+
+function panelMaxRem(): number {
+  const wrap = contentEl.value;
+  if (wrap === null) return panelWidth.value;
+  const wrapWidthRem = wrap.getBoundingClientRect().width / PX_PER_REM;
+  if (window.innerWidth <= PANEL_OVERLAY_PX) return wrapWidthRem * OVERLAY_PANEL_FRACTION;
+  return wrapWidthRem;
+}
+
+function clampPanelWidth(widthRem: number): number {
+  return Math.min(Math.max(widthRem, MIN_PANEL_WIDTH_REM), Math.max(panelMaxRem(), MIN_PANEL_WIDTH_REM));
+}
+
+function onPanelResize(event: PointerEvent): void {
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  const startX = event.clientX;
+  const startWidth = panelWidth.value;
+  const maxRem = Math.max(panelMaxRem(), MIN_PANEL_WIDTH_REM);
+  const move = (moveEvent: PointerEvent): void => {
+    const next = startWidth + (startX - moveEvent.clientX) / PX_PER_REM;
+    panelWidth.value = Math.min(Math.max(next, MIN_PANEL_WIDTH_REM), maxRem);
+  };
+  const stop = (): void => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", stop);
+    window.removeEventListener("pointercancel", stop);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", stop);
+  window.addEventListener("pointercancel", stop);
+}
+
+function onPanelResizeKey(event: KeyboardEvent): void {
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    panelWidth.value = clampPanelWidth(panelWidth.value + PANEL_RESIZE_STEP_REM);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    panelWidth.value = clampPanelWidth(panelWidth.value - PANEL_RESIZE_STEP_REM);
+  }
+}
+
 function back(): void {
   void router.push({ name: "traces" });
 }
@@ -331,7 +384,7 @@ function copyTraceId(): void {
         title="No spans in this trace"
         message="The trace was recorded without any spans."
       />
-      <div v-else class="relative flex min-h-0 flex-1">
+      <div v-else ref="contentEl" class="relative flex min-h-0 flex-1">
         <div ref="waterfallWrapEl" class="bg-panel relative flex min-w-0 flex-1 overflow-hidden">
           <div class="pointer-events-none absolute inset-0 z-0 max-[47.5rem]:hidden" aria-hidden="true">
             <i
@@ -375,9 +428,20 @@ function copyTraceId(): void {
 
         <aside
           v-if="selectedSpan"
-          class="border-subtle bg-surface absolute top-0 right-0 bottom-0 z-20 border-l shadow-xl"
+          class="border-subtle bg-surface relative z-10 flex min-h-0 max-w-[90vw] shrink-0 border-l max-[68.75rem]:absolute max-[68.75rem]:top-0 max-[68.75rem]:right-0 max-[68.75rem]:bottom-0 max-[68.75rem]:z-20 max-[68.75rem]:shadow-xl"
+          :style="{ width: `${panelWidth}rem` }"
           aria-label="Span details"
         >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize span details panel. Arrow keys adjust, double-click resets."
+            tabindex="0"
+            class="hover:bg-strong absolute top-0 bottom-0 left-0 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none rounded bg-transparent transition-colors duration-120 ease-out"
+            @pointerdown="onPanelResize"
+            @keydown="onPanelResizeKey"
+            @dblclick="resetPanelWidth"
+          />
           <SpanPanel
             v-model:active-tab="activeTab"
             :span="selectedSpan"

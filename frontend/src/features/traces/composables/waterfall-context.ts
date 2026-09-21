@@ -22,6 +22,9 @@ export const NARROW_LABEL_WIDTH_REM = 9.375;
 export const MIN_LABEL_WIDTH_REM = 8;
 export const MAX_LABEL_WIDTH_REM = 40;
 export const LABEL_RESIZE_STEP_REM = 0.5;
+export const DEFAULT_PANEL_WIDTH_REM = 22.5;
+export const MIN_PANEL_WIDTH_REM = 16;
+export const PANEL_RESIZE_STEP_REM = 0.5;
 
 export function useWaterfallContext(): WaterfallContext {
   const context = inject(waterfallKey);

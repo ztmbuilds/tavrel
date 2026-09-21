@@ -49,7 +49,7 @@ function logOffsetMs(timestamp: string): number {
 </script>
 
 <template>
-  <div class="flex h-full w-[22.5rem] max-w-[90vw] shrink-0 flex-col max-[68.75rem]:w-[min(22.5rem,90vw)]">
+  <div class="flex h-full w-full min-w-0 flex-col overflow-hidden">
     <div class="border-subtle shrink-0 border-b px-4 pt-3 pb-2.5">
       <div class="flex items-start justify-between gap-2.5">
         <p class="text-heading m-0 text-[0.90625rem] leading-snug font-semibold text-pretty">
