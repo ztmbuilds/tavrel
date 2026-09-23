@@ -2,8 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 
 import checkIcon from "@/assets/icons/check.svg";
-import chevronDownIcon from "@/assets/icons/chevron-down.svg";
-import searchIcon from "@/assets/icons/search.svg";
+import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
+import searchIcon from "@/assets/icons/search.svg?component";
 import { cn } from "@/shared/utils/cn";
 
 export interface ServiceSelectOption {
@@ -162,7 +162,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
         class="bg-hover text-secondary shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium tabular-nums"
         >+{{ extraCount }}</span
       >
-      <img :src="chevronDownIcon" alt="" class="size-2.5 shrink-0" />
+      <component :is="chevronDownIcon" class="text-tertiary size-2.5 shrink-0" />
     </button>
     <div
       v-if="open"
@@ -175,7 +175,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
       <div
         class="border-default bg-surface text-tertiary mb-1 flex items-center gap-1.5 rounded border px-2 py-1.5"
       >
-        <img :src="searchIcon" alt="" class="size-3.5 shrink-0" />
+        <component :is="searchIcon" class="size-3.5 shrink-0" />
         <label class="sr-only" :for="`${props.label}-search`"
           >Search {{ props.label.toLowerCase() }}s</label
         >

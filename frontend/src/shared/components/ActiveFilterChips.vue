@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import xIcon from "@/assets/icons/x.svg";
+import xIcon from "@/assets/icons/x.svg?component";
 
 export interface ActiveFilterChip {
   key: string;
@@ -31,7 +31,7 @@ defineEmits<{
         class="bg-hover flex size-4 cursor-pointer items-center justify-center rounded-full border-none p-0 transition-colors duration-120 ease-out"
         @click="$emit('remove', chip.key)"
       >
-        <img :src="xIcon" alt="" class="size-2.5" />
+        <component :is="xIcon" class="text-tertiary size-2.5" />
       </button>
     </span>
   </div>

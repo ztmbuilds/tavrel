@@ -10,7 +10,7 @@ import {
   SelectViewport,
 } from "reka-ui";
 
-import chevronDownIcon from "@/assets/icons/chevron-down.svg";
+import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import { cn } from "@/shared/utils/cn";
 
 export interface SelectOption {
@@ -51,7 +51,7 @@ const CONTENT_SIDE_OFFSET = 6;
         :placeholder="props.placeholder"
         class="flex-1 truncate text-left text-primary"
       />
-      <img :src="chevronDownIcon" alt="" class="size-2.5 shrink-0" />
+      <component :is="chevronDownIcon" class="text-tertiary size-2.5 shrink-0" />
     </SelectTrigger>
     <SelectPortal>
       <SelectContent

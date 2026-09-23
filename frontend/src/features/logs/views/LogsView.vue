@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
-import arrowUpIcon from "@/assets/icons/arrow-up.svg";
+import arrowUpIcon from "@/assets/icons/arrow-up.svg?component";
 
 import LogRow from "@/features/logs/components/LogRow.vue";
 import { useInfiniteLogsQuery } from "@/features/logs/queries";
@@ -580,7 +580,11 @@ function openTrace(traceId: string): void {
         class="border-default bg-raised hover:border-strong hover:bg-hover absolute right-4 bottom-4 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border shadow-lg transition-colors duration-120 ease-out"
         @click="scrollToTop"
       >
-        <img :src="arrowUpIcon" alt="" aria-hidden="true" class="size-4" />
+        <component
+          :is="arrowUpIcon"
+          aria-hidden="true"
+          class="text-tertiary size-4"
+        />
       </button>
     </div>
   </div>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 
-import searchIcon from "@/assets/icons/search.svg";
-import xIcon from "@/assets/icons/x.svg";
+import searchIcon from "@/assets/icons/search.svg?component";
+import xIcon from "@/assets/icons/x.svg?component";
 
 defineProps<{
   inputId: string;
@@ -49,7 +49,7 @@ function clearSearch(): void {
   <div
     class="border-default bg-surface text-tertiary focus-within:border-signal flex min-h-9 w-full items-center gap-2 rounded-lg border px-3 py-2 text-[0.8125rem] transition-colors duration-120 ease-out"
   >
-    <img :src="searchIcon" alt="" class="size-3.5 shrink-0" />
+    <component :is="searchIcon" class="size-3.5 shrink-0" />
     <label class="sr-only" :for="inputId">{{ label }}</label>
     <input
       :id="inputId"
@@ -74,7 +74,7 @@ function clearSearch(): void {
       aria-label="Clear search"
       @click="clearSearch"
     >
-      <img :src="xIcon" alt="" class="size-3" />
+      <component :is="xIcon" class="size-3" />
     </button>
   </div>
 </template>

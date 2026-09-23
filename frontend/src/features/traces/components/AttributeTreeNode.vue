@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { StyleValue } from "vue";
 
-import chevronDownIcon from "@/assets/icons/chevron-down.svg";
+import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 
 import { cn } from "@/shared/utils/cn";
 import type { AttributeVisibleNode } from "../composables/useAttributeTree";
@@ -30,13 +30,12 @@ const emit = defineEmits<{
       class="border-subtle hover:bg-hover flex w-full cursor-pointer items-center gap-1.5 border-x-0 border-t-0 border-b bg-transparent py-2 text-left"
       @click="$emit('toggle', node.fullPath)"
     >
-      <img
-        :src="chevronDownIcon"
-        alt=""
+      <component
+        :is="chevronDownIcon"
         aria-hidden="true"
         :class="
           cn(
-            'size-3 shrink-0 transition-transform duration-120 ease-out',
+            'text-tertiary size-3 shrink-0 transition-transform duration-120 ease-out',
             !node.expanded && '-rotate-90',
           )
         "

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import xIcon from "@/assets/icons/x.svg";
+import xIcon from "@/assets/icons/x.svg?component";
 import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
@@ -61,7 +61,7 @@ function logOffsetMs(timestamp: string): number {
           aria-label="Close span details"
           @click="$emit('close')"
         >
-          <img :src="xIcon" alt="" aria-hidden="true" class="size-3" />
+          <component :is="xIcon" aria-hidden="true" class="size-3" />
         </button>
       </div>
       <div class="text-secondary mt-1.5 flex items-center gap-1.5 text-xs leading-relaxed">

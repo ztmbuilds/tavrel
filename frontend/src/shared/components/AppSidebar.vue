@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import {
+  computed,
+  ref,
+  type FunctionalComponent,
+  type SVGAttributes,
+} from "vue";
 import { useRoute } from "vue-router";
 
 import PreloadLink from "@/shared/components/PreloadLink.vue";
@@ -8,26 +13,20 @@ import { preserveTimeQuery } from "@/shared/composables/useGlobalTimeRange";
 
 import { cn } from "@/shared/utils/cn";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
-import dashboardIcon from "@/assets/icons/dashboard.svg";
-import dashboardActiveIcon from "@/assets/icons/dashboard-active.svg";
-import logsIcon from "@/assets/icons/logs.svg";
-import logsActiveIcon from "@/assets/icons/logs-active.svg";
-import servicesIcon from "@/assets/icons/services.svg";
-import servicesActiveIcon from "@/assets/icons/services-active.svg";
-import spansIcon from "@/assets/icons/spans.svg";
-import spansActiveIcon from "@/assets/icons/spans-active.svg";
-import tracesIcon from "@/assets/icons/traces.svg";
-import tracesActiveIcon from "@/assets/icons/traces-active.svg";
-import sidebarCollapseIcon from "@/assets/icons/sidebar-collapse.svg";
-import sidebarExpandIcon from "@/assets/icons/sidebar-expand.svg";
+import dashboardIcon from "@/assets/icons/dashboard.svg?component";
+import logsIcon from "@/assets/icons/logs.svg?component";
+import servicesIcon from "@/assets/icons/services.svg?component";
+import spansIcon from "@/assets/icons/spans.svg?component";
+import tracesIcon from "@/assets/icons/traces.svg?component";
+import sidebarCollapseIcon from "@/assets/icons/sidebar-collapse.svg?component";
+import sidebarExpandIcon from "@/assets/icons/sidebar-expand.svg?component";
 
 interface NavItem {
   label: string;
   to: string;
   routeName: string;
   match: readonly string[];
-  icon: string;
-  activeIcon: string;
+  icon: FunctionalComponent<SVGAttributes>;
 }
 
 const OBSERVE_ITEMS: readonly NavItem[] = [
@@ -37,7 +36,6 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     routeName: "dashboard",
     match: ["dashboard"],
     icon: dashboardIcon,
-    activeIcon: dashboardActiveIcon,
   },
   {
     label: "Traces",
@@ -45,7 +43,6 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     routeName: "traces",
     match: ["traces", "trace-detail"],
     icon: tracesIcon,
-    activeIcon: tracesActiveIcon,
   },
   {
     label: "Logs",
@@ -53,7 +50,6 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     routeName: "logs",
     match: ["logs"],
     icon: logsIcon,
-    activeIcon: logsActiveIcon,
   },
   {
     label: "Spans",
@@ -61,7 +57,6 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     routeName: "spans",
     match: ["spans"],
     icon: spansIcon,
-    activeIcon: spansActiveIcon,
   },
   {
     label: "Services",
@@ -69,7 +64,6 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
     routeName: "services",
     match: ["services"],
     icon: servicesIcon,
-    activeIcon: servicesActiveIcon,
   },
 ];
 
@@ -142,11 +136,10 @@ function handleToggle(): void {
           class="hover:bg-hover flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
           @click="handleToggle"
         >
-          <img
-            :src="isCollapsed ? sidebarExpandIcon : sidebarCollapseIcon"
-            alt=""
+          <component
+            :is="isCollapsed ? sidebarExpandIcon : sidebarCollapseIcon"
             aria-hidden="true"
-            class="size-4 shrink-0"
+            class="text-tertiary size-4 shrink-0"
           />
         </button>
       </Tooltip>
@@ -168,11 +161,15 @@ function handleToggle(): void {
         )
       "
     >
-      <img
-        :src="isActive(item) ? item.activeIcon : item.icon"
-        alt=""
+      <component
+        :is="item.icon"
         aria-hidden="true"
-        class="size-3.75 shrink-0"
+        :class="
+          cn(
+            'size-3.75 shrink-0 text-tertiary',
+            isActive(item) && 'text-ink',
+          )
+        "
       />
       <span
         :class="

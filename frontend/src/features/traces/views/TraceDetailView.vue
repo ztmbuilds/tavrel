@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, provide, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute, useRouter, type RouteLocationRaw } from "vue-router";
 
 import SpanPanel from "@/features/traces/components/SpanPanel.vue";
 import TraceHeader from "@/features/traces/components/TraceHeader.vue";
@@ -29,6 +29,7 @@ import Button from "@/shared/components/ui/Button.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import LoadingState from "@/shared/components/LoadingState.vue";
 import type { Span } from "@/shared/types/entities/span";
+import { CUSTOM_RANGE } from "@/shared/utils/date-range";
 import { truncateTraceId } from "@/shared/utils/format";
 import {
   formatDurationMs,
@@ -327,6 +328,21 @@ function back(): void {
   void router.push({ name: "traces" });
 }
 
+const TRACE_LOG_FALLBACK_MS = 1000;
+
+const traceLogsTo = computed((): RouteLocationRaw => {
+  const trace = detail.value?.trace;
+  if (trace === undefined) return { name: "logs" };
+  const start = trace.startTime;
+  let end = trace.endTime;
+  const startMs = Date.parse(start);
+  const endMs = Date.parse(end);
+  if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
+    if (!Number.isNaN(startMs)) end = new Date(startMs + TRACE_LOG_FALLBACK_MS).toISOString();
+  }
+  return { name: "logs", query: { range: CUSTOM_RANGE, start, end } };
+});
+
 function copyTraceId(): void {
   void navigator.clipboard?.writeText(idRef.value).catch(() => {});
   copied.value = true;
@@ -371,6 +387,7 @@ function copyTraceId(): void {
         :duration-label="durationLabel"
         :relative-label="relativeLabel"
         :span-count="graph.spanCount.value"
+        :logs-to="traceLogsTo"
         :copied="copied"
         :legend="graph.serviceLegend.value"
         :issues="graph.issues.value"

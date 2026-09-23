@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
-import calendarIcon from "@/assets/icons/calendar.svg";
-import chevronLeftIcon from "@/assets/icons/chevron-left.svg";
-import chevronRightIcon from "@/assets/icons/chevron-right.svg";
+import calendarIcon from "@/assets/icons/calendar.svg?component";
+import chevronLeftIcon from "@/assets/icons/chevron-left.svg?component";
+import chevronRightIcon from "@/assets/icons/chevron-right.svg?component";
 import Button from "@/shared/components/ui/Button.vue";
 import TimeInput from "@/shared/components/TimeInput.vue";
 import { cn } from "@/shared/utils/cn";
@@ -306,7 +306,7 @@ function applyCustom(): void {
       @click="toggleDatePop"
       @keydown.escape="closeDatePop(true)"
     >
-      <img :src="calendarIcon" alt="" class="size-3.5 shrink-0" />
+      <component :is="calendarIcon" class="text-tertiary size-3.5 shrink-0" />
       <span>{{ dateLabel }}</span>
       <span class="text-tertiary text-[0.625rem]" aria-hidden="true">▾</span>
     </button>
@@ -386,7 +386,7 @@ function applyCustom(): void {
             aria-label="Previous month"
             @click="prevMonth"
           >
-            <img :src="chevronLeftIcon" alt="" class="size-3.5" />
+            <component :is="chevronLeftIcon" class="size-3.5" />
           </Button>
           <span
             class="text-primary font-sans text-[0.8125rem] font-semibold"
@@ -399,7 +399,7 @@ function applyCustom(): void {
             aria-label="Next month"
             @click="nextMonth"
           >
-            <img :src="chevronRightIcon" alt="" class="size-3.5" />
+            <component :is="chevronRightIcon" class="size-3.5" />
           </Button>
         </div>
         <div class="mt-2" role="group" aria-label="Choose custom dates">

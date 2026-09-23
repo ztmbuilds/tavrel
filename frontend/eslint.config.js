@@ -5,7 +5,7 @@ import prettier from "eslint-config-prettier";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
 
 export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "*.d.ts"] },
+  { ignores: ["dist/**", "node_modules/**", "**/*.d.ts"] },
 
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({

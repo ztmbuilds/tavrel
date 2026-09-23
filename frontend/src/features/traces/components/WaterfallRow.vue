@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-import chevronDownIcon from "@/assets/icons/chevron-down.svg";
+import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
 import { formatDurationMs } from "@/shared/utils/time";
@@ -126,7 +126,7 @@ function onChevron(event: MouseEvent): void {
           :aria-expanded="node.children.length > 0 ? !isCollapsed : undefined"
           @click="onChevron"
         >
-          <img :src="chevronDownIcon" alt="" aria-hidden="true" class="size-2.5" />
+          <component :is="chevronDownIcon" aria-hidden="true" class="size-2.5" />
         </button>
         <span
           v-if="node.span.status === 'error'"
