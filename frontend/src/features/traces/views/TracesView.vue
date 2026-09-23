@@ -505,9 +505,11 @@ function openTrace(traceId: string): void {
               Environment
             </div>
             <div
-              class="w-[9.375rem] shrink-0 max-[53.75rem]:hidden"
+              class="text-tertiary w-[9.375rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
               aria-hidden="true"
-            />
+            >
+              Timeline
+            </div>
             <div
               class="text-tertiary w-[3.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
               aria-hidden="true"
