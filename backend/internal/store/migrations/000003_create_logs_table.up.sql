@@ -22,4 +22,10 @@ CREATE INDEX IF NOT EXISTS idx_logs_span_id ON logs (span_id);
 
 CREATE INDEX IF NOT EXISTS idx_logs_severity_number ON logs (severity_number);
 
+CREATE INDEX IF NOT EXISTS idx_logs_env_ts ON logs (environment, timestamp_ns, id);
+
+CREATE INDEX IF NOT EXISTS idx_logs_severity_ts ON logs (severity_number, timestamp_ns, id);
+
+CREATE INDEX IF NOT EXISTS idx_logs_span_ts ON logs (span_id, timestamp_ns, id);
+
 

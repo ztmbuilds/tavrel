@@ -12,3 +12,9 @@ CREATE TABLE IF NOT EXISTS traces (
 
 CREATE INDEX IF NOT EXISTS idx_traces_start_time_trace_id
 ON traces (start_time_ns, trace_id );
+
+CREATE INDEX IF NOT EXISTS idx_traces_end_time
+ON traces (end_time_ns);
+
+CREATE INDEX IF NOT EXISTS idx_traces_env_start
+ON traces (environment, start_time_ns, trace_id);
