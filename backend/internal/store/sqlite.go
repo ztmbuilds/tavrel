@@ -400,31 +400,6 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		return page, err
 	}
 
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM traces
-	 WHERE (? = '' OR root_name LIKE ? ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ? ESCAPE '\' COLLATE NOCASE)
-	 AND (? IS NULL OR error = ?)
-	 AND ` + serviceClause + `
-	 AND (? IS NULL OR start_time_ns >= ?)
-	 AND (? IS NULL OR start_time_ns <= ?)
-	 AND ` + envClause
-
-	countArgs := []any{
-		options.Search,
-		likePattern,
-		likePattern,
-		errorEquals,
-		errorEquals,
-	}
-	countArgs = appendStrings(countArgs, options.Services)
-	countArgs = append(countArgs, startNS, startNS, endNS, endNS)
-	countArgs = appendStrings(countArgs, options.Environments)
-
-	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		return page, err
-	}
-	page.Total = &total
-
 	items, hasMore, last := paginate(traces, limit)
 
 	page.HasMore = hasMore
@@ -577,43 +552,6 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 	if err := rows.Err(); err != nil {
 		return page, err
 	}
-
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM logs
-	WHERE (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE)
-	AND (? IS NULL OR severity_number >= ?)
-	AND (? IS NULL OR severity_number <= ?)
-	AND ` + serviceClause + `
-	AND (? = '' OR trace_id = ?)
-	AND (? = '' OR span_id = ?)
-	AND (? IS NULL OR timestamp_ns >= ?)
-	AND (? IS NULL OR timestamp_ns <= ?)
-	AND ` + envClause + ` `
-
-	countArgs := []any{
-		options.Search,
-		likePattern,
-		levelMin,
-		levelMin,
-		levelMax,
-		levelMax,
-	}
-	countArgs = appendStrings(countArgs, options.Services)
-	countArgs = append(countArgs,
-		options.TraceID,
-		options.TraceID,
-		options.SpanID,
-		options.SpanID,
-		startNS,
-		startNS,
-		endNS,
-		endNS)
-	countArgs = appendStrings(countArgs, options.Environments)
-
-	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		return page, err
-	}
-	page.Total = &total
 
 	items, hasMore, last := paginate(logs, limit)
 
@@ -785,39 +723,6 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	if err := rows.Err(); err != nil {
 		return page, err
 	}
-
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM spans
-	WHERE (? = '' OR trace_id = ?)
-	AND (? = '' OR name LIKE ? ESCAPE '\' COLLATE NOCASE)
-	AND (? IS NULL OR status_code = ?)
-	AND (? IS NULL OR status_code != ?)
-	AND (? IS NULL OR kind = ?)
-	AND ` + serviceClause + `
-	AND (? IS NULL OR start_time_ns >= ?)
-	AND (? IS NULL OR start_time_ns <= ?)
-	AND ` + envClause + ` `
-
-	countArgs := []any{
-		options.TraceID,
-		options.TraceID,
-		options.Search,
-		likePattern,
-		statusEquals,
-		statusEquals,
-		statusNotEquals,
-		statusNotEquals,
-		kind,
-		kind,
-	}
-	countArgs = appendStrings(countArgs, options.Services)
-	countArgs = append(countArgs, startNS, startNS, endNS, endNS)
-	countArgs = appendStrings(countArgs, options.Environments)
-
-	if err := s.readDB.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		return page, err
-	}
-	page.Total = &total
 
 	items, hasMore, last := paginate(spans, limit)
 	page.HasMore = hasMore

@@ -9,7 +9,6 @@ type Page[T, C any] struct {
 	Items      []T
 	NextCursor *C
 	HasMore    bool
-	Total      *int64
 }
 
 func paginate[T any](list []T, limit int) (items []T, hasMore bool, last *T) {

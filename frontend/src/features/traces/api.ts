@@ -31,7 +31,7 @@ interface TraceDto {
 interface TracesResponse {
   message: string;
   data: TraceDto[];
-  meta: { nextCursor: string | null; total?: number | null };
+  meta: { nextCursor: string | null };
 }
 
 function toTrace(dto: TraceDto): Trace {
@@ -50,7 +50,6 @@ function toTrace(dto: TraceDto): Trace {
 export interface TracesPage {
   traces: Trace[];
   nextCursor: string | null;
-  total: number | null;
 }
 
 export async function getTraces(params: TracesListParams): Promise<TracesPage> {
@@ -70,7 +69,6 @@ export async function getTraces(params: TracesListParams): Promise<TracesPage> {
   return {
     traces: response.data.map(toTrace),
     nextCursor: response.meta.nextCursor,
-    total: response.meta.total ?? null,
   };
 }
 

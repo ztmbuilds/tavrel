@@ -129,7 +129,6 @@ const environmentsQuery = useEnvironmentsQuery();
 const logs = computed(
   () => logsData.value?.pages.flatMap((page) => page.logs) ?? [],
 );
-const total = computed(() => logsData.value?.pages[0]?.total ?? null);
 
 const canLoadMore = computed(
   () => hasNextPage.value && !isFetchingNextPage.value,
@@ -253,12 +252,6 @@ const activeChips = computed((): ActiveFilterChip[] => {
   return chips;
 });
 
-const resultCount = computed(() => {
-  const count = total.value;
-  if (count === null) return null;
-  return `${formatCount(count)} ${count === 1 ? "log line" : "log lines"}`;
-});
-
 const emptyTitle = computed(() =>
   filtersActive.value ? "No log lines found" : "No logs recorded yet",
 );
@@ -275,17 +268,11 @@ const emptyActionLabel = computed(() =>
 );
 
 const loadedCount = computed(() => {
-  if (total.value === null) return null;
-  return `${formatCount(logs.value.length)} of ${formatCount(total.value)} logs`;
+  const count = logs.value.length;
+  return `${formatCount(count)} ${count === 1 ? "log line" : "log lines"} loaded`;
 });
 
-const endOfListLabel = computed(() => {
-  const count = total.value;
-  if (count === null) return "No more logs";
-  return count === 1
-    ? "Showing the only log"
-    : `Showing all ${formatCount(count)} logs`;
-});
+const endOfListLabel = "No more logs";
 
 function resetList(): void {
   expanded.clear();
@@ -451,12 +438,6 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
-          <span
-            v-if="resultCount !== null"
-            class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
-            role="status"
-            >{{ resultCount }}</span
-          >
         </div>
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
@@ -552,7 +533,6 @@ function openTrace(traceId: string): void {
             </template>
             <template v-else-if="hasNextPage">
               <span
-                v-if="loadedCount !== null"
                 class="text-tertiary text-[0.78125rem] tabular-nums"
                 role="status"
                 >{{ loadedCount }}</span

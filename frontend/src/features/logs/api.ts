@@ -9,13 +9,12 @@ export const LOGS_PAGE_SIZE = 30;
 interface LogsResponse {
   message: string;
   data: LogDto[];
-  meta: { nextCursor: string | null; total?: number | null };
+  meta: { nextCursor: string | null };
 }
 
 export interface LogsPage {
   logs: Log[];
   nextCursor: string | null;
-  total: number | null;
 }
 
 export async function getLogs(params: LogsListParams): Promise<LogsPage> {
@@ -36,6 +35,5 @@ export async function getLogs(params: LogsListParams): Promise<LogsPage> {
   return {
     logs: response.data.map(toLog),
     nextCursor: response.meta.nextCursor,
-    total: response.meta.total ?? null,
   };
 }

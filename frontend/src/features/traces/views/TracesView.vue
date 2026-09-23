@@ -127,7 +127,6 @@ const environmentsQuery = useEnvironmentsQuery();
 const traces = computed(
   () => tracesData.value?.pages.flatMap((page) => page.traces) ?? [],
 );
-const total = computed(() => tracesData.value?.pages[0]?.total ?? null);
 
 const canLoadMore = computed(
   () => hasNextPage.value && !isFetchingNextPage.value,
@@ -232,12 +231,6 @@ const activeChips = computed((): ActiveFilterChip[] => {
   return chips;
 });
 
-const resultCount = computed(() => {
-  const count = total.value;
-  if (count === null) return null;
-  return `${formatCount(count)} ${count === 1 ? "trace" : "traces"}`;
-});
-
 const sortAriaLabel = computed(() => {
   const current =
     filters.value.order === "desc" ? "newest first" : "oldest first";
@@ -270,17 +263,11 @@ const maxDurationMs = computed(() => {
 });
 
 const loadedCount = computed(() => {
-  if (total.value === null) return null;
-  return `${formatCount(traces.value.length)} of ${formatCount(total.value)} traces`;
+  const count = traces.value.length;
+  return `${formatCount(count)} ${count === 1 ? "trace" : "traces"} loaded`;
 });
 
-const endOfListLabel = computed(() => {
-  const count = total.value;
-  if (count === null) return "No more traces";
-  return count === 1
-    ? "Showing the only trace"
-    : `Showing all ${formatCount(count)} traces`;
-});
+const endOfListLabel = "No more traces";
 
 function resetList(): void {
   showBackToTop.value = false;
@@ -441,12 +428,6 @@ function openTrace(traceId: string): void {
           >
             Clear all
           </button>
-          <span
-            v-if="resultCount !== null"
-            class="text-tertiary text-[0.78125rem] whitespace-nowrap tabular-nums"
-            role="status"
-            >{{ resultCount }}</span
-          >
         </div>
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
@@ -559,7 +540,6 @@ function openTrace(traceId: string): void {
             </template>
             <template v-else-if="hasNextPage">
               <span
-                v-if="loadedCount !== null"
                 class="text-tertiary text-[0.78125rem] tabular-nums"
                 role="status"
                 >{{ loadedCount }}</span

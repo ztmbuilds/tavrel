@@ -9,13 +9,12 @@ export const SPANS_PAGE_SIZE = 25;
 interface SpansResponse {
   message: string;
   data: SpanDto[];
-  meta: { nextCursor: string | null; total?: number | null };
+  meta: { nextCursor: string | null };
 }
 
 export interface SpansPage {
   spans: Span[];
   nextCursor: string | null;
-  total: number | null;
 }
 
 export async function getSpans(params: SpansListParams): Promise<SpansPage> {
@@ -34,6 +33,5 @@ export async function getSpans(params: SpansListParams): Promise<SpansPage> {
   return {
     spans: response.data.map(toSpan),
     nextCursor: response.meta.nextCursor,
-    total: response.meta.total ?? null,
   };
 }
