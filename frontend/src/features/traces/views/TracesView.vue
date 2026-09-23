@@ -510,13 +510,13 @@ function openTrace(traceId: string): void {
               aria-hidden="true"
             />
             <div
-              class="text-tertiary w-[3.625rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[3.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
               aria-hidden="true"
             >
               Duration
             </div>
             <div
-              class="text-tertiary w-[3.875rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-[3.875rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
               aria-hidden="true"
             >
               Spans
