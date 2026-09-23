@@ -41,7 +41,7 @@ const CONTENT_SIDE_OFFSET = 6;
       :aria-label="props.label"
       :class="
         cn(
-          'border-default bg-surface text-secondary hover:border-strong flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap outline-none transition-colors duration-120 ease-out data-[state=open]:border-signal',
+          'border-default bg-surface text-secondary hover:border-strong data-[state=open]:border-signal flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap transition-colors duration-120 ease-out outline-none',
           props.triggerClass,
         )
       "
@@ -49,22 +49,25 @@ const CONTENT_SIDE_OFFSET = 6;
       <span aria-hidden="true">{{ props.label }}</span>
       <SelectValue
         :placeholder="props.placeholder"
-        class="flex-1 truncate text-left text-primary"
+        class="text-primary flex-1 truncate text-left"
       />
-      <component :is="chevronDownIcon" class="text-tertiary size-2.5 shrink-0" />
+      <component
+        :is="chevronDownIcon"
+        class="text-tertiary size-2.5 shrink-0"
+      />
     </SelectTrigger>
     <SelectPortal>
       <SelectContent
         position="popper"
         :side-offset="CONTENT_SIDE_OFFSET"
-        class="z-50 min-w-[var(--reka-select-trigger-width)] overflow-hidden rounded-lg border border-default bg-raised p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
+        class="border-default bg-raised z-50 min-w-[var(--reka-select-trigger-width)] overflow-hidden rounded-lg border p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
       >
         <SelectViewport class="max-h-60 overflow-y-auto">
           <SelectItem
             v-for="option in props.options"
             :key="option.value"
             :value="option.value"
-            class="flex cursor-pointer items-center rounded-md px-2 py-1.5 font-sans text-[0.8125rem] text-secondary outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40 data-[highlighted]:bg-hover data-[highlighted]:text-primary data-[state=checked]:bg-active data-[state=checked]:text-ink data-[highlighted]:data-[state=checked]:bg-active data-[highlighted]:data-[state=checked]:text-ink"
+            class="text-secondary data-[highlighted]:bg-hover data-[highlighted]:text-primary data-[state=checked]:bg-active data-[state=checked]:text-ink data-[highlighted]:data-[state=checked]:bg-active data-[highlighted]:data-[state=checked]:text-ink flex cursor-pointer items-center rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
           >
             <SelectItemText>{{ option.label }}</SelectItemText>
           </SelectItem>

@@ -5,7 +5,10 @@ import type { Log } from "@/shared/types/entities/log";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
-import { formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
+import {
+  formatRelativeTime,
+  formatShortDateTimeWithSeconds,
+} from "@/shared/utils/time";
 const props = defineProps<{
   log: Log;
   expanded: boolean;
@@ -18,7 +21,9 @@ defineEmits<{
 
 const relativeLabel = computed(() => formatRelativeTime(props.log.timestamp));
 
-const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.log.timestamp));
+const dateTimeLabel = computed(() =>
+  formatShortDateTimeWithSeconds(props.log.timestamp),
+);
 
 const shortTraceId = computed(() => truncateTraceId(props.log.traceId));
 
@@ -72,7 +77,10 @@ const rowLabel = computed(
     >
       {{ dateTimeLabel }}
     </div>
-    <div class="flex w-[7.375rem] shrink-0 items-center pt-0" aria-hidden="true">
+    <div
+      class="flex w-[7.375rem] shrink-0 items-center pt-0"
+      aria-hidden="true"
+    >
       <span
         class="text-secondary border-subtle bg-raised inline-flex max-w-full items-center gap-1.5 rounded border px-2 py-1 text-[0.6875rem] font-medium whitespace-nowrap"
         :title="log.service"
@@ -123,9 +131,7 @@ const rowLabel = computed(
     >
       {{ log.message }}
     </div>
-    <dl
-      class="mt-2.5 flex flex-wrap gap-x-5 gap-y-2 text-xs leading-relaxed"
-    >
+    <dl class="mt-2.5 flex flex-wrap gap-x-5 gap-y-2 text-xs leading-relaxed">
       <div class="flex gap-1">
         <dt class="text-tertiary">service&nbsp;</dt>
         <dd class="text-primary m-0">{{ log.service }}</dd>

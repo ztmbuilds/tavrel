@@ -23,10 +23,7 @@ export function useInfiniteScroll(options: InfiniteScrollOptions): void {
     if (target === null || typeof IntersectionObserver === "undefined") return;
     observer = new IntersectionObserver(
       (entries) => {
-        if (
-          entries[0]?.isIntersecting === true &&
-          options.canLoadMore.value
-        ) {
+        if (entries[0]?.isIntersecting === true && options.canLoadMore.value) {
           options.onLoadMore();
         }
       },

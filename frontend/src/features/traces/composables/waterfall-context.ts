@@ -28,6 +28,7 @@ export const PANEL_RESIZE_STEP_REM = 0.5;
 
 export function useWaterfallContext(): WaterfallContext {
   const context = inject(waterfallKey);
-  if (context === undefined) throw new Error("Missing trace waterfall provider");
+  if (context === undefined)
+    throw new Error("Missing trace waterfall provider");
   return context;
 }

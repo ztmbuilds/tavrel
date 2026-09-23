@@ -165,10 +165,7 @@ function handleToggle(): void {
         :is="item.icon"
         aria-hidden="true"
         :class="
-          cn(
-            'size-3.75 shrink-0 text-tertiary',
-            isActive(item) && 'text-ink',
-          )
+          cn('text-tertiary size-3.75 shrink-0', isActive(item) && 'text-ink')
         "
       />
       <span

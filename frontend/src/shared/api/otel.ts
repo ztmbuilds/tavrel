@@ -3,12 +3,7 @@ import type { Span, SpanKind, SpanStatus } from "@/shared/types/entities/span";
 import { diffMsPrecise } from "@/shared/utils/time";
 
 export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 export type Attributes = Record<string, JsonValue>;
 
@@ -47,7 +42,10 @@ const ERROR_SEVERITY_MIN = 17;
 
 export function toLogLevel(severityNumber: number): LogLevel {
   if (severityNumber >= ERROR_SEVERITY_MIN) return "error";
-  if (severityNumber >= WARN_SEVERITY_MIN && severityNumber <= WARN_SEVERITY_MAX)
+  if (
+    severityNumber >= WARN_SEVERITY_MIN &&
+    severityNumber <= WARN_SEVERITY_MAX
+  )
     return "warn";
   return "info";
 }

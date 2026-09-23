@@ -239,7 +239,8 @@ const resultCount = computed(() => {
 });
 
 const sortAriaLabel = computed(() => {
-  const current = filters.value.order === "desc" ? "newest first" : "oldest first";
+  const current =
+    filters.value.order === "desc" ? "newest first" : "oldest first";
   const next = filters.value.order === "desc" ? "oldest first" : "newest first";
   return `Sort by start time, currently ${current}. Activate to show ${next}.`;
 });
@@ -329,8 +330,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
 }
 
 function toggleOrder(): void {
-  const order: TraceOrder =
-    filters.value.order === "desc" ? "asc" : "desc";
+  const order: TraceOrder = filters.value.order === "desc" ? "asc" : "desc";
   filters.value = { ...filters.value, order };
   resetList();
 }
@@ -371,8 +371,7 @@ function removeChip(key: string): void {
   else if (key === "timerange") {
     updateTime({ range: ALL_TIME });
     return;
-  }
-  else if (key === "environment")
+  } else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
   else if (key === "search") {
     searchInput.value = "";
@@ -437,7 +436,7 @@ function openTrace(traceId: string): void {
           <button
             v-if="facetsActive"
             type="button"
-            class="text-secondary hover:text-primary shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline decoration-strong underline-offset-2 transition-colors duration-120 ease-out"
+            class="text-secondary hover:text-primary decoration-strong shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline underline-offset-2 transition-colors duration-120 ease-out"
             @click="clearFacets"
           >
             Clear all

@@ -37,9 +37,7 @@ defineEmits<{
   select: [spanId: string];
 }>();
 
-const statusLabel = computed(() =>
-  props.status === "error" ? "Error" : "OK",
-);
+const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
 </script>
 
 <template>
@@ -57,7 +55,7 @@ const statusLabel = computed(() =>
     <div class="bg-subtle h-3.5 w-px shrink-0" aria-hidden="true" />
     <button
       type="button"
-      class="text-tertiary hover:text-secondary hover:bg-hover group -ml-1.5 inline-flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-1.5 py-0.5 font-mono text-[0.71875rem] underline decoration-strong decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
+      class="text-tertiary hover:text-secondary hover:bg-hover group decoration-strong -ml-1.5 inline-flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-1.5 py-0.5 font-mono text-[0.71875rem] underline decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
       title="Copy full trace ID"
       @click="$emit('copy')"
     >
@@ -75,17 +73,17 @@ const statusLabel = computed(() =>
         "
       />
     </button>
-    <span v-if="copied" class="sr-only" role="status"
-      >Copied</span
-    >
+    <span v-if="copied" class="sr-only" role="status">Copied</span>
     <div class="flex-1" />
-    <span
-      class="text-tertiary text-xs tabular-nums max-[47.5rem]:hidden"
-      >{{ relativeLabel }}</span
-    >
+    <span class="text-tertiary text-xs tabular-nums max-[47.5rem]:hidden">{{
+      relativeLabel
+    }}</span>
   </header>
 
-  <section class="border-subtle bg-panel shrink-0 border-b px-5 pt-4.5 pb-3.5" aria-labelledby="trace-title">
+  <section
+    class="border-subtle bg-panel shrink-0 border-b px-5 pt-4.5 pb-3.5"
+    aria-labelledby="trace-title"
+  >
     <div class="flex flex-wrap items-end justify-between gap-6">
       <div class="min-w-0">
         <p class="text-tertiary mb-0.5 flex items-center gap-1.5 text-xs">
@@ -140,12 +138,15 @@ const statusLabel = computed(() =>
       v-if="diagnosis.kind === 'error' && diagnosis.spanId !== null"
       class="text-secondary mt-3 flex max-w-[46.25rem] items-start gap-2 text-[0.78125rem] leading-relaxed text-pretty"
     >
-      <span class="bg-error mt-1.5 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+      <span
+        class="bg-error mt-1.5 size-1.5 shrink-0 rounded-full"
+        aria-hidden="true"
+      />
       <span>
         {{ diagnosis.headline }} —
         <button
           type="button"
-          class="text-heading cursor-pointer border-none bg-transparent p-0 font-semibold underline decoration-strong decoration-dotted underline-offset-4 hover:text-signal-hover"
+          class="text-heading decoration-strong hover:text-signal-hover cursor-pointer border-none bg-transparent p-0 font-semibold underline decoration-dotted underline-offset-4"
           @click="$emit('select', diagnosis.spanId)"
         >
           {{ diagnosis.service }} · {{ diagnosis.spanName }}</button
@@ -156,7 +157,10 @@ const statusLabel = computed(() =>
       v-else
       class="text-secondary mt-3 flex max-w-[46.25rem] items-start gap-2 text-[0.78125rem] leading-relaxed text-pretty"
     >
-      <span class="bg-ok mt-1.5 size-1.5 shrink-0 rounded-full" aria-hidden="true" />
+      <span
+        class="bg-ok mt-1.5 size-1.5 shrink-0 rounded-full"
+        aria-hidden="true"
+      />
       <span>Every span in this trace completed without errors.</span>
     </p>
 
@@ -178,7 +182,9 @@ const statusLabel = computed(() =>
           aria-hidden="true"
         />
         {{ issue.name }}
-        <span class="text-tertiary tabular-nums">{{ formatDurationMs(issue.durationMs) }}</span>
+        <span class="text-tertiary tabular-nums">{{
+          formatDurationMs(issue.durationMs)
+        }}</span>
       </button>
     </div>
 

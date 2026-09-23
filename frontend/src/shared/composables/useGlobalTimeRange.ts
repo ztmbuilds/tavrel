@@ -162,7 +162,8 @@ export function preserveTimeQuery(
   const preserved: Record<string, string> = { range };
   const start = query["start"];
   const end = query["end"];
-  if (typeof start === "string" && isValidIso(start)) preserved["start"] = start;
+  if (typeof start === "string" && isValidIso(start))
+    preserved["start"] = start;
   if (typeof end === "string" && isValidIso(end)) preserved["end"] = end;
   if (preserved["start"] === undefined && preserved["end"] === undefined)
     return {};

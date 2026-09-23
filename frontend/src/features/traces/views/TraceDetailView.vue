@@ -31,10 +31,7 @@ import LoadingState from "@/shared/components/LoadingState.vue";
 import type { Span } from "@/shared/types/entities/span";
 import { CUSTOM_RANGE } from "@/shared/utils/date-range";
 import { truncateTraceId } from "@/shared/utils/format";
-import {
-  formatDurationMs,
-  formatRelativeTime,
-} from "@/shared/utils/time";
+import { formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
 
 const route = useRoute();
 const router = useRouter();
@@ -113,7 +110,9 @@ const isNotFound = computed(
 );
 
 const shortTraceId = computed(() => truncateTraceId(idRef.value));
-const durationLabel = computed(() => formatDurationMs(graph.totalDurationMs.value));
+const durationLabel = computed(() =>
+  formatDurationMs(graph.totalDurationMs.value),
+);
 const relativeLabel = computed(() =>
   detail.value === undefined
     ? ""
@@ -134,7 +133,9 @@ const selectedChildCount = computed(() =>
 );
 const selectedPercent = computed(() => {
   if (graph.totalDurationMs.value <= 0) return 0;
-  return Math.round((selectedDurationMs.value / graph.totalDurationMs.value) * FULL_PCT);
+  return Math.round(
+    (selectedDurationMs.value / graph.totalDurationMs.value) * FULL_PCT,
+  );
 });
 const selectedPosition = computed(() => {
   if (graph.totalDurationMs.value <= 0) return { start: 0, width: 0 };
@@ -180,10 +181,17 @@ onUnmounted(() => {
 function select(spanId: string): void {
   selectedId.value = spanId;
   activeTab.value = "overview";
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
   void nextTick(() => {
-    const el = waterfallEl.value?.querySelector(`[data-span-id="${CSS.escape(spanId)}"]`);
-    el?.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
+    const el = waterfallEl.value?.querySelector(
+      `[data-span-id="${CSS.escape(spanId)}"]`,
+    );
+    el?.scrollIntoView({
+      block: "nearest",
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
   });
 }
 
@@ -217,7 +225,9 @@ function onKeydown(event: KeyboardEvent): void {
   }
   const flat = flatVisible();
   if (flat.length === 0) return;
-  const currentIndex = flat.findIndex((span) => span.spanId === selectedId.value);
+  const currentIndex = flat.findIndex(
+    (span) => span.spanId === selectedId.value,
+  );
   if (event.key === "j" || event.key === "ArrowDown") {
     event.preventDefault();
     const nextIndex =
@@ -230,7 +240,8 @@ function onKeydown(event: KeyboardEvent): void {
     const prev = flat[prevIndex];
     if (prev !== undefined) select(prev.spanId);
   } else if (event.key === "Enter" && selectedId.value !== null) {
-    if (graph.childCount(selectedId.value) > 0) toggleCollapse(selectedId.value);
+    if (graph.childCount(selectedId.value) > 0)
+      toggleCollapse(selectedId.value);
   }
 }
 
@@ -254,10 +265,7 @@ function onLabelResize(event: PointerEvent): void {
   const move = (moveEvent: PointerEvent): void => {
     const px = moveEvent.clientX - wrapRect.left;
     const maxRem = wrapRect.width / PX_PER_REM / 2;
-    labelWidth.value = Math.min(
-      clampLabelWidth(px / PX_PER_REM),
-      maxRem,
-    );
+    labelWidth.value = Math.min(clampLabelWidth(px / PX_PER_REM), maxRem);
   };
   const stop = (): void => {
     window.removeEventListener("pointermove", move);
@@ -272,10 +280,14 @@ function onLabelResize(event: PointerEvent): void {
 function onLabelResizeKey(event: KeyboardEvent): void {
   if (event.key === "ArrowLeft") {
     event.preventDefault();
-    labelWidth.value = clampLabelWidth(labelWidth.value - LABEL_RESIZE_STEP_REM);
+    labelWidth.value = clampLabelWidth(
+      labelWidth.value - LABEL_RESIZE_STEP_REM,
+    );
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
-    labelWidth.value = clampLabelWidth(labelWidth.value + LABEL_RESIZE_STEP_REM);
+    labelWidth.value = clampLabelWidth(
+      labelWidth.value + LABEL_RESIZE_STEP_REM,
+    );
   }
 }
 
@@ -287,12 +299,16 @@ function panelMaxRem(): number {
   const wrap = contentEl.value;
   if (wrap === null) return panelWidth.value;
   const wrapWidthRem = wrap.getBoundingClientRect().width / PX_PER_REM;
-  if (window.innerWidth <= PANEL_OVERLAY_PX) return wrapWidthRem * OVERLAY_PANEL_FRACTION;
+  if (window.innerWidth <= PANEL_OVERLAY_PX)
+    return wrapWidthRem * OVERLAY_PANEL_FRACTION;
   return wrapWidthRem;
 }
 
 function clampPanelWidth(widthRem: number): number {
-  return Math.min(Math.max(widthRem, MIN_PANEL_WIDTH_REM), Math.max(panelMaxRem(), MIN_PANEL_WIDTH_REM));
+  return Math.min(
+    Math.max(widthRem, MIN_PANEL_WIDTH_REM),
+    Math.max(panelMaxRem(), MIN_PANEL_WIDTH_REM),
+  );
 }
 
 function onPanelResize(event: PointerEvent): void {
@@ -317,10 +333,14 @@ function onPanelResize(event: PointerEvent): void {
 function onPanelResizeKey(event: KeyboardEvent): void {
   if (event.key === "ArrowLeft") {
     event.preventDefault();
-    panelWidth.value = clampPanelWidth(panelWidth.value + PANEL_RESIZE_STEP_REM);
+    panelWidth.value = clampPanelWidth(
+      panelWidth.value + PANEL_RESIZE_STEP_REM,
+    );
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
-    panelWidth.value = clampPanelWidth(panelWidth.value - PANEL_RESIZE_STEP_REM);
+    panelWidth.value = clampPanelWidth(
+      panelWidth.value - PANEL_RESIZE_STEP_REM,
+    );
   }
 }
 
@@ -338,7 +358,8 @@ const traceLogsTo = computed((): RouteLocationRaw => {
   const startMs = Date.parse(start);
   const endMs = Date.parse(end);
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) {
-    if (!Number.isNaN(startMs)) end = new Date(startMs + TRACE_LOG_FALLBACK_MS).toISOString();
+    if (!Number.isNaN(startMs))
+      end = new Date(startMs + TRACE_LOG_FALLBACK_MS).toISOString();
   }
   return { name: "logs", query: { range: CUSTOM_RANGE, start, end } };
 });
@@ -372,7 +393,12 @@ function copyTraceId(): void {
         :action-label="isNotFound ? 'Back to traces' : 'Retry'"
         @clear="isNotFound ? back() : void detailQuery.refetch()"
       />
-      <Button v-if="!isNotFound" variant="secondary" class="mt-1" @click="back()">
+      <Button
+        v-if="!isNotFound"
+        variant="secondary"
+        class="mt-1"
+        @click="back()"
+      >
         Back to traces
       </Button>
     </div>
@@ -402,8 +428,14 @@ function copyTraceId(): void {
         message="The trace was recorded without any spans."
       />
       <div v-else ref="contentEl" class="relative flex min-h-0 flex-1">
-        <div ref="waterfallWrapEl" class="bg-panel relative flex min-w-0 flex-1 overflow-hidden">
-          <div class="pointer-events-none absolute inset-0 z-0 max-[47.5rem]:hidden" aria-hidden="true">
+        <div
+          ref="waterfallWrapEl"
+          class="bg-panel relative flex min-w-0 flex-1 overflow-hidden"
+        >
+          <div
+            class="pointer-events-none absolute inset-0 z-0 max-[47.5rem]:hidden"
+            aria-hidden="true"
+          >
             <i
               v-for="(style, index) in gridStyles"
               :key="index"

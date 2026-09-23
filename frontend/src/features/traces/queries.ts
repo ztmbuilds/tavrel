@@ -11,12 +11,7 @@ import { ApiError } from "@/shared/api/client";
 import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 import type { Log } from "@/shared/types/entities/log";
 
-import {
-  getSpanLogs,
-  getTraceDetail,
-  getTraces,
-  type TracesPage,
-} from "./api";
+import { getSpanLogs, getTraceDetail, getTraces, type TracesPage } from "./api";
 import type { SpanLogWindow, TraceDetail, TracesFilters } from "./types";
 
 export const traceKeys = {
@@ -77,7 +72,12 @@ export function useTraceSpanLogsQuery(
     queryFn: async (): Promise<Log[]> => {
       const current = window.value;
       if (current === null) return [];
-      return getSpanLogs(traceId.value, current.spanId, current.start, current.end);
+      return getSpanLogs(
+        traceId.value,
+        current.spanId,
+        current.start,
+        current.end,
+      );
     },
     enabled: computed(() => window.value !== null),
   });

@@ -370,8 +370,7 @@ function clearAllFilters(): void {
 
 function removeChip(key: string): void {
   if (key === "level") filters.value = { ...filters.value, level: "all" };
-  else if (key === "service")
-    filters.value = { ...filters.value, service: [] };
+  else if (key === "service") filters.value = { ...filters.value, service: [] };
   else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
   else if (key === "traceId") filters.value = { ...filters.value, traceId: "" };
@@ -379,8 +378,7 @@ function removeChip(key: string): void {
   else if (key === "timerange") {
     updateTime({ range: ALL_TIME });
     return;
-  }
-  else if (key === "search") {
+  } else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";
     filters.value = { ...filters.value, search: "" };

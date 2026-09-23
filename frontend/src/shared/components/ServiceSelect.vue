@@ -96,7 +96,11 @@ function toggleValue(value: string): void {
 }
 
 function handleOutside(event: PointerEvent): void {
-  if (open.value && rootRef.value !== null && !rootRef.value.contains(event.target as Node | null))
+  if (
+    open.value &&
+    rootRef.value !== null &&
+    !rootRef.value.contains(event.target as Node | null)
+  )
     close(false);
 }
 
@@ -162,7 +166,10 @@ function handlePanelKeydown(event: KeyboardEvent): void {
         class="bg-hover text-secondary shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium tabular-nums"
         >+{{ extraCount }}</span
       >
-      <component :is="chevronDownIcon" class="text-tertiary size-2.5 shrink-0" />
+      <component
+        :is="chevronDownIcon"
+        class="text-tertiary size-2.5 shrink-0"
+      />
     </button>
     <div
       v-if="open"
@@ -199,7 +206,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="modelValue.length === 0"
           :class="
             cn(
-              'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] text-secondary outline-none select-none hover:bg-hover hover:text-primary',
+              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
               modelValue.length === 0 && 'bg-hover text-primary',
             )
           "
@@ -238,7 +245,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="isSelected(option.value)"
           :class="
             cn(
-              'flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] text-secondary outline-none select-none hover:bg-hover hover:text-primary',
+              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
               isSelected(option.value) && 'bg-hover text-primary',
             )
           "

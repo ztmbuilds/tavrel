@@ -13,7 +13,10 @@ defineProps<{
       :key="index"
       class="relative h-full w-[1.125rem] shrink-0"
     >
-      <div v-if="guide" class="bg-default absolute top-0 bottom-0 left-2 w-px" />
+      <div
+        v-if="guide"
+        class="bg-default absolute top-0 bottom-0 left-2 w-px"
+      />
     </div>
     <div v-if="depth > 1" class="relative h-full w-[1.125rem] shrink-0">
       <div class="bg-default absolute top-0 left-2 h-1/2 w-px" />

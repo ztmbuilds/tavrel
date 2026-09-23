@@ -61,7 +61,10 @@ function cleanMessage(message: string): string {
       const at = out.indexOf(token);
       if (at === -1) continue;
       const head = out.slice(0, at + token.length);
-      const tail = out.slice(at + token.length).split(token).join("");
+      const tail = out
+        .slice(at + token.length)
+        .split(token)
+        .join("");
       out = `${head}${tail}`;
     }
     out = out
@@ -106,9 +109,7 @@ function errorHeadline(span: Span): string {
   if (errorType !== undefined && errorType.trim() !== "") {
     return errorType.trim();
   }
-  return (
-    httpCodeLabel(span) ?? "No error message recorded"
-  );
+  return httpCodeLabel(span) ?? "No error message recorded";
 }
 
 function hasSignal(span: Span): boolean {
@@ -152,8 +153,7 @@ function findOrigin(nodes: SpanNode[]): Span | null {
   for (const entry of pool) {
     if (
       entry.depth > best.depth ||
-      (entry.depth === best.depth &&
-        entry.span.startTime < best.span.startTime)
+      (entry.depth === best.depth && entry.span.startTime < best.span.startTime)
     ) {
       best = entry;
     }

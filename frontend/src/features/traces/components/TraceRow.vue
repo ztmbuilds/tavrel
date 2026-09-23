@@ -4,7 +4,12 @@ import { computed } from "vue";
 import type { Trace } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
-import { diffMsPrecise, formatDurationMs, formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
+import {
+  diffMsPrecise,
+  formatDurationMs,
+  formatRelativeTime,
+  formatShortDateTimeWithSeconds,
+} from "@/shared/utils/time";
 
 const props = defineProps<{
   trace: Trace;
@@ -27,7 +32,9 @@ const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
 const relativeLabel = computed(() => formatRelativeTime(props.trace.startTime));
 
-const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.trace.startTime));
+const dateTimeLabel = computed(() =>
+  formatShortDateTimeWithSeconds(props.trace.startTime),
+);
 
 const shortTraceId = computed(() => truncateTraceId(props.trace.traceId));
 

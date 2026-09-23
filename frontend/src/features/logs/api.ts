@@ -1,8 +1,5 @@
 import { apiFetch } from "@/shared/api/client";
-import {
-  toLog,
-  type LogDto,
-} from "@/shared/api/otel";
+import { toLog, type LogDto } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 
 import type { LogsListParams } from "./types";

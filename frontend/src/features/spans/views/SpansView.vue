@@ -343,15 +343,13 @@ function clearAllFilters(): void {
 
 function removeChip(key: string): void {
   if (key === "status") filters.value = { ...filters.value, status: "all" };
-  else if (key === "service")
-    filters.value = { ...filters.value, service: [] };
+  else if (key === "service") filters.value = { ...filters.value, service: [] };
   else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
   else if (key === "timerange") {
     updateTime({ range: ALL_TIME });
     return;
-  }
-  else if (key === "search") {
+  } else if (key === "search") {
     searchInput.value = "";
     debouncedQuery.value = "";
     filters.value = { ...filters.value, search: "" };
@@ -414,7 +412,7 @@ function openTrace(traceId: string): void {
           <button
             v-if="facetsActive"
             type="button"
-            class="text-secondary hover:text-primary shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline decoration-strong underline-offset-2 transition-colors duration-120 ease-out"
+            class="text-secondary hover:text-primary decoration-strong shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline underline-offset-2 transition-colors duration-120 ease-out"
             @click="clearFacets"
           >
             Clear all

@@ -1,8 +1,5 @@
 import { apiFetch } from "@/shared/api/client";
-import {
-  toSpan,
-  type SpanDto,
-} from "@/shared/api/otel";
+import { toSpan, type SpanDto } from "@/shared/api/otel";
 import type { Span } from "@/shared/types/entities/span";
 
 import type { SpansListParams } from "./types";

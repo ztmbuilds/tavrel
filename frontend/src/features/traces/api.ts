@@ -1,10 +1,5 @@
 import { apiFetch } from "@/shared/api/client";
-import {
-  toLog,
-  toSpan,
-  type LogDto,
-  type SpanDto,
-} from "@/shared/api/otel";
+import { toLog, toSpan, type LogDto, type SpanDto } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 import type { SpanKind } from "@/shared/types/entities/span";
 import type { Trace, TraceStatus } from "@/shared/types/entities/trace";

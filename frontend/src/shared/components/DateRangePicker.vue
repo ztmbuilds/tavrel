@@ -319,8 +319,12 @@ function applyCustom(): void {
       class="border-default bg-raised absolute top-[calc(100%+0.375rem)] right-0 z-30 flex w-130 max-w-[calc(100vw-3rem)] gap-2 rounded-lg border p-2 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
       @keydown.escape="closeDatePop(true)"
     >
-      <div class="w-37.5 shrink-0 border-r border-subtle pr-2">
-        <div role="group" aria-label="Preset ranges" @keydown="handleOptionsKeydown">
+      <div class="border-subtle w-37.5 shrink-0 border-r pr-2">
+        <div
+          role="group"
+          aria-label="Preset ranges"
+          @keydown="handleOptionsKeydown"
+        >
           <button
             v-for="preset in presets"
             :key="preset.value"
@@ -340,7 +344,11 @@ function applyCustom(): void {
           </button>
         </div>
         <div class="border-subtle my-1 border-t" aria-hidden="true" />
-        <div role="group" aria-label="Day ranges" @keydown="handleOptionsKeydown">
+        <div
+          role="group"
+          aria-label="Day ranges"
+          @keydown="handleOptionsKeydown"
+        >
           <button
             v-for="day in dayPresets"
             :key="day.value"
@@ -428,7 +436,8 @@ function applyCustom(): void {
                   cn(
                     'text-secondary hover:bg-hover hover:text-primary flex size-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 font-sans text-[0.78125rem] transition-colors duration-120 ease-out',
                     isInRangeDate(date) && 'bg-signal-muted/60 text-primary',
-                    isSelectedDate(date) && 'bg-active text-ink hover:bg-active hover:text-ink',
+                    isSelectedDate(date) &&
+                      'bg-active text-ink hover:bg-active hover:text-ink',
                     isTodayDate(date) &&
                       !isSelectedDate(date) &&
                       'ring-strong ring-1 ring-inset',

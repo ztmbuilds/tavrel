@@ -29,7 +29,8 @@ const modelValue = defineModel<string>({ required: true });
       :class="
         cn(
           'text-secondary hover:text-primary flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-3 py-1 text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out',
-          modelValue === option.value && 'bg-active text-ink hover:bg-active hover:text-ink',
+          modelValue === option.value &&
+            'bg-active text-ink hover:bg-active hover:text-ink',
         )
       "
       @click="modelValue = option.value"

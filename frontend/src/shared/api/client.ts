@@ -41,19 +41,13 @@ function extractMessage(payload: unknown, fallback: string): string {
       error["message"] !== ""
     )
       return error["message"];
-    if (
-      typeof payload["message"] === "string" &&
-      payload["message"] !== ""
-    )
+    if (typeof payload["message"] === "string" && payload["message"] !== "")
       return payload["message"];
   }
   return fallback;
 }
 
-function buildUrl(
-  path: string,
-  query: ApiFetchOptions["query"],
-): string {
+function buildUrl(path: string, query: ApiFetchOptions["query"]): string {
   if (!query) return path;
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
@@ -114,8 +108,11 @@ export async function apiFetch<T>(
   options: ApiFetchOptions = {},
 ): Promise<T> {
   const url = buildUrl(path, options.query);
-  const { signal: userSignal, headers: userHeaders, ...rest } =
-    options.config ?? {};
+  const {
+    signal: userSignal,
+    headers: userHeaders,
+    ...rest
+  } = options.config ?? {};
   const headers = new Headers(userHeaders);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
   const { signal, cleanup } = withTimeout(userSignal);

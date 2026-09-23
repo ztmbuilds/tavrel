@@ -17,8 +17,7 @@ export async function getServices(): Promise<string[]> {
 }
 
 export async function getEnvironments(): Promise<string[]> {
-  const response =
-    await apiFetch<StringListResponse>("/api/v1/environments");
+  const response = await apiFetch<StringListResponse>("/api/v1/environments");
   return response.data;
 }
 

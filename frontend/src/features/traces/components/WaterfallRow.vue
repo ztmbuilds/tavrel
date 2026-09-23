@@ -18,7 +18,7 @@ const props = defineProps<{
   isLast: boolean;
   guides: boolean[];
   level: number;
-}>()
+}>();
 
 const FULL_PCT = 100;
 const BAR_CLAMP_MAX_PCT = 105;
@@ -32,8 +32,12 @@ const childGuides = computed(() =>
   props.depth <= 1 ? [] : [...props.guides, !props.isLast],
 );
 
-const isCollapsed = computed(() => context.collapsed.value.has(props.node.span.spanId));
-const isSelected = computed(() => context.selectedId.value === props.node.span.spanId);
+const isCollapsed = computed(() =>
+  context.collapsed.value.has(props.node.span.spanId),
+);
+const isSelected = computed(
+  () => context.selectedId.value === props.node.span.spanId,
+);
 const showAsync = computed(() => isAsyncSpan(props.node.span.kind));
 
 const startMs = computed(() => context.spanStartMs(props.node.span));
@@ -46,11 +50,19 @@ const barGeom = computed(() => {
     Math.min((startMs.value / windowMs) * FULL_PCT, BAR_CLAMP_MAX_PCT),
     BAR_CLAMP_MIN_PCT,
   );
-  return { left, width: Math.max((durationMs.value / windowMs) * FULL_PCT, MIN_BAR_WIDTH_PCT) };
+  return {
+    left,
+    width: Math.max(
+      (durationMs.value / windowMs) * FULL_PCT,
+      MIN_BAR_WIDTH_PCT,
+    ),
+  };
 });
 
 const barBackground = computed(() =>
-  props.node.span.status === "error" ? "var(--color-error)" : serviceColor(props.node.span.service),
+  props.node.span.status === "error"
+    ? "var(--color-error)"
+    : serviceColor(props.node.span.service),
 );
 
 const labelFitsAfterBar = computed(
@@ -84,7 +96,8 @@ const rowLabel = computed(
 
 function onChevron(event: MouseEvent): void {
   event.stopPropagation();
-  if (props.node.children.length > 0) context.toggleCollapse(props.node.span.spanId);
+  if (props.node.children.length > 0)
+    context.toggleCollapse(props.node.span.spanId);
 }
 </script>
 
@@ -95,7 +108,8 @@ function onChevron(event: MouseEvent): void {
         cn(
           'hover:bg-hover flex h-[1.875rem] cursor-pointer items-center border-l-[3px] border-l-transparent transition-colors duration-120 ease-out',
           node.span.status === 'error' && 'border-l-error bg-error/10',
-          isSelected && 'bg-raised shadow-[inset_3px_0_0_0_var(--color-signal)]',
+          isSelected &&
+            'bg-raised shadow-[inset_3px_0_0_0_var(--color-signal)]',
         )
       "
       role="treeitem"
@@ -126,11 +140,15 @@ function onChevron(event: MouseEvent): void {
           :aria-expanded="node.children.length > 0 ? !isCollapsed : undefined"
           @click="onChevron"
         >
-          <component :is="chevronDownIcon" aria-hidden="true" class="size-2.5" />
+          <component
+            :is="chevronDownIcon"
+            aria-hidden="true"
+            class="size-2.5"
+          />
         </button>
         <span
           v-if="node.span.status === 'error'"
-          class="bg-error mx-[1px] size-2 shrink-0 rotate-45 scale-90 rounded-[2px]"
+          class="bg-error mx-[1px] size-2 shrink-0 scale-90 rotate-45 rounded-[2px]"
           aria-hidden="true"
         />
         <span
@@ -148,12 +166,15 @@ function onChevron(event: MouseEvent): void {
           :class="
             cn(
               'min-w-0 flex-1 truncate text-[0.78125rem] leading-snug',
-              node.span.status === 'error' ? 'text-error font-medium' : 'text-primary',
+              node.span.status === 'error'
+                ? 'text-error font-medium'
+                : 'text-primary',
             )
           "
           :title="node.span.name"
         >
-          {{ node.span.name }}<span
+          {{ node.span.name
+          }}<span
             v-if="node.span.kind !== 'internal'"
             class="text-tertiary ml-1.5 text-[0.625rem]"
             >{{ node.span.kind }}</span
@@ -164,7 +185,10 @@ function onChevron(event: MouseEvent): void {
           >
         </span>
       </div>
-      <div class="relative h-full flex-1 overflow-hidden px-4" aria-hidden="true">
+      <div
+        class="relative h-full flex-1 overflow-hidden px-4"
+        aria-hidden="true"
+      >
         <div
           class="absolute top-1/2 h-4 -translate-y-1/2 rounded-[3px]"
           :style="{
@@ -188,7 +212,9 @@ function onChevron(event: MouseEvent): void {
         <div
           v-if="labelFitsAfterBar"
           class="text-secondary absolute top-1/2 -translate-y-1/2 text-[0.6875rem] whitespace-nowrap tabular-nums"
-          :style="{ left: `calc(${barGeom.left}% + ${barGeom.width}% + 0.375rem)` }"
+          :style="{
+            left: `calc(${barGeom.left}% + ${barGeom.width}% + 0.375rem)`,
+          }"
         >
           {{ formatDurationMs(durationMs) }}
         </div>
@@ -206,7 +232,11 @@ function onChevron(event: MouseEvent): void {
         :is-last="index === node.children.length - 1"
       />
     </div>
-    <div v-else-if="node.children.length > 0 && isCollapsed" role="group" class="flex h-[1.875rem] items-center border-l-[3px] border-l-transparent">
+    <div
+      v-else-if="node.children.length > 0 && isCollapsed"
+      role="group"
+      class="flex h-[1.875rem] items-center border-l-[3px] border-l-transparent"
+    >
       <div
         class="border-subtle bg-panel flex h-full shrink-0 items-center border-r"
         :style="{ width: context.labelWidth.value + 'rem' }"

@@ -1,12 +1,7 @@
 import type { Attributes, SpanEventDto } from "@/shared/api/otel";
 
 export type SpanKind =
-  | "unspecified"
-  | "internal"
-  | "server"
-  | "client"
-  | "producer"
-  | "consumer";
+  "unspecified" | "internal" | "server" | "client" | "producer" | "consumer";
 
 export type SpanStatus = "unset" | "ok" | "error";
 

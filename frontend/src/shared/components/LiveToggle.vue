@@ -36,7 +36,7 @@ const modelValue = defineModel<boolean>({ required: true });
         :class="
           cn(
             'size-3 rounded-full transition-all duration-150 ease-out',
-            modelValue ? 'translate-x-3 bg-ok' : 'translate-x-0 bg-tertiary',
+            modelValue ? 'bg-ok translate-x-3' : 'bg-tertiary translate-x-0',
           )
         "
       />

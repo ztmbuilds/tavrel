@@ -38,7 +38,9 @@ function startOfToday(): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-export function dayPresetRange(value: string): { start?: string; end?: string } | undefined {
+export function dayPresetRange(
+  value: string,
+): { start?: string; end?: string } | undefined {
   if (value === TODAY_PRESET) return { start: startOfToday().toISOString() };
   if (value === YESTERDAY_PRESET) {
     const today = startOfToday();

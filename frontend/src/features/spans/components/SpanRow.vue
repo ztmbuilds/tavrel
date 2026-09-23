@@ -5,7 +5,12 @@ import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
 import { truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
-import { diffMsPrecise, formatDurationMs, formatRelativeTime, formatShortDateTimeWithSeconds } from "@/shared/utils/time";
+import {
+  diffMsPrecise,
+  formatDurationMs,
+  formatRelativeTime,
+  formatShortDateTimeWithSeconds,
+} from "@/shared/utils/time";
 
 const props = defineProps<{
   span: Span;
@@ -28,7 +33,9 @@ const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
 const relativeLabel = computed(() => formatRelativeTime(props.span.startTime));
 
-const dateTimeLabel = computed(() => formatShortDateTimeWithSeconds(props.span.startTime));
+const dateTimeLabel = computed(() =>
+  formatShortDateTimeWithSeconds(props.span.startTime),
+);
 
 const shortTraceId = computed(() => truncateTraceId(props.span.traceId));
 

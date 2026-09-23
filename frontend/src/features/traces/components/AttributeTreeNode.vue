@@ -65,7 +65,7 @@ const emit = defineEmits<{
         :node="child"
         :row-style="rowStyle"
         :copied-path="copiedPath"
-          @copy="(path, text) => emit('copy', path, text)"
+        @copy="(path, text) => emit('copy', path, text)"
         @toggle="$emit('toggle', $event)"
       />
     </div>

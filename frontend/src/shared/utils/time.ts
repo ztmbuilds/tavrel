@@ -165,7 +165,8 @@ export function diffMsPrecise(startIso: string, endIso: string): number {
 export function formatDurationMs(ms: number): string {
   if (Number.isNaN(ms) || ms <= 0) return `0µs`;
   if (ms < 1) {
-    if (ms < 1 / US_PER_MS) return `${Math.max(1, Math.round(ms * NS_PER_MS))}ns`;
+    if (ms < 1 / US_PER_MS)
+      return `${Math.max(1, Math.round(ms * NS_PER_MS))}ns`;
     return `${Math.round(ms * US_PER_MS)}µs`;
   }
   if (ms < MS_PER_SECOND) return `${Math.round(ms)}ms`;
