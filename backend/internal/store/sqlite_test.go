@@ -8,12 +8,110 @@ import (
 	"time"
 )
 
-func TestStoreLargeBatches(t *testing.T) {
+func openTestStore(t *testing.T) *SQLiteStore {
+	t.Helper()
 	s, err := NewSQLiteStore(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	t.Cleanup(func() { s.Close() })
+	return s
+}
+
+func TestListFilters(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	base := time.Now().Add(-time.Hour)
+
+	storeTrace := func(id, service, name string, err bool, offset time.Duration) {
+		t.Helper()
+		ts := base.Add(offset)
+		tr := Trace{
+			TraceID:     id,
+			RootService: service,
+			RootName:    name,
+			StartTime:   ts,
+			EndTime:     ts,
+			SpanCount:   1,
+			Error:       err,
+		}
+		status := StatusCodeOk
+		if err {
+			status = StatusCodeError
+		}
+		if e := s.StoreTrace(ctx, tr, []Span{{
+			SpanID:     "span-" + id,
+			TraceID:    id,
+			Service:    service,
+			Name:       name,
+			StartTime:  ts,
+			EndTime:    ts,
+			StatusCode: status,
+		}}); e != nil {
+			t.Fatal(e)
+		}
+	}
+	storeTrace("t1", "svc-a", "GET /a", false, time.Minute)
+	storeTrace("t2", "svc-b", "GET /b", true, 2*time.Minute)
+	storeTrace("t3", "svc-a", "POST /c", true, 3*time.Minute)
+
+	errTrue := true
+	page, err := s.ListTraces(ctx, ListTracesOptions{ErrorFilter: &errTrue})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 2 || page.Items[0].TraceID != "t3" || page.Items[1].TraceID != "t2" {
+		t.Fatalf("error filter: got %+v", page.Items)
+	}
+
+	page, err = s.ListTraces(ctx, ListTracesOptions{
+		ListOptions: ListOptions[ListTracesCursor]{Limit: 1},
+		Services:    []string{"svc-a"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].TraceID != "t3" || !page.HasMore || page.NextCursor == nil {
+		t.Fatalf("service filter page 1: %+v hasMore=%v cursor=%v", page.Items, page.HasMore, page.NextCursor)
+	}
+	page2, err := s.ListTraces(ctx, ListTracesOptions{
+		ListOptions: ListOptions[ListTracesCursor]{Limit: 1, Cursor: page.NextCursor},
+		Services:    []string{"svc-a"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page2.Items) != 1 || page2.Items[0].TraceID != "t1" || page2.HasMore {
+		t.Fatalf("service filter page 2: %+v hasMore=%v", page2.Items, page2.HasMore)
+	}
+
+	errStatus := StatusCodeError
+	spans, err := s.ListSpans(ctx, ListSpansOptions{TraceID: "t2", Status: &errStatus})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(spans.Items) != 1 || spans.Items[0].SpanID != "span-t2" {
+		t.Fatalf("span trace+status filter: %+v", spans.Items)
+	}
+
+	if err := s.StoreLogs(ctx, []Log{
+		{TraceID: "t1", SpanID: "span-t1", Timestamp: base, SeverityNumber: 9, Body: "hello", Service: "svc-a"},
+		{TraceID: "t2", SpanID: "span-t2", Timestamp: base, SeverityNumber: 17, Body: "boom", Service: "svc-b"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	level := LogLevelError
+	logs, err := s.ListLogs(ctx, ListLogsOptions{Level: &level, Search: "boom"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(logs.Items) != 1 || logs.Items[0].TraceID != "t2" {
+		t.Fatalf("log level+search filter: %+v", logs.Items)
+	}
+}
+
+func TestStoreLargeBatches(t *testing.T) {
+	s := openTestStore(t)
 
 	ctx := context.Background()
 	now := time.Now()

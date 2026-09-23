@@ -286,40 +286,9 @@ func appendStrings(args []any, vals []string) []any {
 
 func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error) {
 
-	var startTimeNS *int64
-	var traceID *string
-
 	page := Page[Trace, ListTracesCursor]{}
 
 	limit, fetchLimit := resolvePagingLimits(options.Limit, 20)
-	if options.Cursor != nil {
-		ns := options.Cursor.StartTime.UnixNano()
-		startTimeNS = &ns
-		traceID = &options.Cursor.TraceID
-	}
-
-	var startNS *int64
-	if options.Start != nil {
-		ns := options.Start.UnixNano()
-		startNS = &ns
-	}
-
-	var endNS *int64
-	if options.End != nil {
-		ns := options.End.UnixNano()
-		endNS = &ns
-	}
-
-	var errorEquals *bool
-	if options.ErrorFilter != nil {
-		v := *options.ErrorFilter
-		errorEquals = &v
-	}
-
-	likePattern := ""
-	if options.Search != "" {
-		likePattern = "%" + escapeLike(options.Search) + "%"
-	}
 
 	comparator := "<"
 	orderDir := "DESC"
@@ -328,38 +297,44 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		orderDir = "ASC"
 	}
 
-	serviceClause := "1=1"
+	conds := make([]string, 0, 8)
+	args := make([]any, 0, 16)
+
+	if options.Cursor != nil {
+		conds = append(conds, "(start_time_ns,trace_id) "+comparator+" (?, ?)")
+		args = append(args, options.Cursor.StartTime.UnixNano(), options.Cursor.TraceID)
+	}
+	if options.Search != "" {
+		conds = append(conds, "(root_name LIKE ? ESCAPE '\\' COLLATE NOCASE OR trace_id LIKE ? ESCAPE '\\' COLLATE NOCASE)")
+		likePattern := "%" + escapeLike(options.Search) + "%"
+		args = append(args, likePattern, likePattern)
+	}
+	if options.ErrorFilter != nil {
+		conds = append(conds, "error = ?")
+		args = append(args, *options.ErrorFilter)
+	}
 	if len(options.Services) > 0 {
-		serviceClause = "EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service IN " + inPlaceholders(len(options.Services)) + ")"
+		conds = append(conds, "EXISTS (SELECT 1 FROM spans WHERE spans.trace_id = traces.trace_id AND service IN "+inPlaceholders(len(options.Services))+")")
+		args = appendStrings(args, options.Services)
 	}
-	envClause := "1=1"
+	if options.Start != nil {
+		conds = append(conds, "start_time_ns >= ?")
+		args = append(args, options.Start.UnixNano())
+	}
+	if options.End != nil {
+		conds = append(conds, "start_time_ns <= ?")
+		args = append(args, options.End.UnixNano())
+	}
 	if len(options.Environments) > 0 {
-		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+		conds = append(conds, "environment IN "+inPlaceholders(len(options.Environments)))
+		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
-	 traces WHERE ((? IS NULL) OR (start_time_ns,trace_id) ` + comparator + ` (?, ?))
-	 AND (? = '' OR root_name LIKE ? ESCAPE '\' COLLATE NOCASE OR trace_id LIKE ? ESCAPE '\' COLLATE NOCASE)
-	 AND (? IS NULL OR error = ?)
-	 AND ` + serviceClause + `
-	 AND (? IS NULL OR start_time_ns >= ?)
-	 AND (? IS NULL OR start_time_ns <= ?)
-	 AND ` + envClause + `
-	 ORDER BY start_time_ns ` + orderDir + `, trace_id ` + orderDir + ` LIMIT (?) `
-
-	args := []any{
-		startTimeNS,
-		startTimeNS,
-		traceID,
-		options.Search,
-		likePattern,
-		likePattern,
-		errorEquals,
-		errorEquals,
+	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM traces`
+	if len(conds) > 0 {
+		query += " WHERE " + strings.Join(conds, " AND ")
 	}
-	args = appendStrings(args, options.Services)
-	args = append(args, startNS, startNS, endNS, endNS)
-	args = appendStrings(args, options.Environments)
+	query += ` ORDER BY start_time_ns ` + orderDir + `, trace_id ` + orderDir + ` LIMIT (?)`
 	args = append(args, fetchLimit)
 
 	rows, err := s.readDB.QueryContext(ctx, query, args...)
@@ -421,18 +396,9 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 
 func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error) {
 
-	var timeStampNs *int64
-	var id *int64
-
 	page := Page[Log, ListLogsCursor]{}
 
 	limit, fetchLimit := resolvePagingLimits(options.Limit, 30)
-
-	if options.Cursor != nil {
-		id = &options.Cursor.ID
-		ns := options.Cursor.TimeStamp.UnixNano()
-		timeStampNs = &ns
-	}
 
 	var levelMin, levelMax *int32
 	if options.Level != nil {
@@ -449,57 +415,55 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		}
 	}
 
-	var startNS *int64
-	if options.Start != nil {
-		ns := options.Start.UnixNano()
-		startNS = &ns
-	}
+	conds := make([]string, 0, 10)
+	args := make([]any, 0, 16)
 
-	var endNS *int64
-	if options.End != nil {
-		ns := options.End.UnixNano()
-		endNS = &ns
+	if options.Cursor != nil {
+		conds = append(conds, "(timestamp_ns,id) < (?,?)")
+		args = append(args, options.Cursor.TimeStamp.UnixNano(), options.Cursor.ID)
 	}
-
-	likePattern := ""
 	if options.Search != "" {
-		likePattern = "%" + escapeLike(options.Search) + "%"
+		conds = append(conds, "body LIKE ? ESCAPE '\\' COLLATE NOCASE")
+		args = append(args, "%"+escapeLike(options.Search)+"%")
 	}
-
-	serviceClause := "1=1"
+	if levelMin != nil {
+		conds = append(conds, "severity_number >= ?")
+		args = append(args, *levelMin)
+	}
+	if levelMax != nil {
+		conds = append(conds, "severity_number <= ?")
+		args = append(args, *levelMax)
+	}
 	if len(options.Services) > 0 {
-		serviceClause = "service IN " + inPlaceholders(len(options.Services))
+		conds = append(conds, "service IN "+inPlaceholders(len(options.Services)))
+		args = appendStrings(args, options.Services)
 	}
-
-	envClause := "1=1"
+	if options.TraceID != "" {
+		conds = append(conds, "trace_id = ?")
+		args = append(args, options.TraceID)
+	}
+	if options.SpanID != "" {
+		conds = append(conds, "span_id = ?")
+		args = append(args, options.SpanID)
+	}
+	if options.Start != nil {
+		conds = append(conds, "timestamp_ns >= ?")
+		args = append(args, options.Start.UnixNano())
+	}
+	if options.End != nil {
+		conds = append(conds, "timestamp_ns <= ?")
+		args = append(args, options.End.UnixNano())
+	}
 	if len(options.Environments) > 0 {
-		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+		conds = append(conds, "environment IN "+inPlaceholders(len(options.Environments)))
+		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs WHERE ((? IS NULL) OR (timestamp_ns,id) < (?,?)) AND (? = '' OR body LIKE ? ESCAPE '\' COLLATE NOCASE) AND (? IS NULL OR severity_number >= ?) AND (? IS NULL OR severity_number <= ?) AND ` + serviceClause + ` AND (? = '' OR trace_id = ?) AND (? = '' OR span_id = ?) AND (? IS NULL OR timestamp_ns >= ?) AND (? IS NULL OR timestamp_ns <= ?) AND ` + envClause + ` ORDER BY timestamp_ns DESC, id DESC LIMIT (?)`
-
-	args := []any{
-		timeStampNs,
-		timeStampNs,
-		id,
-		options.Search,
-		likePattern,
-		levelMin,
-		levelMin,
-		levelMax,
-		levelMax,
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs`
+	if len(conds) > 0 {
+		query += " WHERE " + strings.Join(conds, " AND ")
 	}
-	args = appendStrings(args, options.Services)
-	args = append(args,
-		options.TraceID,
-		options.TraceID,
-		options.SpanID,
-		options.SpanID,
-		startNS,
-		startNS,
-		endNS,
-		endNS)
-	args = appendStrings(args, options.Environments)
+	query += ` ORDER BY timestamp_ns DESC, id DESC LIMIT (?)`
 	args = append(args, fetchLimit)
 
 	rows, err := s.readDB.QueryContext(ctx, query, args...)
@@ -573,18 +537,9 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error) {
 
-	var startTimeNS *int64
-	var spanID *string
-
 	page := Page[Span, ListSpansCursor]{}
 
 	limit, fetchLimit := resolvePagingLimits(options.Limit, 50)
-
-	if options.Cursor != nil {
-		spanID = &options.Cursor.SpanID
-		ns := options.Cursor.StartTime.UnixNano()
-		startTimeNS = &ns
-	}
 
 	var statusEquals *int32
 	var statusNotEquals *int32
@@ -608,65 +563,55 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		kind = &k
 	}
 
-	var startNS *int64
-	if options.Start != nil {
-		ns := options.Start.UnixNano()
-		startNS = &ns
-	}
+	conds := make([]string, 0, 10)
+	args := make([]any, 0, 18)
 
-	var endNS *int64
-	if options.End != nil {
-		ns := options.End.UnixNano()
-		endNS = &ns
+	if options.Cursor != nil {
+		conds = append(conds, "(start_time_ns,span_id) < (?,?)")
+		args = append(args, options.Cursor.StartTime.UnixNano(), options.Cursor.SpanID)
 	}
-
-	likePattern := ""
+	if options.TraceID != "" {
+		conds = append(conds, "trace_id = ?")
+		args = append(args, options.TraceID)
+	}
 	if options.Search != "" {
-		likePattern = "%" + escapeLike(options.Search) + "%"
+		conds = append(conds, "name LIKE ? ESCAPE '\\' COLLATE NOCASE")
+		args = append(args, "%"+escapeLike(options.Search)+"%")
 	}
-
-	serviceClause := "1=1"
+	if statusEquals != nil {
+		conds = append(conds, "status_code = ?")
+		args = append(args, *statusEquals)
+	}
+	if statusNotEquals != nil {
+		conds = append(conds, "status_code != ?")
+		args = append(args, *statusNotEquals)
+	}
+	if kind != nil {
+		conds = append(conds, "kind = ?")
+		args = append(args, *kind)
+	}
 	if len(options.Services) > 0 {
-		serviceClause = "service IN " + inPlaceholders(len(options.Services))
+		conds = append(conds, "service IN "+inPlaceholders(len(options.Services)))
+		args = appendStrings(args, options.Services)
 	}
-
-	envClause := "1=1"
+	if options.Start != nil {
+		conds = append(conds, "start_time_ns >= ?")
+		args = append(args, options.Start.UnixNano())
+	}
+	if options.End != nil {
+		conds = append(conds, "start_time_ns <= ?")
+		args = append(args, options.End.UnixNano())
+	}
 	if len(options.Environments) > 0 {
-		envClause = "environment IN " + inPlaceholders(len(options.Environments))
+		conds = append(conds, "environment IN "+inPlaceholders(len(options.Environments)))
+		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events
-	FROM spans
-	WHERE ((? IS NULL) OR (start_time_ns,span_id) < (?,?))
-	AND (? = '' OR trace_id = ?)
-	AND (? = '' OR name LIKE ? ESCAPE '\' COLLATE NOCASE)
-	AND (? IS NULL OR status_code = ?)
-	AND (? IS NULL OR status_code != ?)
-	AND (? IS NULL OR kind = ?)
-	AND ` + serviceClause + `
-	AND (? IS NULL OR start_time_ns >= ?)
-	AND (? IS NULL OR start_time_ns <= ?)
-	AND ` + envClause + `
-	ORDER BY start_time_ns DESC , span_id DESC LIMIT (?)`
-
-	args := []any{
-		startTimeNS,
-		startTimeNS,
-		spanID,
-		options.TraceID,
-		options.TraceID,
-		options.Search,
-		likePattern,
-		statusEquals,
-		statusEquals,
-		statusNotEquals,
-		statusNotEquals,
-		kind,
-		kind,
+	query := `SELECT span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events FROM spans`
+	if len(conds) > 0 {
+		query += " WHERE " + strings.Join(conds, " AND ")
 	}
-	args = appendStrings(args, options.Services)
-	args = append(args, startNS, startNS, endNS, endNS)
-	args = appendStrings(args, options.Environments)
+	query += ` ORDER BY start_time_ns DESC, span_id DESC LIMIT (?)`
 	args = append(args, fetchLimit)
 
 	rows, err := s.readDB.QueryContext(ctx, query, args...)
