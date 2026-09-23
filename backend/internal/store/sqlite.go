@@ -21,7 +21,10 @@ import (
 //go:embed migrations/*.up.sql
 var migrationFiles embed.FS
 
-const batchSize = 10000
+const (
+	spanBatchSize = 2000
+	logBatchSize  = 3000
+)
 
 type SQLiteStore struct {
 	readDB  *sql.DB
@@ -135,9 +138,9 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 		return nil
 	}
 
-	for left := 0; left < len(spans); left += batchSize {
+	for left := 0; left < len(spans); left += spanBatchSize {
 
-		right := left + batchSize
+		right := left + spanBatchSize
 
 		if right > len(spans) {
 			right = len(spans)
@@ -202,9 +205,9 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 		return nil
 	}
 
-	for left := 0; left < len(logs); left += batchSize {
+	for left := 0; left < len(logs); left += logBatchSize {
 
-		right := left + batchSize
+		right := left + logBatchSize
 
 		if right > len(logs) {
 			right = len(logs)
@@ -253,7 +256,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 		_, err := s.writeDB.ExecContext(ctx, query, values...)
 		if err != nil {
-			slog.Warn("failed to store log batch", "error", err)
+			return err
 		}
 	}
 
