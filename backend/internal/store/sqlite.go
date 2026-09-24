@@ -22,8 +22,9 @@ import (
 var migrationFiles embed.FS
 
 const (
-	spanBatchSize = 2000
-	logBatchSize  = 3000
+	spanBatchSize   = 2000
+	logBatchSize    = 3000
+	deleteBatchSize = 10000
 )
 
 type SQLiteStore struct {
@@ -814,27 +815,38 @@ func (s *SQLiteStore) DeleteOldData(ctx context.Context, cutoff time.Time) error
 
 	slog.Info(fmt.Sprintf("found %v traces for deletion", len(traceIDs)))
 
-	placeholders := strings.Repeat("?,", len(traceIDs))
-	placeholders = strings.TrimSuffix(placeholders, ",")
-
-	logQuery := fmt.Sprintf("DELETE FROM logs WHERE trace_id IN (%s) OR timestamp_ns <= (%v)", placeholders, cutoffNS)
-	spanQuery := fmt.Sprintf("DELETE FROM spans WHERE trace_id IN (%s)", placeholders)
-	traceQuery := fmt.Sprintf("DELETE FROM traces WHERE trace_id IN (%s)", placeholders)
-
-	//convert []string to []any to match args type
-	args := make([]any, 0, len(traceIDs))
-	for _, id := range traceIDs {
-		args = append(args, id)
+	if len(traceIDs) == 0 {
+		return tx.Commit()
 	}
 
-	if _, err := tx.ExecContext(ctx, logQuery, args...); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, spanQuery, args...); err != nil {
-		return err
-	}
-	if _, err := tx.ExecContext(ctx, traceQuery, args...); err != nil {
-		return err
+	for left := 0; left < len(traceIDs); left += deleteBatchSize {
+		right := left + deleteBatchSize
+		if right > len(traceIDs) {
+			right = len(traceIDs)
+		}
+		chunk := traceIDs[left:right]
+
+		placeholders := strings.Repeat("?,", len(chunk))
+		placeholders = strings.TrimSuffix(placeholders, ",")
+
+		logQuery := fmt.Sprintf("DELETE FROM logs WHERE trace_id IN (%s) OR timestamp_ns <= (%v)", placeholders, cutoffNS)
+		spanQuery := fmt.Sprintf("DELETE FROM spans WHERE trace_id IN (%s)", placeholders)
+		traceQuery := fmt.Sprintf("DELETE FROM traces WHERE trace_id IN (%s)", placeholders)
+
+		args := make([]any, 0, len(chunk))
+		for _, id := range chunk {
+			args = append(args, id)
+		}
+
+		if _, err := tx.ExecContext(ctx, logQuery, args...); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, spanQuery, args...); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, traceQuery, args...); err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
