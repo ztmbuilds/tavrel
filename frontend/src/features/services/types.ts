@@ -10,3 +10,7 @@ export type ServiceMapNodeData = {
   onSelect: () => void;
   onMove: (delta: { x: number; y: number }) => void;
 };
+
+export type ServiceMapEdgeData = {
+  routePoints: { x: number; y: number }[];
+};

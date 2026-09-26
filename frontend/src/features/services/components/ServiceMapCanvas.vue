@@ -4,6 +4,7 @@ import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
 import { VueFlow } from "@vue-flow/core";
 
+import ServiceMapEdge from "@/features/services/components/ServiceMapEdge.vue";
 import ServiceMapNode from "@/features/services/components/ServiceMapNode.vue";
 
 import type { MapLayout } from "../layout";
@@ -67,6 +68,9 @@ const {
     >
       <template #node-service="nodeProps">
         <ServiceMapNode v-bind="nodeProps" />
+      </template>
+      <template #edge-service="edgeProps">
+        <ServiceMapEdge v-bind="edgeProps" />
       </template>
       <Background
         variant="dots"

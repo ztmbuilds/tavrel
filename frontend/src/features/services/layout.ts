@@ -25,7 +25,12 @@ export interface MapLayout {
   nodeIds: string[];
   positions: Record<string, MapNodePosition>;
   nodeWidths: Record<string, number>;
-  edges: ServiceEdge[];
+  edges: MapEdgeLayout[];
+}
+
+export interface MapEdgeLayout extends ServiceEdge {
+  points: MapNodePosition[];
+  feedback: boolean;
 }
 
 export function computeMapLayout(
@@ -78,5 +83,20 @@ export function computeMapLayout(
     };
   }
 
-  return { nodeIds: ids, positions, nodeWidths, edges: graphEdges };
+  const edgeLayouts = graphEdges.map((edge) => {
+    const route = graph.edge(edge.from, edge.to);
+    const source = positions[edge.from];
+    const target = positions[edge.to];
+    return {
+      ...edge,
+      points: route?.points?.map(({ x, y }) => ({ x, y })) ?? [],
+      feedback:
+        source !== undefined &&
+        target !== undefined &&
+        target.x + (nodeWidths[edge.to] ?? MAP_NODE_W) / 2 <
+          source.x + (nodeWidths[edge.from] ?? MAP_NODE_W) / 2,
+    };
+  });
+
+  return { nodeIds: ids, positions, nodeWidths, edges: edgeLayouts };
 }

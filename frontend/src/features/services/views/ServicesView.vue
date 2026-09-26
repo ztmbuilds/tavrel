@@ -232,7 +232,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
           @select="selectService"
         />
       </div>
-      <aside class="bg-panel min-w-0" aria-label="Service inspector">
+      <aside class="bg-panel min-h-0 min-w-0" aria-label="Service inspector">
         <ServiceInspector
           :selected="selected"
           :calls="calls"
