@@ -11,7 +11,6 @@ import {
   useVueFlow,
   type Edge,
   type EdgeMouseEvent,
-  type NodeDragEvent,
   type NodeMouseEvent,
 } from "@vue-flow/core";
 
@@ -21,24 +20,17 @@ import {
   type MapLayout,
   type MapNodePosition,
 } from "../layout";
-import type { ServiceMapEdgeData, ServiceMapNodeData } from "../types";
+import type { ServiceMapNodeData } from "../types";
 
 const FIT_PADDING = 0.14;
 const EDGE_DIMMED_OPACITY = 0.07;
 const EDGE_DEFAULT_OPACITY = 0.72;
 const EDGE_HOT_WIDTH = 1.8;
 const EDGE_DEFAULT_WIDTH = 1.4;
-const FEEDBACK_ROUTE_MARGIN = 48;
-const FEEDBACK_ROUTE_LANE_GAP = 28;
-const FEEDBACK_VIEW_MARGIN = 40;
-const BACKWARD_EDGE_EPSILON = 1;
 
-type MapSide = "left" | "right" | "top" | "bottom";
 type EdgeHandles = {
   sourceHandle: string;
   targetHandle: string;
-  sourceSide: MapSide;
-  targetSide: MapSide;
 };
 type ServiceMapFlowNode = {
   id: string;
@@ -52,7 +44,7 @@ type ServiceMapFlowNode = {
   connectable: boolean;
   data: ServiceMapNodeData;
 };
-type ServiceMapFlowEdge = Edge<ServiceMapEdgeData>;
+type ServiceMapFlowEdge = Edge;
 
 interface UseServiceMapFlowResult {
   nodes: Ref<ServiceMapFlowNode[]>;
@@ -60,7 +52,6 @@ interface UseServiceMapFlowResult {
   movementAnnouncement: Ref<string>;
   canZoomIn: ComputedRef<boolean>;
   canZoomOut: ComputedRef<boolean>;
-  handleNodeDrag: (event: NodeDragEvent) => void;
   handleNodeMouseEnter: (event: NodeMouseEvent) => void;
   handleNodeMouseLeave: () => void;
   handleEdgeClick: (event: EdgeMouseEvent) => void;
@@ -80,8 +71,9 @@ export function useServiceMapFlow(
     useVueFlow();
   const hovered = ref<string | null>(null);
   const nodes = ref<ServiceMapFlowNode[]>([]);
-  const nodePositions = ref<Record<string, MapNodePosition>>({});
-  const hasManualChanges = ref(false);
+  const nodePositions = computed((): Record<string, MapNodePosition> =>
+    Object.fromEntries(nodes.value.map(({ id, position }) => [id, position])),
+  );
   const movementAnnouncement = ref("");
   const trimmedQuery = computed(() => query.value.trim().toLowerCase());
   const canZoomIn = computed(() => viewport.value.zoom < maxZoom.value);
@@ -100,59 +92,18 @@ export function useServiceMapFlow(
 
   const edges = computed((): ServiceMapFlowEdge[] => {
     const focus = hovered.value ?? selected.value;
-    const backwardEdges = hasManualChanges.value
-      ? layout.value.edges
-          .filter((edge) => edge.feedback || isBackwardEdge(edge.from, edge.to))
-          .sort(
-            (a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to),
-          )
-      : [];
-    const feedbackLanes = new Map(
-      backwardEdges.map(
-        (edge, index) => [edgeId(edge.from, edge.to), index] as const,
-      ),
-    );
-    const graphTop = getGraphTop();
 
     return layout.value.edges.map((edge) => {
       const sourcePosition = nodePositions.value[edge.from];
       const targetPosition = nodePositions.value[edge.to];
       const sourceWidth = layout.value.nodeWidths[edge.from] ?? MAP_NODE_W;
       const targetWidth = layout.value.nodeWidths[edge.to] ?? MAP_NODE_W;
-      const lane = feedbackLanes.get(edgeId(edge.from, edge.to));
-      const handles = hasManualChanges.value
-        ? lane === undefined
-          ? getEdgeHandles(
-              sourcePosition,
-              targetPosition,
-              sourceWidth,
-              targetWidth,
-            )
-          : createHandles("top", "top")
-        : getDagreEdgeHandles(
-            edge.points,
-            sourcePosition,
-            targetPosition,
-            sourceWidth,
-            targetWidth,
-          );
-      const routePoints = hasManualChanges.value
-        ? lane === undefined ||
-          sourcePosition === undefined ||
-          targetPosition === undefined
-          ? []
-          : feedbackRoutePoints(
-              sourcePosition,
-              targetPosition,
-              sourceWidth,
-              targetWidth,
-              handles,
-              graphTop,
-              lane,
-            )
-        : edge.points.length > 2
-          ? edge.points.slice(1, -1)
-          : [];
+      const handles = getEdgeHandles(
+        sourcePosition,
+        targetPosition,
+        sourceWidth,
+        targetWidth,
+      );
       const isHot =
         trimmedQuery.value === "" &&
         focus !== null &&
@@ -169,7 +120,6 @@ export function useServiceMapFlow(
         target: edge.to,
         sourceHandle: handles.sourceHandle,
         targetHandle: handles.targetHandle,
-        type: "service",
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: "var(--color-secondary)",
@@ -181,7 +131,7 @@ export function useServiceMapFlow(
           strokeWidth: isHot ? EDGE_HOT_WIDTH : EDGE_DEFAULT_WIDTH,
           opacity: isDimmed ? EDGE_DIMMED_OPACITY : EDGE_DEFAULT_OPACITY,
         },
-        data: { routePoints },
+        type: "default",
         selectable: false,
         focusable: false,
         interactionWidth: 12,
@@ -206,19 +156,15 @@ export function useServiceMapFlow(
       x: position.x + delta.x,
       y: position.y + delta.y,
     };
-    nodePositions.value = { ...nodePositions.value, [id]: nextPosition };
-    hasManualChanges.value = true;
     updateNode(id, { position: nextPosition });
     movementAnnouncement.value = `Moved ${id}.`;
   }
 
   function resetNodesFromLayout(): void {
-    hasManualChanges.value = false;
-    nodePositions.value = { ...layout.value.positions };
     nodes.value = layout.value.nodeIds.map((id) => ({
       id,
       type: "service",
-      position: nodePositions.value[id] ?? { x: 0, y: 0 },
+      position: layout.value.positions[id] ?? { x: 0, y: 0 },
       width: layout.value.nodeWidths[id] ?? MAP_NODE_W,
       height: MAP_NODE_H,
       draggable: true,
@@ -249,14 +195,6 @@ export function useServiceMapFlow(
     hovered.value = event.node.id;
   }
 
-  function handleNodeDrag(event: NodeDragEvent): void {
-    hasManualChanges.value = true;
-    nodePositions.value = {
-      ...nodePositions.value,
-      [event.node.id]: event.node.position,
-    };
-  }
-
   function handleNodeMouseLeave(): void {
     hovered.value = null;
   }
@@ -266,20 +204,7 @@ export function useServiceMapFlow(
   }
 
   function handleFitView(): void {
-    const feedbackCount = getBackwardEdgeCount();
-    const padding =
-      hasManualChanges.value && feedbackCount > 0
-        ? {
-            top:
-              FEEDBACK_VIEW_MARGIN +
-              FEEDBACK_ROUTE_MARGIN +
-              (feedbackCount - 1) * FEEDBACK_ROUTE_LANE_GAP,
-            right: FEEDBACK_VIEW_MARGIN,
-            bottom: FEEDBACK_VIEW_MARGIN,
-            left: FEEDBACK_VIEW_MARGIN,
-          }
-        : FIT_PADDING;
-    void fitView({ padding });
+    void fitView({ padding: FIT_PADDING });
   }
 
   function handleZoomIn(): void {
@@ -293,29 +218,6 @@ export function useServiceMapFlow(
   function resetLayout(): void {
     resetNodesFromLayout();
     void nextTick(handleFitView);
-  }
-
-  function getBackwardEdgeCount(): number {
-    return layout.value.edges.filter(
-      (edge) => edge.feedback || isBackwardEdge(edge.from, edge.to),
-    ).length;
-  }
-
-  function isBackwardEdge(from: string, to: string): boolean {
-    const source = nodePositions.value[from];
-    const target = nodePositions.value[to];
-    if (source === undefined || target === undefined) return false;
-    const sourceX =
-      source.x + (layout.value.nodeWidths[from] ?? MAP_NODE_W) / 2;
-    const targetX = target.x + (layout.value.nodeWidths[to] ?? MAP_NODE_W) / 2;
-    return targetX < sourceX - BACKWARD_EDGE_EPSILON;
-  }
-
-  function getGraphTop(): number {
-    return Object.values(nodePositions.value).reduce(
-      (top, position) => Math.min(top, position.y),
-      Number.POSITIVE_INFINITY,
-    );
   }
 
   watch(
@@ -340,7 +242,6 @@ export function useServiceMapFlow(
     movementAnnouncement,
     canZoomIn,
     canZoomOut,
-    handleNodeDrag,
     handleNodeMouseEnter,
     handleNodeMouseLeave,
     handleEdgeClick,
@@ -355,28 +256,6 @@ function edgeId(from: string, to: string): string {
   return `${from}→${to}`;
 }
 
-function getDagreEdgeHandles(
-  points: MapNodePosition[],
-  source: MapNodePosition | undefined,
-  target: MapNodePosition | undefined,
-  sourceWidth: number,
-  targetWidth: number,
-): EdgeHandles {
-  const first = points[0];
-  const last = points[points.length - 1];
-  if (
-    source === undefined ||
-    target === undefined ||
-    first === undefined ||
-    last === undefined
-  ) {
-    return getEdgeHandles(source, target, sourceWidth, targetWidth);
-  }
-  const sourceSide = sideToward(source, sourceWidth, first);
-  const targetSide = sideToward(target, targetWidth, last);
-  return createHandles(sourceSide, targetSide);
-}
-
 function getEdgeHandles(
   source: MapNodePosition | undefined,
   target: MapNodePosition | undefined,
@@ -384,67 +263,19 @@ function getEdgeHandles(
   targetWidth: number,
 ): EdgeHandles {
   if (source === undefined || target === undefined) {
-    return createHandles("right", "left");
+    return {
+      sourceHandle: "source-right",
+      targetHandle: "target-left",
+    };
   }
   const dx = source.x + sourceWidth / 2 - (target.x + targetWidth / 2);
   const dy = source.y + MAP_NODE_H / 2 - (target.y + MAP_NODE_H / 2);
   if (Math.abs(dx) >= Math.abs(dy)) {
     return dx <= 0
-      ? createHandles("right", "left")
-      : createHandles("left", "right");
+      ? { sourceHandle: "source-right", targetHandle: "target-left" }
+      : { sourceHandle: "source-left", targetHandle: "target-right" };
   }
   return dy <= 0
-    ? createHandles("bottom", "top")
-    : createHandles("top", "bottom");
-}
-
-function sideToward(
-  node: MapNodePosition,
-  width: number,
-  point: MapNodePosition,
-): MapSide {
-  const dx = point.x - (node.x + width / 2);
-  const dy = point.y - (node.y + MAP_NODE_H / 2);
-  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? "right" : "left";
-  return dy >= 0 ? "bottom" : "top";
-}
-
-function createHandles(sourceSide: MapSide, targetSide: MapSide): EdgeHandles {
-  return {
-    sourceHandle: `source-${sourceSide}`,
-    targetHandle: `target-${targetSide}`,
-    sourceSide,
-    targetSide,
-  };
-}
-
-function feedbackRoutePoints(
-  source: MapNodePosition,
-  target: MapNodePosition,
-  sourceWidth: number,
-  targetWidth: number,
-  handles: EdgeHandles,
-  graphTop: number,
-  lane: number,
-): MapNodePosition[] {
-  const laneY =
-    graphTop - FEEDBACK_ROUTE_MARGIN - lane * FEEDBACK_ROUTE_LANE_GAP;
-  const sourceAnchor = handleAnchor(source, sourceWidth, handles.sourceSide);
-  const targetAnchor = handleAnchor(target, targetWidth, handles.targetSide);
-  return [
-    { x: sourceAnchor.x, y: laneY },
-    { x: targetAnchor.x, y: laneY },
-  ];
-}
-
-function handleAnchor(
-  position: MapNodePosition,
-  width: number,
-  side: MapSide,
-): MapNodePosition {
-  if (side === "left") return { x: position.x, y: position.y + MAP_NODE_H / 2 };
-  if (side === "right")
-    return { x: position.x + width, y: position.y + MAP_NODE_H / 2 };
-  if (side === "top") return { x: position.x + width / 2, y: position.y };
-  return { x: position.x + width / 2, y: position.y + MAP_NODE_H };
+    ? { sourceHandle: "source-bottom", targetHandle: "target-top" }
+    : { sourceHandle: "source-top", targetHandle: "target-bottom" };
 }

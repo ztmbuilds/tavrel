@@ -25,27 +25,17 @@ export interface MapLayout {
   nodeIds: string[];
   positions: Record<string, MapNodePosition>;
   nodeWidths: Record<string, number>;
-  edges: MapEdgeLayout[];
-}
-
-export interface MapEdgeLayout extends ServiceEdge {
-  points: MapNodePosition[];
-  feedback: boolean;
+  edges: ServiceEdge[];
 }
 
 export function computeMapLayout(
   nodeIds: string[],
   edges: ServiceEdge[],
 ): MapLayout {
-  const ids = [
-    ...new Set([...nodeIds, ...edges.flatMap(({ from, to }) => [from, to])]),
-  ]
-    .filter((id) => id !== "")
-    .sort();
-  const idSet = new Set(ids);
-  const graphEdges = edges
-    .filter((edge) => idSet.has(edge.from) && idSet.has(edge.to))
-    .sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
+  const ids = [...nodeIds].sort();
+  const graphEdges = [...edges].sort(
+    (a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to),
+  );
   const nodeWidths: Record<string, number> = {};
   const graph = new dagre.graphlib.Graph<GraphLabel, NodeLabel, EdgeLabel>();
 
@@ -83,20 +73,5 @@ export function computeMapLayout(
     };
   }
 
-  const edgeLayouts = graphEdges.map((edge) => {
-    const route = graph.edge(edge.from, edge.to);
-    const source = positions[edge.from];
-    const target = positions[edge.to];
-    return {
-      ...edge,
-      points: route?.points?.map(({ x, y }) => ({ x, y })) ?? [],
-      feedback:
-        source !== undefined &&
-        target !== undefined &&
-        target.x + (nodeWidths[edge.to] ?? MAP_NODE_W) / 2 <
-          source.x + (nodeWidths[edge.from] ?? MAP_NODE_W) / 2,
-    };
-  });
-
-  return { nodeIds: ids, positions, nodeWidths, edges: edgeLayouts };
+  return { nodeIds: ids, positions, nodeWidths, edges: graphEdges };
 }

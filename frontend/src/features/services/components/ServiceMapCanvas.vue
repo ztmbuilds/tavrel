@@ -4,7 +4,6 @@ import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
 import { VueFlow } from "@vue-flow/core";
 
-import ServiceMapEdge from "@/features/services/components/ServiceMapEdge.vue";
 import ServiceMapNode from "@/features/services/components/ServiceMapNode.vue";
 
 import type { MapLayout } from "../layout";
@@ -33,7 +32,6 @@ const {
   movementAnnouncement,
   canZoomIn,
   canZoomOut,
-  handleNodeDrag,
   handleNodeMouseEnter,
   handleNodeMouseLeave,
   handleEdgeClick,
@@ -63,14 +61,10 @@ const {
       class="h-full w-full bg-transparent"
       @node-mouse-enter="handleNodeMouseEnter"
       @node-mouse-leave="handleNodeMouseLeave"
-      @node-drag="handleNodeDrag"
       @edge-click="handleEdgeClick"
     >
       <template #node-service="nodeProps">
         <ServiceMapNode v-bind="nodeProps" />
-      </template>
-      <template #edge-service="edgeProps">
-        <ServiceMapEdge v-bind="edgeProps" />
       </template>
       <Background
         variant="dots"
