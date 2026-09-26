@@ -14,7 +14,9 @@ function resolveAppPort(): string {
 export default defineConfig(() => {
   const appPort = resolveAppPort();
   // vite-svg-loader types its plugin as Plugin<any>, which collapses mixed arrays to any[].
-  const svgPlugin = svgLoader() as PluginOption;
+  const svgPlugin = svgLoader({
+    defaultImport: "url",
+  }) as PluginOption;
 
   return {
     plugins: [vue(), svgPlugin, tailwindcss()],
