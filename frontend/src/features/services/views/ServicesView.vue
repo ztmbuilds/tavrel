@@ -183,10 +183,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
         />
       </template>
     </PageHead>
-    <p class="text-secondary shrink-0 px-4 pt-1 text-[0.8125rem]">
-      How your services call each other, built from trace data in the selected
-      window.
-    </p>
+
     <div class="flex shrink-0 items-center gap-2.5 px-4 py-3">
       <div class="max-w-70 min-w-40 flex-1">
         <SearchBox
