@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"sort"
 	"strings"
 	"time"
 
@@ -732,6 +733,86 @@ func (s *SQLiteStore) ListEnvironments(ctx context.Context) ([]string, error) {
 	}
 
 	return environments, nil
+}
+
+func (s *SQLiteStore) GetServiceGraph(ctx context.Context, start, end *time.Time) (ServiceGraph, error) {
+	graph := ServiceGraph{Nodes: []ServiceNode{}, Edges: []ServiceEdge{}}
+	nodeIDs := make(map[string]struct{})
+
+	conds := make([]string, 0, 3)
+	args := make([]any, 0, 3)
+	if start != nil {
+		conds = append(conds, "start_time_ns >= ?")
+		args = append(args, start.UnixNano())
+	}
+	if end != nil {
+		conds = append(conds, "start_time_ns <= ?")
+		args = append(args, end.UnixNano())
+	}
+	conds = append(conds, "service != ''")
+	where := " WHERE " + strings.Join(conds, " AND ")
+
+	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT service FROM spans`+where+` ORDER BY service`, args...)
+	if err != nil {
+		return graph, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var service string
+		if err := rows.Scan(&service); err != nil {
+			return graph, err
+		}
+		nodeIDs[service] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return graph, err
+	}
+
+	edgeConds := make([]string, 0, 5)
+	edgeArgs := make([]any, 0, 5)
+	edgeConds = append(edgeConds, "child.service != parent.service")
+	edgeConds = append(edgeConds, "child.service != ''")
+	edgeConds = append(edgeConds, "parent.service != ''")
+	if start != nil {
+		edgeConds = append(edgeConds, "child.start_time_ns >= ?")
+		edgeArgs = append(edgeArgs, start.UnixNano())
+	}
+	if end != nil {
+		edgeConds = append(edgeConds, "child.start_time_ns <= ?")
+		edgeArgs = append(edgeArgs, end.UnixNano())
+	}
+
+	edgeQuery := `SELECT DISTINCT parent.service, child.service FROM spans child JOIN spans parent ON child.parent_span_id = parent.span_id AND child.trace_id = parent.trace_id WHERE ` + strings.Join(edgeConds, " AND ") + ` ORDER BY parent.service, child.service`
+	edgeRows, err := s.readDB.QueryContext(ctx, edgeQuery, edgeArgs...)
+	if err != nil {
+		return graph, err
+	}
+	defer edgeRows.Close()
+
+	for edgeRows.Next() {
+		var edge ServiceEdge
+		if err := edgeRows.Scan(&edge.From, &edge.To); err != nil {
+			return graph, err
+		}
+		nodeIDs[edge.From] = struct{}{}
+		nodeIDs[edge.To] = struct{}{}
+		graph.Edges = append(graph.Edges, edge)
+	}
+	if err := edgeRows.Err(); err != nil {
+		return graph, err
+	}
+
+	serviceIDs := make([]string, 0, len(nodeIDs))
+	for service := range nodeIDs {
+		serviceIDs = append(serviceIDs, service)
+	}
+	sort.Strings(serviceIDs)
+	for _, service := range serviceIDs {
+		graph.Nodes = append(graph.Nodes, ServiceNode{ID: service})
+	}
+
+	return graph, nil
 }
 
 func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {

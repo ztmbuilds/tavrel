@@ -16,6 +16,7 @@ type Store interface {
 	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
 	ListServices(ctx context.Context) ([]string, error)
 	ListEnvironments(ctx context.Context) ([]string, error)
+	GetServiceGraph(ctx context.Context, start, end *time.Time) (ServiceGraph, error)
 
 	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
 
@@ -172,4 +173,18 @@ type Log struct {
 	Environment        string         `json:"environment"`
 	Attributes         map[string]any `json:"attributes"`
 	ResourceAttributes map[string]any `json:"resourceAttributes"`
+}
+
+type ServiceNode struct {
+	ID string `json:"id"`
+}
+
+type ServiceEdge struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+}
+
+type ServiceGraph struct {
+	Nodes []ServiceNode `json:"nodes"`
+	Edges []ServiceEdge `json:"edges"`
 }

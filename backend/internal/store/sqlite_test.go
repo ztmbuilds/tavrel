@@ -110,6 +110,68 @@ func TestListFilters(t *testing.T) {
 	}
 }
 
+func TestGetServiceGraphIncludesParentServiceWhenParentStartedBeforeWindow(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	childStart := time.Now().Truncate(time.Second)
+	parentStart := childStart.Add(-time.Hour)
+	parentEnd := childStart.Add(time.Minute)
+
+	trace := Trace{
+		TraceID:   "trace-graph",
+		StartTime: parentStart,
+		EndTime:   parentEnd,
+		SpanCount: 2,
+	}
+	spans := []Span{
+		{
+			SpanID:    "parent-span",
+			TraceID:   trace.TraceID,
+			Service:   "parent-service",
+			StartTime: parentStart,
+			EndTime:   parentEnd,
+		},
+		{
+			SpanID:       "child-span",
+			TraceID:      trace.TraceID,
+			ParentSpanID: "parent-span",
+			Service:      "child-service",
+			StartTime:    childStart,
+			EndTime:      childStart.Add(time.Second),
+		},
+	}
+	if err := s.StoreTrace(ctx, trace, spans); err != nil {
+		t.Fatal(err)
+	}
+
+	start := childStart.Add(-time.Minute)
+	end := childStart.Add(time.Minute)
+	graph, err := s.GetServiceGraph(ctx, &start, &end)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantNodes := []ServiceNode{{ID: "child-service"}, {ID: "parent-service"}}
+	if len(graph.Nodes) != len(wantNodes) {
+		t.Fatalf("got nodes %+v, want %+v", graph.Nodes, wantNodes)
+	}
+	for i, want := range wantNodes {
+		if graph.Nodes[i] != want {
+			t.Fatalf("got nodes %+v, want %+v", graph.Nodes, wantNodes)
+		}
+	}
+
+	wantEdges := []ServiceEdge{{From: "parent-service", To: "child-service"}}
+	if len(graph.Edges) != len(wantEdges) {
+		t.Fatalf("got edges %+v, want %+v", graph.Edges, wantEdges)
+	}
+	for i, want := range wantEdges {
+		if graph.Edges[i] != want {
+			t.Fatalf("got edges %+v, want %+v", graph.Edges, wantEdges)
+		}
+	}
+}
+
 func TestStoreLargeBatches(t *testing.T) {
 	s := openTestStore(t)
 
