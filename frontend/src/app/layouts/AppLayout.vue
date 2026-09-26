@@ -1,7 +1,20 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
+import { watch } from "vue";
 
 import AppSidebar from "@/shared/components/AppSidebar.vue";
+import { useServicesQuery } from "@/shared/queries/filter-options";
+import { setServiceColorRegistry } from "@/shared/utils/service-color";
+
+const { data: services } = useServicesQuery();
+
+watch(
+  services,
+  (names) => {
+    if (names !== undefined) setServiceColorRegistry(names);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
