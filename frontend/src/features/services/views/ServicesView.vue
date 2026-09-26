@@ -230,7 +230,6 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
           :selected="selected"
           :query="searchInput"
           @select="selectService"
-          @reset="clearSelection"
         />
       </div>
       <aside class="bg-panel min-w-0" aria-label="Service inspector">
