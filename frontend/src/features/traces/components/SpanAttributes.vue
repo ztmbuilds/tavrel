@@ -2,8 +2,8 @@
 import { toRef } from "vue";
 
 import { cn } from "@/shared/utils/cn";
+import CopyButton from "@/shared/components/CopyButton.vue";
 import AttributeTreeNode from "./AttributeTreeNode.vue";
-import CopyButton from "./CopyButton.vue";
 import { useAttributeTree } from "../composables/useAttributeTree";
 import type { Attributes } from "@/shared/api/otel";
 
@@ -15,7 +15,6 @@ const attributesRef = toRef(props, "attributes");
 
 const {
   mode,
-  copiedPath,
   nestedNodes,
   flatRows,
   hasGroups,
@@ -25,7 +24,6 @@ const {
   toggle,
   expandAll,
   collapseAll,
-  copyAttribute,
 } = useAttributeTree(attributesRef);
 </script>
 
@@ -101,8 +99,6 @@ const {
           :key="node.fullPath"
           :node="node"
           :row-style="virtualStyle"
-          :copied-path="copiedPath"
-          @copy="copyAttribute"
           @toggle="toggle"
         />
       </div>
@@ -127,8 +123,7 @@ const {
           <CopyButton
             :label="`Copy ${row.path}`"
             title="Copy key and value"
-            :copied="copiedPath === row.path"
-            @copy="copyAttribute(row.path, `${row.path}: ${row.value}`)"
+            :text="`${row.path}: ${row.value}`"
           />
         </div>
       </div>

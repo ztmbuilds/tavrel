@@ -3,12 +3,13 @@ import { computed } from "vue";
 
 import type { Log } from "@/shared/types/entities/log";
 import { cn } from "@/shared/utils/cn";
-import { truncateTraceId } from "@/shared/utils/format";
+import { SHORT_LIST_ID_LENGTH, truncateTraceId } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
 import {
   formatRelativeTime,
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
+import CopyButton from "@/shared/components/CopyButton.vue";
 const props = defineProps<{
   log: Log;
   expanded: boolean;
@@ -25,7 +26,9 @@ const dateTimeLabel = computed(() =>
   formatShortDateTimeWithSeconds(props.log.timestamp),
 );
 
-const shortTraceId = computed(() => truncateTraceId(props.log.traceId));
+const shortTraceId = computed(() =>
+  truncateTraceId(props.log.traceId, SHORT_LIST_ID_LENGTH),
+);
 
 const rowLabel = computed(
   () =>
@@ -112,15 +115,24 @@ const rowLabel = computed(
     >
       {{ log.message }}
     </div>
-    <button
+    <span
       v-if="log.traceId !== ''"
-      type="button"
-      class="text-signal shrink-0 cursor-pointer border-none bg-transparent p-0.5 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2 max-[56.25rem]:hidden"
-      :title="`Open trace ${log.traceId}`"
-      @click.stop="$emit('openTrace', log.traceId)"
+      class="group inline-flex shrink-0 items-center gap-1 max-[56.25rem]:hidden"
     >
-      trace:{{ shortTraceId }}
-    </button>
+      <button
+        type="button"
+        class="text-signal cursor-pointer border-none bg-transparent p-0.5 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2"
+        :title="`Open trace ${log.traceId}`"
+        @click.stop="$emit('openTrace', log.traceId)"
+      >
+        trace:{{ shortTraceId }}
+      </button>
+      <CopyButton
+        :text="log.traceId"
+        label="Copy trace ID"
+        title="Copy trace ID"
+      />
+    </span>
   </div>
   <div
     v-if="expanded"
@@ -147,20 +159,34 @@ const rowLabel = computed(
       <div v-if="log.traceId !== ''" class="flex gap-1">
         <dt class="text-tertiary">trace_id&nbsp;</dt>
         <dd class="m-0">
-          <button
-            type="button"
-            class="text-signal cursor-pointer border-none bg-transparent p-0 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2"
-            :title="log.traceId"
-            @click="$emit('openTrace', log.traceId)"
-          >
-            {{ log.traceId }}
-          </button>
+          <span class="group inline-flex items-center gap-1">
+            <button
+              type="button"
+              class="text-signal cursor-pointer border-none bg-transparent p-0 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2"
+              :title="log.traceId"
+              @click="$emit('openTrace', log.traceId)"
+            >
+              {{ log.traceId }}
+            </button>
+            <CopyButton
+              :text="log.traceId"
+              label="Copy trace ID"
+              title="Copy trace ID"
+            />
+          </span>
         </dd>
       </div>
       <div v-if="log.spanId !== ''" class="flex gap-1">
         <dt class="text-tertiary">span_id&nbsp;</dt>
         <dd class="text-primary m-0 font-mono text-[0.71875rem] tabular-nums">
-          {{ log.spanId }}
+          <span class="group inline-flex items-center gap-1">
+            <span>{{ log.spanId }}</span>
+            <CopyButton
+              :text="log.spanId"
+              label="Copy span ID"
+              title="Copy span ID"
+            />
+          </span>
         </dd>
       </div>
       <div v-if="log.host !== ''" class="flex gap-1">

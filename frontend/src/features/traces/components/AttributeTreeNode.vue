@@ -4,19 +4,17 @@ import type { StyleValue } from "vue";
 import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 
 import { cn } from "@/shared/utils/cn";
+import CopyButton from "@/shared/components/CopyButton.vue";
 import type { AttributeVisibleNode } from "../composables/useAttributeTree";
 
 import AttributeTreeNode from "./AttributeTreeNode.vue";
-import CopyButton from "./CopyButton.vue";
 
 defineProps<{
   node: AttributeVisibleNode;
   rowStyle: StyleValue | undefined;
-  copiedPath: string | null;
 }>();
 
-const emit = defineEmits<{
-  copy: [path: string, text: string];
+defineEmits<{
   toggle: [path: string];
 }>();
 </script>
@@ -64,8 +62,6 @@ const emit = defineEmits<{
         :key="child.fullPath"
         :node="child"
         :row-style="rowStyle"
-        :copied-path="copiedPath"
-        @copy="(path, text) => emit('copy', path, text)"
         @toggle="$emit('toggle', $event)"
       />
     </div>
@@ -86,8 +82,7 @@ const emit = defineEmits<{
     <CopyButton
       :label="`Copy value of ${node.fullPath}`"
       title="Copy value"
-      :copied="copiedPath === node.fullPath"
-      @copy="$emit('copy', node.fullPath, node.value)"
+      :text="node.value"
     />
   </div>
 </template>

@@ -50,7 +50,6 @@ interface AttributeTreeNode {
 
 const VIEW_MODE_STORAGE_KEY = "span-attributes-view-mode";
 const VIRTUALIZE_THRESHOLD = 200;
-const COPY_FLASH_MS = 1600;
 
 function readInitialMode(): AttributeViewMode {
   try {
@@ -64,7 +63,6 @@ function readInitialMode(): AttributeViewMode {
 
 export function useAttributeTree(source: Ref<Attributes>): {
   mode: Ref<AttributeViewMode>;
-  copiedPath: Ref<string | null>;
   nestedNodes: ComputedRef<AttributeVisibleNode[]>;
   flatRows: ComputedRef<AttributeFlatRow[]>;
   hasGroups: ComputedRef<boolean>;
@@ -75,12 +73,9 @@ export function useAttributeTree(source: Ref<Attributes>): {
   toggle: (path: string) => void;
   expandAll: () => void;
   collapseAll: () => void;
-  copyAttribute: (path: string, text: string) => void;
 } {
   const mode = ref<AttributeViewMode>(readInitialMode());
-  const copiedPath = ref<string | null>(null);
   const collapsed = ref<Set<string>>(new Set());
-  let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
   const roots = computed((): AttributeTreeNode[] => {
     const nodes: AttributeTreeNode[] = [];
@@ -175,18 +170,8 @@ export function useAttributeTree(source: Ref<Attributes>): {
     collapsed.value = paths;
   }
 
-  function copyAttribute(path: string, text: string): void {
-    void navigator.clipboard?.writeText(text).catch(() => {});
-    copiedPath.value = path;
-    if (copyTimer !== undefined) clearTimeout(copyTimer);
-    copyTimer = setTimeout(() => {
-      copiedPath.value = null;
-    }, COPY_FLASH_MS);
-  }
-
   return {
     mode,
-    copiedPath,
     nestedNodes,
     flatRows,
     hasGroups,
@@ -197,7 +182,6 @@ export function useAttributeTree(source: Ref<Attributes>): {
     toggle,
     expandAll,
     collapseAll,
-    copyAttribute,
   };
 }
 

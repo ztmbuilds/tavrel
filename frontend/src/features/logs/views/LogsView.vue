@@ -505,7 +505,7 @@ function openTrace(traceId: string): void {
               Message
             </div>
             <div
-              class="text-tertiary w-[4.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
+              class="text-tertiary w-[7.5rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
             >
               Trace
             </div>

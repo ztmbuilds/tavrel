@@ -468,7 +468,7 @@ function openTrace(traceId: string): void {
             class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
           >
             <div
-              class="text-tertiary w-[3.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[5.25rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
               aria-hidden="true"
             >
               ID

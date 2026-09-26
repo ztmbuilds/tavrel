@@ -3,7 +3,7 @@ import { computed } from "vue";
 
 import type { Span } from "@/shared/types/entities/span";
 import { cn } from "@/shared/utils/cn";
-import { truncateTraceId } from "@/shared/utils/format";
+import { SHORT_LIST_ID_LENGTH } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
 import {
   diffMsPrecise,
@@ -11,6 +11,7 @@ import {
   formatRelativeTime,
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
+import CopyButton from "@/shared/components/CopyButton.vue";
 
 const props = defineProps<{
   span: Span;
@@ -37,7 +38,13 @@ const dateTimeLabel = computed(() =>
   formatShortDateTimeWithSeconds(props.span.startTime),
 );
 
-const shortTraceId = computed(() => truncateTraceId(props.span.traceId));
+const shortSpanId = computed(() =>
+  props.span.spanId.slice(0, SHORT_LIST_ID_LENGTH),
+);
+
+const shortTraceId = computed(() =>
+  props.span.traceId.slice(0, SHORT_LIST_ID_LENGTH),
+);
 
 const meterWidth = computed(() => {
   if (props.maxDurationMs <= 0) return 0;
@@ -78,23 +85,56 @@ const rowLabel = computed(
       <div
         :class="
           cn(
-            'text-primary truncate text-[0.78125rem] leading-snug',
+            'text-primary truncate text-sm leading-snug font-medium',
             span.status === 'error' && 'text-error',
           )
         "
       >
         <span :title="span.name">{{ span.name }}</span>
       </div>
-      <div class="text-tertiary mt-0.5 flex min-w-0 gap-2.5 text-xs">
-        <span class="truncate">{{ span.service }}</span>
-        <button
-          type="button"
-          class="text-tertiary hover:text-signal shrink-0 cursor-pointer border-none bg-transparent p-0 font-mono text-xs tabular-nums hover:underline hover:underline-offset-2"
-          :title="`Open trace ${span.traceId}`"
-          @click.stop="$emit('openTrace', span.traceId)"
-        >
-          trace:{{ shortTraceId }}
-        </button>
+      <div
+        class="text-tertiary mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs"
+      >
+        <span class="inline-flex min-w-0 shrink items-center gap-2">
+          <span class="text-secondary min-w-0 truncate">{{
+            span.service
+          }}</span>
+          <span aria-hidden="true">·</span>
+        </span>
+        <span class="inline-flex shrink-0 items-center gap-2">
+          <span class="text-tertiary">span</span>
+          <span class="group inline-flex items-center" :title="span.spanId">
+            <span class="text-secondary font-mono tabular-nums">{{
+              shortSpanId
+            }}</span>
+            <CopyButton
+              compact
+              :text="span.spanId"
+              label="Copy span ID"
+              title="Copy span ID"
+            />
+          </span>
+          <span aria-hidden="true">·</span>
+        </span>
+        <span class="inline-flex shrink-0 items-center gap-2">
+          <span class="text-tertiary">trace</span>
+          <span class="group inline-flex items-center">
+            <button
+              type="button"
+              class="text-secondary hover:text-signal cursor-pointer border-none bg-transparent p-0 font-mono text-xs tabular-nums hover:underline hover:underline-offset-2"
+              :title="`Open trace ${span.traceId}`"
+              @click.stop="$emit('openTrace', span.traceId)"
+            >
+              {{ shortTraceId }}
+            </button>
+            <CopyButton
+              compact
+              :text="span.traceId"
+              label="Copy trace ID"
+              title="Copy trace ID"
+            />
+          </span>
+        </span>
       </div>
     </div>
     <div

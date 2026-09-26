@@ -3,13 +3,14 @@ import { computed } from "vue";
 
 import type { Trace } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
-import { truncateTraceId } from "@/shared/utils/format";
+import { SHORT_LIST_ID_LENGTH, truncateTraceId } from "@/shared/utils/format";
 import {
   diffMsPrecise,
   formatDurationMs,
   formatRelativeTime,
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
+import CopyButton from "@/shared/components/CopyButton.vue";
 
 const props = defineProps<{
   trace: Trace;
@@ -36,7 +37,9 @@ const dateTimeLabel = computed(() =>
   formatShortDateTimeWithSeconds(props.trace.startTime),
 );
 
-const shortTraceId = computed(() => truncateTraceId(props.trace.traceId));
+const shortTraceId = computed(() =>
+  truncateTraceId(props.trace.traceId, SHORT_LIST_ID_LENGTH),
+);
 
 const meterWidth = computed(() => {
   if (props.maxDurationMs <= 0) return 0;
@@ -68,10 +71,16 @@ const rowLabel = computed(
     @keydown.space.prevent="$emit('openTrace', trace.traceId)"
   >
     <div
-      class="text-tertiary w-[3.75rem] shrink-0 truncate font-mono text-xs tabular-nums"
-      :title="trace.traceId"
+      class="text-tertiary w-[5.25rem] shrink-0 font-mono text-xs tabular-nums"
     >
-      {{ shortTraceId }}
+      <span class="group inline-flex items-center gap-1">
+        <span class="truncate" :title="trace.traceId">{{ shortTraceId }}</span>
+        <CopyButton
+          :text="trace.traceId"
+          label="Copy trace ID"
+          title="Copy trace ID"
+        />
+      </span>
     </div>
     <div class="min-w-0 flex-1">
       <div
