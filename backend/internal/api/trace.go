@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"noname/internal/store"
 	"slices"
-	"time"
 )
 
 type traceStore interface {
@@ -82,23 +81,11 @@ func newTraceListOptions(r *http.Request) (store.ListTracesOptions, error) {
 		return store.ListTracesOptions{}, BadRequest("invalid order: must be asc or desc", nil)
 	}
 
-	if v := query.Get("start"); v != "" {
-		start, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListTracesOptions{}, BadRequest("invalid start: must be ISO 8601 ", err)
-		}
-		options.Start = &start
+	start, end, err := parseTimeRange(r)
+	if err != nil {
+		return store.ListTracesOptions{}, err
 	}
-	if v := query.Get("end"); v != "" {
-		end, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListTracesOptions{}, BadRequest("invalid end: must be ISO 8601 ", err)
-		}
-		options.End = &end
-	}
-	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
-		return store.ListTracesOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
+	options.Start, options.End = start, end
 
 	return options, nil
 }

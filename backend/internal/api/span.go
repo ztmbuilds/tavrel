@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"noname/internal/store"
 	"strconv"
-	"time"
 )
 
 const defaultSpansLimit = 25
@@ -72,23 +71,11 @@ func newSpanListOptions(r *http.Request) (store.ListSpansOptions, error) {
 		options.Kind = &kind
 	}
 
-	if v := query.Get("start"); v != "" {
-		start, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListSpansOptions{}, BadRequest("invalid start: must be ISO 8601 ", err)
-		}
-		options.Start = &start
+	start, end, err := parseTimeRange(r)
+	if err != nil {
+		return store.ListSpansOptions{}, err
 	}
-	if v := query.Get("end"); v != "" {
-		end, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListSpansOptions{}, BadRequest("invalid end: must be ISO 8601 ", err)
-		}
-		options.End = &end
-	}
-	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
-		return store.ListSpansOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
+	options.Start, options.End = start, end
 
 	return options, nil
 }

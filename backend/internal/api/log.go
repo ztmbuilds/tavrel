@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"noname/internal/store"
-	"time"
 )
 
 const defaultLogsLimit = 30
@@ -68,23 +67,11 @@ func newLogListOptions(r *http.Request) (store.ListLogsOptions, error) {
 		return store.ListLogsOptions{}, BadRequest("invalid level: must be all, info, warn or error", nil)
 	}
 
-	if v := query.Get("start"); v != "" {
-		start, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListLogsOptions{}, BadRequest("invalid start: must be ISO 8601 ", err)
-		}
-		options.Start = &start
+	start, end, err := parseTimeRange(r)
+	if err != nil {
+		return store.ListLogsOptions{}, err
 	}
-	if v := query.Get("end"); v != "" {
-		end, err := time.Parse(time.RFC3339, v)
-		if err != nil {
-			return store.ListLogsOptions{}, BadRequest("invalid end: must be ISO 8601 ", err)
-		}
-		options.End = &end
-	}
-	if options.Start != nil && options.End != nil && options.Start.After(*options.End) {
-		return store.ListLogsOptions{}, BadRequest("invalid time range: start must not be after end", nil)
-	}
+	options.Start, options.End = start, end
 
 	return options, nil
 }
