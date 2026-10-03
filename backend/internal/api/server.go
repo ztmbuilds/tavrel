@@ -23,6 +23,7 @@ func NewAPPHttpServer(store store.Store, cfg *config.Config) *http.Server {
 		r.Get("/spans", Make(newListSpansHandler(store)))
 		r.Get("/services", Make(newListServicesHandler(store)))
 		r.Get("/service-graph", Make(newServiceGraphHandler(store)))
+		r.Get("/stats", Make(newStatsHandler(store)))
 		r.Get("/environments", Make(newListEnvironmentsHandler(store)))
 	})
 

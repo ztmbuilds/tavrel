@@ -1,5 +1,6 @@
 import type { Log, LogLevel } from "@/shared/types/entities/log";
 import type { Span, SpanKind, SpanStatus } from "@/shared/types/entities/span";
+import type { Trace, TraceStatus } from "@/shared/types/entities/trace";
 import { diffMsPrecise } from "@/shared/utils/time";
 
 export type JsonValue =
@@ -123,6 +124,31 @@ export interface LogDto {
   environment: string;
   attributes: unknown;
   resourceAttributes: unknown;
+}
+
+export interface TraceDto {
+  traceId: string;
+  rootService: string;
+  rootName: string;
+  environment: string;
+  startTime: string;
+  endTime: string;
+  spanCount: number;
+  error: boolean;
+}
+
+export function toTrace(dto: TraceDto): Trace {
+  const status: TraceStatus = dto.error ? "error" : "ok";
+  return {
+    traceId: dto.traceId,
+    rootService: dto.rootService,
+    rootName: dto.rootName,
+    environment: dto.environment,
+    startTime: dto.startTime,
+    endTime: dto.endTime,
+    spanCount: dto.spanCount,
+    status,
+  };
 }
 
 export interface StringListResponse {

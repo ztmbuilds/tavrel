@@ -32,6 +32,9 @@
   --color-warn: #e3b158;
   --color-ok: #5cc98a;
   --color-info: #5b9fe0;
+
+  --color-chart-ok: #22c55e;
+  --color-chart-error: #ef4444;
 }
 
 @utility service-map-surface {

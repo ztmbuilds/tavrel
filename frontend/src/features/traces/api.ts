@@ -1,8 +1,15 @@
 import { apiFetch } from "@/shared/api/client";
-import { toLog, toSpan, type LogDto, type SpanDto } from "@/shared/api/otel";
+import {
+  toLog,
+  toSpan,
+  toTrace,
+  type LogDto,
+  type SpanDto,
+  type TraceDto,
+} from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 import type { SpanKind } from "@/shared/types/entities/span";
-import type { Trace, TraceStatus } from "@/shared/types/entities/trace";
+import type { Trace } from "@/shared/types/entities/trace";
 
 import type { SpanNode, TraceDetail, TracesListParams } from "./types";
 
@@ -13,38 +20,10 @@ export function isAsyncSpan(kind: SpanKind): boolean {
   return kind === "producer" || kind === "consumer";
 }
 
-function toTraceStatus(error: boolean): TraceStatus {
-  return error ? "error" : "ok";
-}
-
-interface TraceDto {
-  traceId: string;
-  rootService: string;
-  rootName: string;
-  environment: string;
-  startTime: string;
-  endTime: string;
-  spanCount: number;
-  error: boolean;
-}
-
 interface TracesResponse {
   message: string;
   data: TraceDto[];
   meta: { nextCursor: string | null };
-}
-
-function toTrace(dto: TraceDto): Trace {
-  return {
-    traceId: dto.traceId,
-    rootService: dto.rootService,
-    rootName: dto.rootName,
-    environment: dto.environment,
-    startTime: dto.startTime,
-    endTime: dto.endTime,
-    spanCount: dto.spanCount,
-    status: toTraceStatus(dto.error),
-  };
 }
 
 export interface TracesPage {
@@ -61,6 +40,10 @@ export async function getTraces(params: TracesListParams): Promise<TracesPage> {
   if (params.service.length > 0) query.service = params.service;
   if (params.environment.length > 0) query.environment = params.environment;
   if (params.order !== "desc") query.order = params.order;
+  if (params.minDurationMs !== undefined)
+    query.minDurationMs = params.minDurationMs;
+  if (params.maxDurationMs !== undefined)
+    query.maxDurationMs = params.maxDurationMs;
   if (params.start !== undefined) query.start = params.start;
   if (params.end !== undefined) query.end = params.end;
   if (params.cursor !== undefined) query.cursor = params.cursor;

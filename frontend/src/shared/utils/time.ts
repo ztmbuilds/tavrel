@@ -174,6 +174,12 @@ export function formatDurationMs(ms: number): string {
   return `${seconds.toFixed(Number.isInteger(seconds) ? 0 : 2)}s`;
 }
 
+export function formatDurationRange(fromMs: number, toMs?: number): string {
+  if (toMs === undefined) return `≥${formatDurationMs(fromMs)}`;
+  if (fromMs === 0) return `<${formatDurationMs(toMs)}`;
+  return `${formatDurationMs(fromMs)}–${formatDurationMs(toMs)}`;
+}
+
 export function formatRelativeTime(
   iso: string,
   now: number = Date.now(),

@@ -4,9 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"math"
 	"net/http"
+	"net/url"
 	"noname/internal/store"
 	"slices"
+	"strconv"
 )
 
 type traceStore interface {
@@ -24,6 +28,23 @@ type TraceData struct {
 }
 
 const defaultTracesLimit = 20
+
+// maxDurationFilterMs is the largest millisecond value that still fits in an
+// int64 nanosecond span; larger values overflow the store's ms→ns conversion.
+const maxDurationFilterMs = math.MaxInt64 / 1_000_000
+
+func parseDurationFilterMs(query url.Values, name string) (*int64, error) {
+	value := query.Get(name)
+	if value == "" {
+		return nil, nil
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil || n < 0 || int64(n) > maxDurationFilterMs {
+		return nil, BadRequest(fmt.Sprintf("invalid %s: must be between 0 and %d", name, maxDurationFilterMs), err)
+	}
+	ms := int64(n)
+	return &ms, nil
+}
 
 func newListTracesHandler(ts traceStore) AppHandler {
 
@@ -79,6 +100,20 @@ func newTraceListOptions(r *http.Request) (store.ListTracesOptions, error) {
 		options.Ascending = true
 	default:
 		return store.ListTracesOptions{}, BadRequest("invalid order: must be asc or desc", nil)
+	}
+
+	minDurationMs, err := parseDurationFilterMs(query, "minDurationMs")
+	if err != nil {
+		return store.ListTracesOptions{}, err
+	}
+	options.MinDurationMs = minDurationMs
+	maxDurationMs, err := parseDurationFilterMs(query, "maxDurationMs")
+	if err != nil {
+		return store.ListTracesOptions{}, err
+	}
+	options.MaxDurationMs = maxDurationMs
+	if options.MinDurationMs != nil && options.MaxDurationMs != nil && *options.MinDurationMs > *options.MaxDurationMs {
+		return store.ListTracesOptions{}, BadRequest("invalid duration range: minDurationMs must not be greater than maxDurationMs", nil)
 	}
 
 	start, end, err := parseTimeRange(r)

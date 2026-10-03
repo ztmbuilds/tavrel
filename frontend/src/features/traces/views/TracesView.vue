@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import {
+  useRoute,
+  useRouter,
+  type RouteLocationNormalizedLoaded,
+} from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg?component";
 
@@ -50,7 +54,11 @@ import {
   DAY_PRESETS,
   TIME_PRESETS,
 } from "@/shared/utils/date-range";
-import { diffMsPrecise, formatDateTimeRange } from "@/shared/utils/time";
+import {
+  diffMsPrecise,
+  formatDateTimeRange,
+  formatDurationRange,
+} from "@/shared/utils/time";
 
 const STATUS_OPTIONS: readonly {
   value: TraceStatusFilter;
@@ -68,10 +76,22 @@ const BACK_TO_TOP_THRESHOLD_PX = 600;
 const route = useRoute();
 const router = useRouter();
 
+function readDurationMsParam(
+  route: RouteLocationNormalizedLoaded,
+  name: string,
+): number | undefined {
+  const raw = readQueryParam(route, name);
+  if (raw === undefined) return undefined;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 function filtersFromRoute(): TracesFilters {
   const statusRaw = readQueryParam(route, "status");
   const orderRaw = readQueryParam(route, "order");
-  return {
+  const minDurationMs = readDurationMsParam(route, "minDurationMs");
+  const maxDurationMs = readDurationMsParam(route, "maxDurationMs");
+  const filters: TracesFilters = {
     search: readQueryParam(route, "search") ?? "",
     status:
       statusRaw === "error" || statusRaw === "ok" || statusRaw === "all"
@@ -82,6 +102,9 @@ function filtersFromRoute(): TracesFilters {
     order: orderRaw === "asc" ? "asc" : "desc",
     ...resolveInitialTime(route),
   };
+  if (minDurationMs !== undefined) filters.minDurationMs = minDurationMs;
+  if (maxDurationMs !== undefined) filters.maxDurationMs = maxDurationMs;
+  return filters;
 }
 
 const filters = ref<TracesFilters>(filtersFromRoute());
@@ -106,6 +129,10 @@ function filtersToQuery(): Record<string, string | string[]> {
   if (filters.value.environment.length > 0)
     query.environment = filters.value.environment;
   if (filters.value.order !== "desc") query.order = filters.value.order;
+  if (filters.value.minDurationMs !== undefined)
+    query.minDurationMs = String(filters.value.minDurationMs);
+  if (filters.value.maxDurationMs !== undefined)
+    query.maxDurationMs = String(filters.value.maxDurationMs);
   return { ...query, ...timeToQuery(filters.value) };
 }
 
@@ -178,6 +205,8 @@ const filtersActive = computed(
     filters.value.status !== "all" ||
     filters.value.service.length > 0 ||
     filters.value.environment.length > 0 ||
+    filters.value.minDurationMs !== undefined ||
+    filters.value.maxDurationMs !== undefined ||
     filters.value.range !== ALL_TIME,
 );
 
@@ -186,7 +215,9 @@ const facetsActive = computed(
     filters.value.search !== "" ||
     filters.value.status !== "all" ||
     filters.value.service.length > 0 ||
-    filters.value.environment.length > 0,
+    filters.value.environment.length > 0 ||
+    filters.value.minDurationMs !== undefined ||
+    filters.value.maxDurationMs !== undefined,
 );
 
 const activeChips = computed((): ActiveFilterChip[] => {
@@ -214,6 +245,18 @@ const activeChips = computed((): ActiveFilterChip[] => {
       key: "search",
       label: "Root operation",
       value: filters.value.search,
+    });
+  if (
+    filters.value.minDurationMs !== undefined ||
+    filters.value.maxDurationMs !== undefined
+  )
+    chips.push({
+      key: "duration",
+      label: "Duration",
+      value: formatDurationRange(
+        filters.value.minDurationMs ?? 0,
+        filters.value.maxDurationMs,
+      ),
     });
   if (filters.value.range !== ALL_TIME) {
     const preset = TIME_PRESETS.find(
@@ -253,7 +296,7 @@ const emptyActionLabel = computed(() =>
   filtersActive.value ? "Clear all filters" : undefined,
 );
 
-const maxDurationMs = computed(() => {
+const maxTraceDurationMs = computed(() => {
   let max = 0;
   for (const trace of traces.value) {
     const duration = diffMsPrecise(trace.startTime, trace.endTime);
@@ -290,6 +333,7 @@ function updateTime(time: SharedTime): void {
     service: filters.value.service,
     environment: filters.value.environment,
     order: filters.value.order,
+    ...extractDuration(filters.value),
     ...time,
   };
   persistTime(filters.value);
@@ -314,6 +358,18 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
   if (range.start !== undefined) time.start = range.start;
   if (range.end !== undefined) time.end = range.end;
   updateTime(time);
+}
+
+function extractDuration(filters: TracesFilters): {
+  minDurationMs?: number;
+  maxDurationMs?: number;
+} {
+  const duration: { minDurationMs?: number; maxDurationMs?: number } = {};
+  if (filters.minDurationMs !== undefined)
+    duration.minDurationMs = filters.minDurationMs;
+  if (filters.maxDurationMs !== undefined)
+    duration.maxDurationMs = filters.maxDurationMs;
+  return duration;
 }
 
 function toggleOrder(): void {
@@ -358,6 +414,11 @@ function removeChip(key: string): void {
   else if (key === "timerange") {
     updateTime({ range: ALL_TIME });
     return;
+  } else if (key === "duration") {
+    const next = { ...filters.value };
+    delete next.minDurationMs;
+    delete next.maxDurationMs;
+    filters.value = next;
   } else if (key === "environment")
     filters.value = { ...filters.value, environment: [] };
   else if (key === "search") {
@@ -522,7 +583,7 @@ function openTrace(traceId: string): void {
             v-for="trace in traces"
             :key="trace.traceId"
             :trace="trace"
-            :max-duration-ms="maxDurationMs"
+            :max-duration-ms="maxTraceDurationMs"
             @open-trace="openTrace"
           />
           <div

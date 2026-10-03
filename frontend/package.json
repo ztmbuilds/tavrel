@@ -19,9 +19,11 @@
     "@vue-flow/core": "^1.48.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "echarts": "^6.1.0",
     "reka-ui": "^2.5.0",
     "tailwind-merge": "^3.0.1",
     "vue": "^3.5.41",
+    "vue-echarts": "^8.3.1",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {

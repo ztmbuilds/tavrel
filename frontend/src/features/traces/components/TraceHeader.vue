@@ -2,11 +2,10 @@
 import { computed } from "vue";
 import type { RouteLocationRaw } from "vue-router";
 
-import arrowUpRightIcon from "@/assets/icons/arrow-up-right.svg?component";
 import checkOkIcon from "@/assets/icons/check-ok.svg?component";
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg?component";
 import copyIcon from "@/assets/icons/copy.svg?component";
-import PreloadLink from "@/shared/components/PreloadLink.vue";
+import ArrowLink from "@/shared/components/ArrowLink.vue";
 import type { TraceStatus } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
@@ -205,14 +204,13 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
       <span class="text-strong" aria-hidden="true">·</span>
       <span>{{ spanCount }} spans</span>
       <span class="text-strong" aria-hidden="true">·</span>
-      <PreloadLink
+      <ArrowLink
         :to="logsTo"
         route-name="logs"
-        class="decoration-strong hover:text-heading inline-flex cursor-pointer items-center gap-0.5 underline decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
+        class="text-tertiary hover:text-heading"
       >
         View logs in this time range
-        <component :is="arrowUpRightIcon" aria-hidden="true" class="size-3" />
-      </PreloadLink>
+      </ArrowLink>
     </div>
   </section>
 </template>

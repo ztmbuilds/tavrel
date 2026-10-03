@@ -23,9 +23,11 @@ import (
 var migrationFiles embed.FS
 
 const (
-	spanBatchSize   = 2000
-	logBatchSize    = 3000
-	deleteBatchSize = 10000
+	spanBatchSize        = 2000
+	logBatchSize         = 3000
+	deleteBatchSize      = 10000
+	dashboardRecentLimit = 5
+	dashboardErrorLevel  = 17
 )
 
 type SQLiteStore struct {
@@ -324,8 +326,16 @@ func (s *SQLiteStore) ListTraces(ctx context.Context, options ListTracesOptions)
 		args = append(args, options.Start.UnixNano())
 	}
 	if options.End != nil {
-		conds = append(conds, "start_time_ns <= ?")
+		conds = append(conds, "start_time_ns < ?")
 		args = append(args, options.End.UnixNano())
+	}
+	if options.MinDurationMs != nil {
+		conds = append(conds, "end_time_ns - start_time_ns >= ?")
+		args = append(args, *options.MinDurationMs*1_000_000)
+	}
+	if options.MaxDurationMs != nil {
+		conds = append(conds, "end_time_ns - start_time_ns < ?")
+		args = append(args, *options.MaxDurationMs*1_000_000)
 	}
 	if len(options.Environments) > 0 {
 		conds = append(conds, "environment IN "+inPlaceholders(len(options.Environments)))
@@ -813,6 +823,227 @@ func (s *SQLiteStore) GetServiceGraph(ctx context.Context, start, end *time.Time
 	}
 
 	return graph, nil
+}
+
+func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Time) (DashboardStats, error) {
+	stats := DashboardStats{
+		TraceBuckets:      newTraceBuckets(start, end),
+		RecentErrorTraces: []Trace{},
+		RecentErrorLogs:   []Log{},
+	}
+
+	tx, err := s.readDB.BeginTx(ctx, nil)
+	if err != nil {
+		return stats, err
+	}
+	defer tx.Rollback()
+
+	startNS, endNS := start.UnixNano(), end.UnixNano()
+	err = tx.QueryRowContext(ctx, `
+		SELECT COUNT(*), COALESCE(SUM(CASE WHEN error THEN 1 ELSE 0 END), 0)
+		FROM traces
+		WHERE start_time_ns >= ? AND start_time_ns < ?`, startNS, endNS,
+	).Scan(&stats.Overview.TraceCount, &stats.Overview.ErrorTraceCount)
+	if err != nil {
+		return stats, err
+	}
+
+	err = tx.QueryRowContext(ctx, `
+		SELECT COUNT(DISTINCT service)
+		FROM spans
+		WHERE start_time_ns >= ? AND start_time_ns < ? AND service != ''`, startNS, endNS,
+	).Scan(&stats.Overview.ActiveServiceCount)
+	if err != nil {
+		return stats, err
+	}
+
+	bucketSizeNS := dashboardTraceBucketSize(end.Sub(start)).Nanoseconds()
+	firstBucketIndex := startNS / bucketSizeNS
+	bucketRows, err := tx.QueryContext(ctx, `
+		SELECT start_time_ns / ? AS bucket_index, error, COUNT(*)
+		FROM traces
+		WHERE start_time_ns >= ? AND start_time_ns < ?
+		GROUP BY bucket_index, error`, bucketSizeNS, startNS, endNS,
+	)
+	if err != nil {
+		return stats, err
+	}
+	for bucketRows.Next() {
+		var bucketIndex int64
+		var bucketError bool
+		var count int64
+		if err := bucketRows.Scan(&bucketIndex, &bucketError, &count); err != nil {
+			bucketRows.Close()
+			return stats, err
+		}
+		bucket := &stats.TraceBuckets[int(bucketIndex-firstBucketIndex)]
+		if bucketError {
+			bucket.ErrorCount = count
+		} else {
+			bucket.OkCount = count
+		}
+	}
+	if err := bucketRows.Err(); err != nil {
+		bucketRows.Close()
+		return stats, err
+	}
+	if err := bucketRows.Close(); err != nil {
+		return stats, err
+	}
+
+	traceRows, err := tx.QueryContext(ctx, `
+		SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns,
+			span_count, error, updated_at_ns
+		FROM traces
+		WHERE error = 1 AND start_time_ns >= ? AND start_time_ns < ?
+		ORDER BY start_time_ns DESC, trace_id DESC
+		LIMIT ?`, startNS, endNS, dashboardRecentLimit,
+	)
+	if err != nil {
+		return stats, err
+	}
+	for traceRows.Next() {
+		var trace Trace
+		var startTimeNS, endTimeNS, updatedAtNS int64
+		if err := traceRows.Scan(
+			&trace.TraceID,
+			&trace.RootService,
+			&trace.Environment,
+			&trace.RootName,
+			&startTimeNS,
+			&endTimeNS,
+			&trace.SpanCount,
+			&trace.Error,
+			&updatedAtNS,
+		); err != nil {
+			traceRows.Close()
+			return stats, err
+		}
+		trace.StartTime = time.Unix(0, startTimeNS)
+		trace.EndTime = time.Unix(0, endTimeNS)
+		trace.UpdatedAt = time.Unix(0, updatedAtNS)
+		stats.RecentErrorTraces = append(stats.RecentErrorTraces, trace)
+	}
+	if err := traceRows.Err(); err != nil {
+		traceRows.Close()
+		return stats, err
+	}
+	if err := traceRows.Close(); err != nil {
+		return stats, err
+	}
+
+	logRows, err := tx.QueryContext(ctx, `
+		SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number,
+			body, service, environment, attributes, resource_attributes
+		FROM logs
+		WHERE severity_number >= ? AND timestamp_ns >= ? AND timestamp_ns < ?
+		ORDER BY timestamp_ns DESC, id DESC
+		LIMIT ?`, dashboardErrorLevel, startNS, endNS, dashboardRecentLimit,
+	)
+	if err != nil {
+		return stats, err
+	}
+	for logRows.Next() {
+		var log Log
+		var timestampNS int64
+		var body, attributes, resourceAttributes []byte
+		if err := logRows.Scan(
+			&log.ID,
+			&log.TraceID,
+			&log.SpanID,
+			&timestampNS,
+			&log.SeverityText,
+			&log.SeverityNumber,
+			&body,
+			&log.Service,
+			&log.Environment,
+			&attributes,
+			&resourceAttributes,
+		); err != nil {
+			logRows.Close()
+			return stats, err
+		}
+		if err := decodeJson(body, &log.Body); err != nil {
+			logRows.Close()
+			return stats, err
+		}
+		if err := decodeJson(attributes, &log.Attributes); err != nil {
+			logRows.Close()
+			return stats, err
+		}
+		if err := decodeJson(resourceAttributes, &log.ResourceAttributes); err != nil {
+			logRows.Close()
+			return stats, err
+		}
+		log.Timestamp = time.Unix(0, timestampNS)
+		stats.RecentErrorLogs = append(stats.RecentErrorLogs, log)
+	}
+	if err := logRows.Err(); err != nil {
+		logRows.Close()
+		return stats, err
+	}
+	if err := logRows.Close(); err != nil {
+		return stats, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return stats, err
+	}
+	return stats, nil
+}
+
+const dashboardTraceBucketLimit = 100
+
+var dashboardTraceBucketSizes = [...]time.Duration{
+	15 * time.Second,
+	30 * time.Second,
+	time.Minute,
+	5 * time.Minute,
+	15 * time.Minute,
+	30 * time.Minute,
+	time.Hour,
+	2 * time.Hour,
+	6 * time.Hour,
+	12 * time.Hour,
+	24 * time.Hour,
+}
+
+func dashboardTraceBucketSize(window time.Duration) time.Duration {
+	for _, size := range dashboardTraceBucketSizes {
+		if window <= size*dashboardTraceBucketLimit {
+			return size
+		}
+	}
+	return dashboardTraceBucketSizes[len(dashboardTraceBucketSizes)-1]
+}
+
+func newTraceBuckets(start, end time.Time) []TraceTimeBucket {
+	if !end.After(start) {
+		return []TraceTimeBucket{}
+	}
+
+	startNS, endNS := start.UnixNano(), end.UnixNano()
+	bucketSizeNS := dashboardTraceBucketSize(end.Sub(start)).Nanoseconds()
+	firstBucketIndex := startNS / bucketSizeNS
+	lastBucketIndex := (endNS - 1) / bucketSizeNS
+	buckets := make([]TraceTimeBucket, lastBucketIndex-firstBucketIndex+1)
+
+	for bucketIndex := firstBucketIndex; bucketIndex <= lastBucketIndex; bucketIndex++ {
+		bucketStartNS := bucketIndex * bucketSizeNS
+		bucketEndNS := bucketStartNS + bucketSizeNS
+		if bucketStartNS < startNS {
+			bucketStartNS = startNS
+		}
+		if bucketEndNS > endNS {
+			bucketEndNS = endNS
+		}
+		buckets[bucketIndex-firstBucketIndex] = TraceTimeBucket{
+			StartTime: time.Unix(0, bucketStartNS).UTC(),
+			EndTime:   time.Unix(0, bucketEndNS).UTC(),
+		}
+	}
+
+	return buckets
 }
 
 func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {

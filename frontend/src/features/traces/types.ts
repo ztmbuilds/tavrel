@@ -12,6 +12,8 @@ export interface TracesFilters extends SharedTime {
   service: string[];
   environment: string[];
   order: TraceOrder;
+  minDurationMs?: number;
+  maxDurationMs?: number;
 }
 
 export interface TracesListParams extends TracesFilters {

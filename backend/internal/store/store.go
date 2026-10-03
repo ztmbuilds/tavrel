@@ -17,6 +17,7 @@ type Store interface {
 	ListServices(ctx context.Context) ([]string, error)
 	ListEnvironments(ctx context.Context) ([]string, error)
 	GetServiceGraph(ctx context.Context, start, end *time.Time) (ServiceGraph, error)
+	GetDashboardStats(ctx context.Context, start, end time.Time) (DashboardStats, error)
 
 	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
 
@@ -40,13 +41,15 @@ type ListSpansCursor struct {
 
 type ListTracesOptions struct {
 	ListOptions[ListTracesCursor]
-	Search       string
-	ErrorFilter  *bool
-	Services     []string
-	Environments []string
-	Start        *time.Time
-	End          *time.Time
-	Ascending    bool
+	Search        string
+	ErrorFilter   *bool
+	Services      []string
+	Environments  []string
+	Start         *time.Time
+	End           *time.Time
+	Ascending     bool
+	MinDurationMs *int64
+	MaxDurationMs *int64
 }
 type ListLogsOptions struct {
 	ListOptions[ListLogsCursor]
@@ -187,4 +190,24 @@ type ServiceEdge struct {
 type ServiceGraph struct {
 	Nodes []ServiceNode `json:"nodes"`
 	Edges []ServiceEdge `json:"edges"`
+}
+
+type DashboardOverview struct {
+	TraceCount         int64 `json:"traceCount"`
+	ErrorTraceCount    int64 `json:"errorTraceCount"`
+	ActiveServiceCount int64 `json:"activeServiceCount"`
+}
+
+type TraceTimeBucket struct {
+	StartTime  time.Time `json:"startTime"`
+	EndTime    time.Time `json:"endTime"`
+	OkCount    int64     `json:"okCount"`
+	ErrorCount int64     `json:"errorCount"`
+}
+
+type DashboardStats struct {
+	Overview          DashboardOverview `json:"overview"`
+	TraceBuckets      []TraceTimeBucket `json:"traceBuckets"`
+	RecentErrorTraces []Trace           `json:"recentErrorTraces"`
+	RecentErrorLogs   []Log             `json:"recentErrorLogs"`
 }
