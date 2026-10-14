@@ -33,6 +33,16 @@ func isInvalidSpanID(id []byte) bool {
 	return true
 }
 
+func attributesToMap(attributes []*commonpb.KeyValue) map[string]any {
+	m := make(map[string]any, len(attributes))
+
+	for _, attr := range attributes {
+		m[attr.Key] = anyValueToGo(attr.Value)
+	}
+
+	return m
+}
+
 func anyValueToGo(v *commonpb.AnyValue) any {
 	if v == nil {
 		return nil

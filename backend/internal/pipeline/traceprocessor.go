@@ -64,24 +64,27 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					continue
 				}
 
-				spanAttributes := make(map[string]any)
-
-				for _, attr := range s.Attributes {
-					spanAttributes[attr.Key] = anyValueToGo(attr.Value)
-				}
+				spanAttributes := attributesToMap(s.Attributes)
 
 				var events []store.Event
 				for _, e := range s.Events {
-					eventAttributes := make(map[string]any)
-
-					for _, attr := range e.Attributes {
-						eventAttributes[attr.Key] = anyValueToGo(attr.Value)
-					}
-
 					events = append(events, store.Event{
 						Time:       time.Unix(0, int64(e.TimeUnixNano)),
 						Name:       e.Name,
-						Attributes: eventAttributes,
+						Attributes: attributesToMap(e.Attributes),
+					})
+				}
+
+				var links []store.Link
+				for _, l := range s.Links {
+					if isInvalidTraceID(l.TraceId) || isInvalidSpanID(l.SpanId) {
+						continue
+					}
+
+					links = append(links, store.Link{
+						TraceID:    hex.EncodeToString(l.TraceId),
+						SpanID:     hex.EncodeToString(l.SpanId),
+						Attributes: attributesToMap(l.Attributes),
 					})
 				}
 
@@ -106,6 +109,7 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					StatusMessage: statusMessage,
 					Attributes:    spanAttributes,
 					Events:        events,
+					Links:         links,
 				}
 
 				td, ok := traceGroups[span.TraceID]

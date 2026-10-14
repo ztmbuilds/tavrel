@@ -25,6 +25,7 @@ var migrationFiles embed.FS
 const (
 	spanBatchSize        = 2000
 	logBatchSize         = 3000
+	linkBatchSize        = 6000
 	deleteBatchSize      = 10000
 	dashboardRecentLimit = 5
 	dashboardErrorLevel  = 17
@@ -112,6 +113,10 @@ func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span)
 		return err
 	}
 
+	if err := s.bulkInsertLinks(ctx, tx, spans); err != nil {
+		return err
+	}
+
 	return tx.Commit()
 
 }
@@ -188,6 +193,71 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 				events,
 			)
 
+		}
+
+		query += strings.Join(placeholders, ",")
+
+		_, err := tx.ExecContext(ctx, query, values...)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+
+}
+
+func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, spans []Span) error {
+
+	type linkRow struct {
+		traceID string
+		spanID  string
+		link    Link
+	}
+
+	rows := make([]linkRow, 0)
+
+	for _, span := range spans {
+		for _, link := range span.Links {
+			rows = append(rows, linkRow{traceID: span.TraceID, spanID: span.SpanID, link: link})
+		}
+	}
+
+	if len(rows) == 0 {
+		return nil
+	}
+
+	for left := 0; left < len(rows); left += linkBatchSize {
+
+		right := left + linkBatchSize
+
+		if right > len(rows) {
+			right = len(rows)
+		}
+
+		batch := rows[left:right]
+
+		query := `INSERT OR IGNORE INTO span_links (trace_id, span_id, linked_trace_id, linked_span_id, attributes) VALUES`
+
+		placeholders := make([]string, 0, len(batch))
+		values := make([]any, 0, len(batch)*5)
+
+		for _, row := range batch {
+			attributes, err := json.Marshal(row.link.Attributes)
+			if err != nil || row.link.Attributes == nil {
+				attributes = []byte("{}")
+			}
+
+			placeholders = append(placeholders, "(?,?,?,?,?)")
+
+			values = append(values,
+				row.traceID,
+				row.spanID,
+				row.link.TraceID,
+				row.link.SpanID,
+				attributes,
+			)
 		}
 
 		query += strings.Join(placeholders, ",")
@@ -697,6 +767,40 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	return page, nil
 }
 
+func (s *SQLiteStore) ListSpanLinks(ctx context.Context, traceID, spanID string) ([]Link, error) {
+
+	query := `SELECT linked_trace_id, linked_span_id, attributes FROM span_links WHERE trace_id = ? AND span_id = ? ORDER BY linked_trace_id, linked_span_id`
+
+	rows, err := s.readDB.QueryContext(ctx, query, traceID, spanID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	links := make([]Link, 0)
+
+	for rows.Next() {
+		var link Link
+		var attributes []byte
+
+		if err := rows.Scan(&link.TraceID, &link.SpanID, &attributes); err != nil {
+			return nil, err
+		}
+
+		if err := decodeJson(attributes, &link.Attributes); err != nil {
+			return nil, err
+		}
+
+		links = append(links, link)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return links, nil
+}
+
 func (s *SQLiteStore) ListServices(ctx context.Context) ([]string, error) {
 	rows, err := s.readDB.QueryContext(ctx, `SELECT DISTINCT service FROM spans ORDER BY service`)
 	if err != nil {
@@ -1142,6 +1246,7 @@ func (s *SQLiteStore) DeleteOldData(ctx context.Context, cutoff time.Time) error
 		placeholders = strings.TrimSuffix(placeholders, ",")
 
 		logQuery := fmt.Sprintf("DELETE FROM logs WHERE trace_id IN (%s) OR timestamp_ns <= (%v)", placeholders, cutoffNS)
+		linkQuery := fmt.Sprintf("DELETE FROM span_links WHERE trace_id IN (%s)", placeholders)
 		spanQuery := fmt.Sprintf("DELETE FROM spans WHERE trace_id IN (%s)", placeholders)
 		traceQuery := fmt.Sprintf("DELETE FROM traces WHERE trace_id IN (%s)", placeholders)
 
@@ -1151,6 +1256,9 @@ func (s *SQLiteStore) DeleteOldData(ctx context.Context, cutoff time.Time) error
 		}
 
 		if _, err := tx.ExecContext(ctx, logQuery, args...); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, linkQuery, args...); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, spanQuery, args...); err != nil {

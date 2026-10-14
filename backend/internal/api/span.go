@@ -13,6 +13,10 @@ type spanStore interface {
 	ListSpans(ctx context.Context, options store.ListSpansOptions) (store.Page[store.Span, store.ListSpansCursor], error)
 }
 
+type spanLinkStore interface {
+	ListSpanLinks(ctx context.Context, traceID, spanID string) ([]store.Link, error)
+}
+
 func newListSpansHandler(s spanStore) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		options, err := newSpanListOptions(r)
@@ -78,4 +82,29 @@ func newSpanListOptions(r *http.Request) (store.ListSpansOptions, error) {
 	options.Start, options.End = start, end
 
 	return options, nil
+}
+
+func newListSpanLinksHandler(s spanLinkStore) AppHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		query := r.URL.Query()
+
+		traceID := query.Get("traceId")
+		spanID := query.Get("spanId")
+
+		if traceID == "" || spanID == "" {
+			return BadRequest("traceId and spanId are required", nil)
+		}
+
+		links, err := s.ListSpanLinks(r.Context(), traceID, spanID)
+		if err != nil {
+			return Internal(err)
+		}
+
+		writeJson(w, http.StatusOK, &Response{
+			Message: "Span links retrieved successfully",
+			Data:    links,
+		})
+
+		return nil
+	}
 }

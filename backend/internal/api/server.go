@@ -21,6 +21,7 @@ func NewAPPHttpServer(store store.Store, cfg *config.Config) *http.Server {
 
 		r.Get("/logs", Make(newListLogsHandler(store)))
 		r.Get("/spans", Make(newListSpansHandler(store)))
+		r.Get("/spans/links", Make(newListSpanLinksHandler(store)))
 		r.Get("/services", Make(newListServicesHandler(store)))
 		r.Get("/service-graph", Make(newServiceGraphHandler(store)))
 		r.Get("/stats", Make(newStatsHandler(store)))
