@@ -3,11 +3,13 @@ import xIcon from "@/assets/icons/x.svg?component";
 import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
+import type { SpanLink } from "@/shared/types/entities/span-link";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
 import { diffMsPrecise, formatDurationMs } from "@/shared/utils/time";
 
 import SpanAttributes from "./SpanAttributes.vue";
+import SpanLinkRow from "./SpanLinkRow.vue";
 
 import type { SpanEventView, TraceDetailTab } from "../types";
 
@@ -22,6 +24,9 @@ const props = defineProps<{
   durationMs: number;
   isAsync: boolean;
   events: SpanEventView[];
+  links: SpanLink[];
+  linksPending: boolean;
+  linksError: boolean;
   logs: Log[];
   logsPending: boolean;
   logsError: boolean;
@@ -29,6 +34,8 @@ const props = defineProps<{
 
 defineEmits<{
   close: [];
+  openLink: [link: SpanLink];
+  retryLinks: [];
   retryLogs: [];
 }>();
 
@@ -40,6 +47,7 @@ const TABS: readonly { value: TraceDetailTab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "attributes", label: "Attributes" },
   { value: "events", label: "Events" },
+  { value: "links", label: "Links" },
   { value: "logs", label: "Logs" },
 ];
 
@@ -296,6 +304,38 @@ function logOffsetMs(timestamp: string): number {
             </div>
           </div>
         </div>
+      </template>
+
+      <template v-else-if="activeTab === 'links'">
+        <div v-if="linksPending" class="flex justify-center px-2 py-6">
+          <LoadingSpinner size="sm" label="Loading links" />
+        </div>
+        <div v-else-if="linksError" class="px-2 py-6 text-center" role="alert">
+          <div class="text-heading mb-1 text-[0.78125rem] font-semibold">
+            Couldn’t load links
+          </div>
+          <button
+            type="button"
+            class="text-signal cursor-pointer border-none bg-transparent p-0 text-xs hover:underline hover:underline-offset-2"
+            @click="$emit('retryLinks')"
+          >
+            Retry
+          </button>
+        </div>
+        <div v-else-if="links.length === 0" class="px-2 py-6 text-center">
+          <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
+            No links on this span
+          </div>
+          <div class="text-tertiary text-xs leading-relaxed text-pretty">
+            Links point at related spans, like a batch producer or a trigger.
+          </div>
+        </div>
+        <SpanLinkRow
+          v-for="link in links"
+          :key="`${link.traceId}:${link.spanId}`"
+          :link="link"
+          @open="$emit('openLink', link)"
+        />
       </template>
 
       <template v-else>

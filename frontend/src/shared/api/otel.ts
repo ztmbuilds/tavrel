@@ -1,5 +1,9 @@
 import type { Log, LogLevel } from "@/shared/types/entities/log";
 import type { Span, SpanKind, SpanStatus } from "@/shared/types/entities/span";
+import type {
+  SpanLink,
+  SpanLinkTarget,
+} from "@/shared/types/entities/span-link";
 import type { Trace, TraceStatus } from "@/shared/types/entities/trace";
 import { diffMsPrecise } from "@/shared/utils/time";
 
@@ -181,6 +185,36 @@ export function toSpanEvents(events: unknown): SpanEventDto[] {
     if (raw !== null) out.push(raw);
   }
   return out;
+}
+
+export interface SpanLinkDto {
+  traceId: string;
+  spanId: string;
+  attributes: unknown;
+  target: unknown;
+}
+
+function toSpanLinkTarget(value: unknown): SpanLinkTarget | null {
+  if (!isRecord(value)) return null;
+  const name = value["name"];
+  const service = value["service"];
+  const statusCode = value["statusCode"];
+  if (
+    typeof name !== "string" ||
+    typeof service !== "string" ||
+    typeof statusCode !== "number"
+  )
+    return null;
+  return { name, service, status: toSpanStatus(statusCode) };
+}
+
+export function toSpanLink(dto: SpanLinkDto): SpanLink {
+  return {
+    traceId: dto.traceId,
+    spanId: dto.spanId,
+    attributes: toAttributes(dto.attributes),
+    target: toSpanLinkTarget(dto.target),
+  };
 }
 
 export function toSpan(dto: SpanDto): Span {

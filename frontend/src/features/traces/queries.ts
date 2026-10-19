@@ -10,8 +10,15 @@ import { computed, ref, type Ref } from "vue";
 import { ApiError } from "@/shared/api/client";
 import { resolveWindow } from "@/shared/composables/useGlobalTimeRange";
 import type { Log } from "@/shared/types/entities/log";
+import type { SpanLink } from "@/shared/types/entities/span-link";
 
-import { getSpanLogs, getTraceDetail, getTraces, type TracesPage } from "./api";
+import {
+  getSpanLinks,
+  getSpanLogs,
+  getTraceDetail,
+  getTraces,
+  type TracesPage,
+} from "./api";
 import type { SpanLogWindow, TraceDetail, TracesFilters } from "./types";
 
 export const traceKeys = {
@@ -22,6 +29,8 @@ export const traceKeys = {
   detail: (id: string) => [...traceKeys.details(), id] as const,
   spanLogs: (traceId: string, window: SpanLogWindow | null) =>
     [...traceKeys.all, "span-logs", traceId, window] as const,
+  spanLinks: (traceId: string, spanId: string | null) =>
+    [...traceKeys.all, "span-links", traceId, spanId] as const,
 };
 
 const LIVE_REFETCH_MS = 10000;
@@ -80,5 +89,20 @@ export function useTraceSpanLogsQuery(
       );
     },
     enabled: computed(() => window.value !== null),
+  });
+}
+
+export function useSpanLinksQuery(
+  traceId: Ref<string>,
+  spanId: Ref<string | null>,
+): UseQueryReturnType<SpanLink[], Error> {
+  return useQuery({
+    queryKey: computed(() => traceKeys.spanLinks(traceId.value, spanId.value)),
+    queryFn: async (): Promise<SpanLink[]> => {
+      const current = spanId.value;
+      if (current === null) return [];
+      return getSpanLinks(traceId.value, current);
+    },
+    enabled: computed(() => spanId.value !== null),
   });
 }

@@ -2,13 +2,16 @@ import { apiFetch } from "@/shared/api/client";
 import {
   toLog,
   toSpan,
+  toSpanLink,
   toTrace,
   type LogDto,
   type SpanDto,
+  type SpanLinkDto,
   type TraceDto,
 } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 import type { SpanKind } from "@/shared/types/entities/span";
+import type { SpanLink } from "@/shared/types/entities/span-link";
 import type { Trace } from "@/shared/types/entities/trace";
 
 import type { SpanNode, TraceDetail, TracesListParams } from "./types";
@@ -104,4 +107,20 @@ export async function getSpanLogs(
     query: { limit: SPAN_LOGS_LIMIT, traceId, spanId, start, end },
   });
   return response.data.map(toLog);
+}
+
+interface SpanLinksResponse {
+  message: string;
+  data: SpanLinkDto[];
+  meta: { nextCursor: string | null };
+}
+
+export async function getSpanLinks(
+  traceId: string,
+  spanId: string,
+): Promise<SpanLink[]> {
+  const response = await apiFetch<SpanLinksResponse>("/api/v1/spans/links", {
+    query: { traceId, spanId },
+  });
+  return response.data.map(toSpanLink);
 }

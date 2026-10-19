@@ -30,7 +30,8 @@ export interface TraceDetail {
   spans: SpanNode[];
 }
 
-export type TraceDetailTab = "overview" | "attributes" | "events" | "logs";
+export type TraceDetailTab =
+  "overview" | "attributes" | "events" | "links" | "logs";
 
 export type SpanEventType = "error" | "info";
 

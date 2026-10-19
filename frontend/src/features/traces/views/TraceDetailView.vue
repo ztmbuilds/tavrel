@@ -19,6 +19,7 @@ import {
 } from "@/features/traces/composables/waterfall-context";
 import { isAsyncSpan } from "@/features/traces/api";
 import {
+  useSpanLinksQuery,
   useTraceDetailQuery,
   useTraceSpanLogsQuery,
 } from "@/features/traces/queries";
@@ -29,6 +30,7 @@ import Button from "@/shared/components/ui/Button.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import LoadingState from "@/shared/components/LoadingState.vue";
 import type { Span } from "@/shared/types/entities/span";
+import type { SpanLink } from "@/shared/types/entities/span-link";
 import { CUSTOM_RANGE } from "@/shared/utils/date-range";
 import { truncateTraceId } from "@/shared/utils/format";
 import { formatDurationMs, formatRelativeTime } from "@/shared/utils/time";
@@ -102,6 +104,9 @@ const spanLogsWindow = computed((): SpanLogWindow | null => {
 
 const spanLogsQuery = useTraceSpanLogsQuery(idRef, spanLogsWindow);
 const spanLogs = computed(() => spanLogsQuery.data.value ?? []);
+
+const spanLinksQuery = useSpanLinksQuery(idRef, selectedId);
+const spanLinks = computed(() => spanLinksQuery.data.value ?? []);
 
 const isNotFound = computed(
   () =>
@@ -200,6 +205,20 @@ function toggleCollapse(spanId: string): void {
   if (next.has(spanId)) next.delete(spanId);
   else next.add(spanId);
   collapsed.value = next;
+}
+
+function openLink(link: SpanLink): void {
+  if (link.target === null) return;
+  if (link.traceId === idRef.value) {
+    select(link.spanId);
+    activeTab.value = "links";
+    return;
+  }
+  void router.push({
+    name: "trace-detail",
+    params: { id: link.traceId },
+    query: { spanId: link.spanId },
+  });
 }
 
 provide(waterfallKey, {
@@ -503,10 +522,15 @@ function copyTraceId(): void {
             :duration-ms="selectedDurationMs"
             :is-async="isAsyncSpan(selectedSpan.kind)"
             :events="selectedEvents"
+            :links="spanLinks"
+            :links-pending="spanLinksQuery.isPending.value"
+            :links-error="spanLinksQuery.isError.value"
             :logs="spanLogs"
             :logs-pending="spanLogsQuery.isPending.value"
             :logs-error="spanLogsQuery.isError.value"
             @close="selectedId = null"
+            @open-link="openLink"
+            @retry-links="void spanLinksQuery.refetch()"
             @retry-logs="void spanLogsQuery.refetch()"
           />
         </aside>
