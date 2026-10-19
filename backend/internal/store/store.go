@@ -14,7 +14,7 @@ type Store interface {
 	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
 	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
 	ListSpans(ctx context.Context, options ListSpansOptions) (Page[Span, ListSpansCursor], error)
-	ListSpanLinks(ctx context.Context, traceID, spanID string) ([]Link, error)
+	ListSpanLinks(ctx context.Context, traceID, spanID string) ([]SpanLink, error)
 	ListServices(ctx context.Context) ([]string, error)
 	ListEnvironments(ctx context.Context) ([]string, error)
 	GetServiceGraph(ctx context.Context, start, end *time.Time) (ServiceGraph, error)
@@ -164,6 +164,19 @@ type Link struct {
 	TraceID    string         `json:"traceId"`
 	SpanID     string         `json:"spanId"`
 	Attributes map[string]any `json:"attributes"`
+}
+
+type SpanLink struct {
+	TraceID    string          `json:"traceId"`
+	SpanID     string          `json:"spanId"`
+	Attributes map[string]any  `json:"attributes"`
+	Target     *SpanLinkTarget `json:"target"`
+}
+
+type SpanLinkTarget struct {
+	Name       string     `json:"name"`
+	Service    string     `json:"service"`
+	StatusCode StatusCode `json:"statusCode"`
 }
 
 type Event struct {

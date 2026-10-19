@@ -767,9 +767,9 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 	return page, nil
 }
 
-func (s *SQLiteStore) ListSpanLinks(ctx context.Context, traceID, spanID string) ([]Link, error) {
+func (s *SQLiteStore) ListSpanLinks(ctx context.Context, traceID, spanID string) ([]SpanLink, error) {
 
-	query := `SELECT linked_trace_id, linked_span_id, attributes FROM span_links WHERE trace_id = ? AND span_id = ? ORDER BY linked_trace_id, linked_span_id`
+	query := `SELECT sl.linked_trace_id, sl.linked_span_id, sl.attributes, s.name, s.service, s.status_code FROM span_links sl LEFT JOIN spans s ON s.trace_id = sl.linked_trace_id AND s.span_id = sl.linked_span_id WHERE sl.trace_id = ? AND sl.span_id = ? ORDER BY sl.linked_trace_id, sl.linked_span_id`
 
 	rows, err := s.readDB.QueryContext(ctx, query, traceID, spanID)
 	if err != nil {
@@ -777,18 +777,28 @@ func (s *SQLiteStore) ListSpanLinks(ctx context.Context, traceID, spanID string)
 	}
 	defer rows.Close()
 
-	links := make([]Link, 0)
+	links := make([]SpanLink, 0)
 
 	for rows.Next() {
-		var link Link
+		var link SpanLink
 		var attributes []byte
+		var name, service sql.NullString
+		var statusCode sql.NullInt64
 
-		if err := rows.Scan(&link.TraceID, &link.SpanID, &attributes); err != nil {
+		if err := rows.Scan(&link.TraceID, &link.SpanID, &attributes, &name, &service, &statusCode); err != nil {
 			return nil, err
 		}
 
 		if err := decodeJson(attributes, &link.Attributes); err != nil {
 			return nil, err
+		}
+
+		if name.Valid {
+			link.Target = &SpanLinkTarget{
+				Name:       name.String,
+				Service:    service.String,
+				StatusCode: toStatusCode(int32(statusCode.Int64)),
+			}
 		}
 
 		links = append(links, link)

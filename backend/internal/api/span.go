@@ -14,7 +14,7 @@ type spanStore interface {
 }
 
 type spanLinkStore interface {
-	ListSpanLinks(ctx context.Context, traceID, spanID string) ([]store.Link, error)
+	ListSpanLinks(ctx context.Context, traceID, spanID string) ([]store.SpanLink, error)
 }
 
 func newListSpansHandler(s spanStore) AppHandler {
