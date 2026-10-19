@@ -183,9 +183,18 @@ onUnmounted(() => {
   if (copyTimer !== undefined) clearTimeout(copyTimer);
 });
 
+function syncSpanQuery(spanId: string | null): void {
+  if ((route.query.spanId ?? null) === spanId) return;
+  const query = { ...route.query };
+  if (spanId === null) delete query.spanId;
+  else query.spanId = spanId;
+  void router.replace({ query });
+}
+
 function select(spanId: string): void {
   selectedId.value = spanId;
   activeTab.value = "overview";
+  syncSpanQuery(spanId);
   const reduceMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
   ).matches;
@@ -198,6 +207,11 @@ function select(spanId: string): void {
       behavior: reduceMotion ? "auto" : "smooth",
     });
   });
+}
+
+function clearSelection(): void {
+  selectedId.value = null;
+  syncSpanQuery(null);
 }
 
 function toggleCollapse(spanId: string): void {
@@ -239,7 +253,7 @@ function flatVisible(): Span[] {
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === "Escape") {
-    selectedId.value = null;
+    clearSelection();
     return;
   }
   const flat = flatVisible();
@@ -528,7 +542,7 @@ function copyTraceId(): void {
             :logs="spanLogs"
             :logs-pending="spanLogsQuery.isPending.value"
             :logs-error="spanLogsQuery.isError.value"
-            @close="selectedId = null"
+            @close="clearSelection"
             @open-link="openLink"
             @retry-links="void spanLinksQuery.refetch()"
             @retry-logs="void spanLogsQuery.refetch()"
