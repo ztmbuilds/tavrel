@@ -97,7 +97,7 @@ function logOffsetMs(timestamp: string): number {
     </div>
 
     <div
-      class="border-subtle flex shrink-0 gap-0.5 border-b px-5"
+      class="border-subtle flex shrink-0 [scrollbar-width:none] gap-0.5 overflow-x-auto border-b px-5 [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Span detail views"
     >
