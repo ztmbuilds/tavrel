@@ -24,11 +24,17 @@ func queryValues(r *http.Request, key string) []string {
 	return out
 }
 
+const maxListLimit = 1000
+
 func newListOptions[C any](r *http.Request) store.ListOptions[C] {
 	limit := 50
 
 	if value := r.URL.Query().Get("limit"); value != "" {
 		if num, err := strconv.Atoi(value); err == nil && num > 0 {
+
+			if num > maxListLimit {
+				num = maxListLimit
+			}
 
 			limit = num
 		}
