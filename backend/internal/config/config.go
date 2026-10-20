@@ -2,11 +2,17 @@ package config
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
+
+// maxRetentionDays is the largest number of days that fits in a time.Duration
+// without overflowing when multiplied by 24h.
+const maxRetentionDays = int(math.MaxInt64 / int64(24*time.Hour))
 
 type Config struct {
 	DBPath              string
@@ -38,6 +44,12 @@ func Load() (*Config, error) {
 	retentionDays, err := strconv.Atoi(getEnv("RETENTION_DAYS", "30"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load RETENTION_DAYS env: %w", err)
+	}
+	if retentionDays < 0 {
+		return nil, fmt.Errorf("invalid RETENTION_DAYS env: must be >= 0, got %d", retentionDays)
+	}
+	if retentionDays > maxRetentionDays {
+		return nil, fmt.Errorf("invalid RETENTION_DAYS env: must be <= %d, got %d", maxRetentionDays, retentionDays)
 	}
 
 	maxRequestBodyBytes, err := strconv.Atoi(getEnv("OTLP_MAX_REQUEST_SIZE", "67108864"))

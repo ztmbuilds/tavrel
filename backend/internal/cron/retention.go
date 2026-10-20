@@ -21,6 +21,13 @@ func New(days int, deleteFn func(ctx context.Context, cutoff time.Time) error) *
 }
 
 func (c *Cron) Start(ctx context.Context) {
+	if c.interval <= 0 {
+		// A non-positive period has no meaningful ticker and time.NewTicker
+		// panics on it. Treat it as "keep everything" instead.
+		slog.Warn("retention cron disabled: retention period is not positive")
+		return
+	}
+
 	ticker := time.NewTicker(c.interval)
 
 	go func() {
