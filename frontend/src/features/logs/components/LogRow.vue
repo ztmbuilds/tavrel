@@ -10,6 +10,7 @@ import {
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
 import CopyButton from "@/shared/components/CopyButton.vue";
+import Badge from "@/shared/components/ui/Badge.vue";
 import Button from "@/shared/components/ui/Button.vue";
 const props = defineProps<{
   log: Log;
@@ -85,8 +86,9 @@ const rowLabel = computed(
       class="flex w-[7.375rem] shrink-0 items-center pt-0"
       aria-hidden="true"
     >
-      <span
-        class="text-secondary border-subtle bg-raised inline-flex max-w-full items-center gap-1.5 rounded border px-2 py-1 text-[0.6875rem] font-medium whitespace-nowrap"
+      <Badge
+        variant="outline"
+        class="h-5 max-w-full gap-1 px-2 text-[0.6875rem] font-normal"
         :title="log.service"
       >
         <span
@@ -96,7 +98,7 @@ const rowLabel = computed(
         <span class="min-w-0 overflow-hidden text-ellipsis">{{
           log.service
         }}</span>
-      </span>
+      </Badge>
     </div>
     <div
       class="text-tertiary w-[5.5rem] shrink-0 truncate pt-0.5 text-xs max-[56.25rem]:hidden"

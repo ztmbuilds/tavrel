@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import xIcon from "@/assets/icons/x.svg?component";
+import Badge from "@/shared/components/ui/Badge.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import Tabs from "@/shared/components/ui/Tabs.vue";
 import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
@@ -88,13 +89,14 @@ function logOffsetMs(timestamp: string): number {
           aria-hidden="true"
         />
         {{ span.service }} · {{ span.kind }}
-        <span
+        <Badge
           v-if="span.environment !== ''"
-          class="border-default bg-surface text-secondary inline-flex shrink-0 items-center rounded-full border px-2 py-px text-[0.6875rem] font-medium"
+          variant="outline"
+          class="shrink-0 px-2 py-px text-[0.6875rem]"
           :title="`Environment: ${span.environment}`"
         >
           {{ span.environment }}
-        </span>
+        </Badge>
         <span class="sr-only">, status {{ span.status }}</span>
       </div>
     </div>
