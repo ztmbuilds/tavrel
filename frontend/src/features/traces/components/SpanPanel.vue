@@ -290,6 +290,7 @@ function logOffsetMs(timestamp: string): number {
           <div class="min-w-0">
             <div class="text-tertiary text-[0.6875rem] tabular-nums">
               +{{ formatDurationMs(event.offsetMs) }}
+              <span class="ml-1 uppercase">{{ event.type }}</span>
             </div>
             <div
               class="text-primary text-[0.78125rem] leading-snug font-medium"
@@ -366,6 +367,9 @@ function logOffsetMs(timestamp: string): number {
             +{{ formatDurationMs(logOffsetMs(log.timestamp)) }}
           </div>
           <div class="text-secondary min-w-0 break-words">
+            <span class="text-tertiary mr-1 text-[0.65625rem] uppercase">{{
+              log.level
+            }}</span>
             {{ log.message }}
           </div>
         </div>
