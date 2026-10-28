@@ -113,6 +113,54 @@
   border: 0;
 }
 
+.service-map-surface .vue-flow {
+  --vf-node-bg: transparent;
+  --vf-node-text: var(--color-primary);
+  --vf-connection-path: var(--color-strong);
+  --vf-handle: transparent;
+}
+
+.service-map-surface .vue-flow__controls {
+  gap: 1px;
+  overflow: hidden;
+  margin: 0.75rem;
+  border: 1px solid var(--color-default);
+  border-radius: 0.625rem;
+  background: var(--color-raised);
+  box-shadow: var(--shadow-raised);
+}
+
+.service-map-surface .vue-flow__controls-button {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary);
+  fill: currentColor;
+  transition-property: color, background-color;
+  transition-duration: 120ms;
+}
+
+.service-map-surface .vue-flow__controls-button:hover {
+  background: var(--color-hover);
+  color: var(--color-heading);
+}
+
+.service-map-surface .vue-flow__controls-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.service-map-surface .vue-flow__controls-button svg {
+  max-width: 1rem;
+  max-height: 1rem;
+}
+
+.service-map-surface .vue-flow__controls-button:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: -2px;
+}
+
 @utility raised {
   background-color: var(--color-raised);
   background-image: linear-gradient(180deg, #252f3a 0%, #1a222b 100%);

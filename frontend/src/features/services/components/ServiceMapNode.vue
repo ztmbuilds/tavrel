@@ -64,10 +64,11 @@ function handleKeydown(event: KeyboardEvent): void {
       type="button"
       :class="
         cn(
-          'bg-raised relative flex h-full w-full cursor-grab items-center gap-3 rounded-xl border px-4 text-left shadow-lg shadow-black/30 transition-opacity duration-150 ease-out active:cursor-grabbing',
+          'bg-surface focus-visible:outline-signal relative flex h-full w-full cursor-grab items-center gap-3 rounded-xl border px-4 text-left transition-[border-color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[3px] active:cursor-grabbing',
           data.dimmed && 'opacity-30',
-          data.focused && 'border-signal ring-signal/40 ring-1',
-          !data.focused && 'border-default',
+          data.focused
+            ? 'border-signal ring-signal/40 ring-1'
+            : 'border-default hover:border-strong',
         )
       "
       :aria-label="`${props.id}. Drag to reposition. Hold Alt and use an arrow key to move. Activate to inspect.`"
@@ -89,11 +90,3 @@ function handleKeydown(event: KeyboardEvent): void {
     </button>
   </div>
 </template>
-
-<style scoped>
-button:focus-visible {
-  outline: 2px solid var(--color-signal);
-  outline-offset: 3px;
-  border-radius: 0.75rem;
-}
-</style>

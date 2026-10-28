@@ -201,7 +201,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
       class="border-subtle bg-subtle mx-10 mb-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_16.25rem] gap-px overflow-hidden rounded-xl border max-[53.75rem]:grid-cols-1 max-[53.75rem]:overflow-y-auto max-[40rem]:mx-4"
       @keydown.escape="clearSelection"
     >
-      <div class="bg-panel min-h-0 min-w-0">
+      <div class="bg-panel min-h-0 min-w-0 max-[53.75rem]:h-[24rem]">
         <LoadingState v-if="isPending" label="Loading service graph" />
         <div
           v-else-if="isError"
@@ -229,7 +229,10 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
           @select="selectService"
         />
       </div>
-      <aside class="bg-panel min-h-0 min-w-0" aria-label="Service inspector">
+      <aside
+        class="bg-panel min-h-0 min-w-0 max-[53.75rem]:h-auto"
+        aria-label="Service inspector"
+      >
         <ServiceInspector
           :selected="selected"
           :calls="calls"

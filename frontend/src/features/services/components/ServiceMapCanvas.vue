@@ -44,7 +44,7 @@ const {
 
 <template>
   <div
-    class="service-map-surface relative h-full min-h-[32.5rem] overflow-hidden"
+    class="service-map-surface relative h-full min-h-[32.5rem] overflow-hidden max-[53.75rem]:min-h-0"
   >
     <VueFlow
       v-model:nodes="nodes"
@@ -115,54 +115,3 @@ const {
     </p>
   </div>
 </template>
-
-<style scoped>
-:deep(.vue-flow) {
-  --vf-node-bg: transparent;
-  --vf-node-text: var(--color-primary);
-  --vf-connection-path: var(--color-strong);
-  --vf-handle: transparent;
-}
-
-:deep(.vue-flow__controls) {
-  gap: 1px;
-  overflow: hidden;
-  margin: 0.75rem;
-  border: 1px solid var(--color-default);
-  border-radius: 0.75rem;
-  background: rgb(20 27 35 / 0.94);
-  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.28);
-  backdrop-filter: blur(0.5rem);
-}
-
-:deep(.vue-flow__controls-button) {
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 0;
-  background: transparent;
-  color: var(--color-secondary);
-  fill: currentColor;
-  transition-property: color, background-color;
-  transition-duration: 120ms;
-}
-
-:deep(.vue-flow__controls-button:hover) {
-  background: var(--color-hover);
-  color: var(--color-heading);
-}
-
-:deep(.vue-flow__controls-button:disabled) {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-:deep(.vue-flow__controls-button svg) {
-  max-width: 1rem;
-  max-height: 1rem;
-}
-
-:deep(.vue-flow__controls-button:focus-visible) {
-  outline: 2px solid var(--color-signal);
-  outline-offset: -2px;
-}
-</style>
