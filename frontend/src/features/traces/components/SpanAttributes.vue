@@ -1,16 +1,27 @@
 <script setup lang="ts">
 import { toRef } from "vue";
 
-import { cn } from "@/shared/utils/cn";
 import Button from "@/shared/components/ui/Button.vue";
 import CopyButton from "@/shared/components/CopyButton.vue";
+import SegmentedControl from "@/shared/components/ui/SegmentedControl.vue";
 import AttributeTreeNode from "./AttributeTreeNode.vue";
-import { useAttributeTree } from "../composables/useAttributeTree";
+import {
+  useAttributeTree,
+  type AttributeViewMode,
+} from "../composables/useAttributeTree";
 import type { Attributes } from "@/shared/api/otel";
 
 const props = defineProps<{
   attributes: Attributes;
 }>();
+
+const VIEW_OPTIONS: readonly {
+  value: AttributeViewMode;
+  label: string;
+}[] = [
+  { value: "nested", label: "Nested" },
+  { value: "flat", label: "Flat" },
+];
 
 const attributesRef = toRef(props, "attributes");
 
@@ -36,42 +47,12 @@ const {
   </div>
   <div v-else>
     <div class="mb-2 flex items-center justify-between">
-      <div
-        role="group"
+      <SegmentedControl
+        :model-value="mode"
+        :options="VIEW_OPTIONS"
         aria-label="Attribute view mode"
-        class="border-subtle bg-surface flex shrink-0 gap-0.5 rounded-md border p-0.5"
-      >
-        <button
-          type="button"
-          :aria-pressed="mode === 'nested'"
-          :class="
-            cn(
-              'cursor-pointer rounded border-none px-2 py-1 text-xs leading-snug transition-colors duration-120 ease-out',
-              mode === 'nested'
-                ? 'bg-active text-ink font-medium'
-                : 'text-tertiary hover:text-secondary bg-transparent',
-            )
-          "
-          @click="setMode('nested')"
-        >
-          Nested
-        </button>
-        <button
-          type="button"
-          :aria-pressed="mode === 'flat'"
-          :class="
-            cn(
-              'cursor-pointer rounded border-none px-2 py-1 text-xs leading-snug transition-colors duration-120 ease-out',
-              mode === 'flat'
-                ? 'bg-active text-ink font-medium'
-                : 'text-tertiary hover:text-secondary bg-transparent',
-            )
-          "
-          @click="setMode('flat')"
-        >
-          Flat
-        </button>
-      </div>
+        @update:model-value="setMode"
+      />
       <div
         v-if="mode === 'nested' && hasGroups"
         class="flex items-center gap-3"

@@ -1,25 +1,30 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
 import type { HTMLAttributes } from "vue";
 
 import { ToggleGroupItem, ToggleGroupRoot } from "reka-ui";
 
 import { cn } from "@/shared/utils/cn";
 
-export interface SegmentOption {
-  value: string;
-  label: string;
-  dot?: string;
-}
-
 const props = defineProps<{
-  options: readonly SegmentOption[];
+  options: readonly {
+    value: T;
+    label: string;
+    dot?: string;
+  }[];
   ariaLabel?: string;
   class?: HTMLAttributes["class"];
 }>();
-const model = defineModel<string>({ required: true });
+const model = defineModel<T>({ required: true });
+
+function isOptionValue(value: unknown): value is T {
+  return (
+    typeof value === "string" &&
+    props.options.some((option) => option.value === value)
+  );
+}
 
 function onUpdate(value: unknown): void {
-  if (typeof value === "string" && value) model.value = value;
+  if (isOptionValue(value)) model.value = value;
 }
 </script>
 

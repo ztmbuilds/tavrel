@@ -24,7 +24,6 @@ import {
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
-import ChipGroup from "@/shared/components/ChipGroup.vue";
 import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
@@ -35,6 +34,7 @@ import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
+import SegmentedControl from "@/shared/components/ui/SegmentedControl.vue";
 import {
   readQueryParam,
   readQueryParamList,
@@ -54,11 +54,11 @@ import { diffMsPrecise, formatDateTimeRange } from "@/shared/utils/time";
 const STATUS_OPTIONS: readonly {
   value: SpanStatusFilter;
   label: string;
-  tone?: "error" | "ok";
+  dot?: string;
 }[] = [
   { value: "all", label: "All" },
-  { value: "error", label: "Errors", tone: "error" },
-  { value: "ok", label: "OK", tone: "ok" },
+  { value: "error", label: "Errors", dot: "bg-error" },
+  { value: "ok", label: "OK", dot: "bg-ok" },
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -374,10 +374,10 @@ function openTrace(traceId: string): void {
         />
       </div>
       <div class="flex flex-wrap items-center gap-2.5">
-        <ChipGroup
+        <SegmentedControl
           v-model="filters.status"
           :options="STATUS_OPTIONS"
-          group-label="Span status"
+          aria-label="Span status"
           @update:model-value="resetList"
         />
         <ServiceSelect

@@ -15,7 +15,6 @@ import {
 import ActiveFilterChips, {
   type ActiveFilterChip,
 } from "@/shared/components/ActiveFilterChips.vue";
-import ChipGroup from "@/shared/components/ChipGroup.vue";
 import DateRangePicker from "@/shared/components/DateRangePicker.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import FilterBar from "@/shared/components/FilterBar.vue";
@@ -26,6 +25,7 @@ import PageHead from "@/shared/components/PageHead.vue";
 import SearchBox from "@/shared/components/SearchBox.vue";
 import ServiceSelect from "@/shared/components/ServiceSelect.vue";
 import Button from "@/shared/components/ui/Button.vue";
+import SegmentedControl from "@/shared/components/ui/SegmentedControl.vue";
 import {
   readQueryParam,
   readQueryParamList,
@@ -51,12 +51,12 @@ import { formatDateTimeRange } from "@/shared/utils/time";
 const LEVEL_OPTIONS: readonly {
   value: LogLevelFilter;
   label: string;
-  tone?: "info" | "warn" | "error";
+  dot?: string;
 }[] = [
   { value: "all", label: "All" },
-  { value: "info", label: "Info", tone: "info" },
-  { value: "warn", label: "Warn", tone: "warn" },
-  { value: "error", label: "Error", tone: "error" },
+  { value: "info", label: "Info", dot: "bg-info" },
+  { value: "warn", label: "Warn", dot: "bg-warn" },
+  { value: "error", label: "Error", dot: "bg-error" },
 ];
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -408,10 +408,10 @@ function openTrace(traceId: string): void {
         />
       </div>
       <div class="flex flex-wrap items-center gap-2.5">
-        <ChipGroup
+        <SegmentedControl
           v-model="filters.level"
           :options="LEVEL_OPTIONS"
-          group-label="Log level"
+          aria-label="Log level"
           @update:model-value="resetList"
         />
         <ServiceSelect
