@@ -9,10 +9,14 @@ import type { AttributeVisibleNode } from "../composables/useAttributeTree";
 
 import AttributeTreeNode from "./AttributeTreeNode.vue";
 
-defineProps<{
-  node: AttributeVisibleNode;
-  rowStyle: StyleValue | undefined;
-}>();
+const props = withDefaults(
+  defineProps<{
+    node: AttributeVisibleNode;
+    rowStyle: StyleValue | undefined;
+    nested?: boolean;
+  }>(),
+  { nested: false },
+);
 
 defineEmits<{
   toggle: [path: string];
@@ -25,7 +29,7 @@ defineEmits<{
       type="button"
       :aria-expanded="node.expanded"
       :aria-label="`${node.expanded ? 'Collapse' : 'Expand'} ${node.fullPath}`"
-      class="border-subtle hover:bg-hover flex w-full cursor-pointer items-center gap-1.5 border-x-0 border-t-0 border-b bg-transparent py-2 text-left"
+      class="border-subtle flex w-full cursor-pointer items-center gap-1.5 border-x-0 border-t-0 border-b bg-transparent py-2 text-left hover:bg-white/[0.035]"
       @click="$emit('toggle', node.fullPath)"
     >
       <component
@@ -62,6 +66,7 @@ defineEmits<{
         :key="child.fullPath"
         :node="child"
         :row-style="rowStyle"
+        nested
         @toggle="$emit('toggle', $event)"
       />
     </div>
@@ -70,7 +75,13 @@ defineEmits<{
     v-else
     data-attr-leaf
     :style="rowStyle"
-    class="group border-subtle flex items-center gap-2 border-x-0 border-t-0 border-b py-2"
+    :class="
+      cn(
+        'group border-subtle flex items-center gap-2 border-x-0 border-t-0 border-b py-2',
+        props.nested &&
+          'before:bg-default relative pl-3.5 before:absolute before:top-1/2 before:left-0 before:h-px before:w-2.5 before:-translate-y-1/2 before:content-[\'\']',
+      )
+    "
   >
     <span class="text-secondary w-32 shrink-0 font-mono text-xs break-words">{{
       node.name
@@ -86,24 +97,3 @@ defineEmits<{
     />
   </div>
 </template>
-
-<style scoped>
-[data-attr-children] > [data-attr-leaf] {
-  padding-left: 0.875rem;
-}
-
-[data-attr-children] > [data-attr-leaf]::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 0.625rem;
-  height: 1px;
-  background: var(--color-default);
-  transform: translateY(-50%);
-}
-
-[data-attr-leaf] {
-  position: relative;
-}
-</style>
