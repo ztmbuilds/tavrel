@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, useSlots } from "vue";
 
-import { cn } from "@/shared/utils/cn";
-
-defineProps<{
+const props = defineProps<{
   title: string;
+  description?: string;
 }>();
 
 const slots = useSlots();
@@ -13,22 +12,30 @@ const hasActions = computed(() => slots.actions !== undefined);
 
 <template>
   <div
-    :class="
-      cn(
-        'shrink-0 bg-transparent px-4 pt-3 max-[40rem]:pt-3.5',
-        hasActions ? 'flex flex-wrap items-end gap-x-4 gap-y-2 pb-0' : 'pb-0.5',
-      )
-    "
+    class="shrink-0 px-10 pt-7 pb-5 max-[40rem]:px-4 max-[40rem]:pt-5 max-[40rem]:pb-4"
   >
-    <div :class="hasActions && 'min-w-55 flex-1'">
-      <h1
-        class="text-heading text-[0.9375rem] leading-tight font-semibold tracking-[-0.01em] text-balance"
+    <div
+      class="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 max-[40rem]:flex-col max-[40rem]:items-stretch"
+    >
+      <div class="min-w-0 flex-1">
+        <h1
+          class="text-heading text-[1.375rem] leading-[1.3] font-semibold tracking-[-0.015em] text-balance"
+        >
+          {{ props.title }}
+        </h1>
+        <p
+          v-if="props.description"
+          class="text-tertiary mt-1 text-xs leading-relaxed tabular-nums"
+        >
+          {{ props.description }}
+        </p>
+      </div>
+      <div
+        v-if="hasActions"
+        class="flex flex-wrap items-center gap-2 max-[40rem]:w-full"
       >
-        {{ title }}
-      </h1>
-    </div>
-    <div v-if="hasActions" class="flex flex-wrap items-center gap-2">
-      <slot name="actions" />
+        <slot name="actions" />
+      </div>
     </div>
   </div>
 </template>

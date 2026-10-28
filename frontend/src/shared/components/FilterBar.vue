@@ -6,7 +6,7 @@ defineProps<{
 
 <template>
   <div
-    class="border-subtle bg-panel mx-4 mt-3 mb-3 flex shrink-0 flex-col gap-2.5 rounded-xl border px-3.5 pt-3.5 pb-3"
+    class="border-subtle bg-panel mx-10 mb-4 flex shrink-0 flex-col gap-2.5 rounded-xl border p-4 max-[40rem]:mx-4"
     role="search"
     :aria-label="label"
   >

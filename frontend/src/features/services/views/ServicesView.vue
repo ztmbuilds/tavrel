@@ -184,7 +184,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
       </template>
     </PageHead>
 
-    <div class="flex shrink-0 items-center gap-2.5 px-4 py-3">
+    <div class="flex shrink-0 items-center gap-2.5 px-10 pb-4 max-[40rem]:px-4">
       <div class="max-w-70 min-w-40 flex-1">
         <SearchBox
           v-model="searchInput"
@@ -198,7 +198,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
       }}</span>
     </div>
     <div
-      class="border-subtle bg-subtle mx-4 mb-3 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_16.25rem] gap-px overflow-hidden rounded-xl border max-[53.75rem]:grid-cols-1 max-[53.75rem]:overflow-y-auto"
+      class="border-subtle bg-subtle mx-10 mb-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_16.25rem] gap-px overflow-hidden rounded-xl border max-[53.75rem]:grid-cols-1 max-[53.75rem]:overflow-y-auto max-[40rem]:mx-4"
       @keydown.escape="clearSelection"
     >
       <div class="bg-panel min-h-0 min-w-0">

@@ -18,7 +18,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden max-[40rem]:flex-col">
     <a class="skip-link" href="#main">Skip to content</a>
     <AppSidebar />
     <main

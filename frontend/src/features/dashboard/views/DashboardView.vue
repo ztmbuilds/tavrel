@@ -61,11 +61,8 @@ const updatedLabel = computed(() => {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead title="Overview">
+    <PageHead title="Overview" :description="updatedLabel">
       <template #actions>
-        <span v-if="updatedLabel" class="text-tertiary text-xs tabular-nums">
-          {{ updatedLabel }}
-        </span>
         <Select
           v-model="range"
           label="Window"
@@ -76,7 +73,9 @@ const updatedLabel = computed(() => {
       </template>
     </PageHead>
 
-    <div class="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-5">
+    <div
+      class="min-h-0 flex-1 overflow-y-auto px-10 pb-6 max-[40rem]:px-4 max-[40rem]:pb-5"
+    >
       <LoadingState v-if="isPending" label="Loading dashboard" />
       <div
         v-else-if="isError && summary === null"
@@ -91,10 +90,7 @@ const updatedLabel = computed(() => {
         >
         <Button @click="refetch()">Retry</Button>
       </div>
-      <div
-        v-else-if="summary"
-        class="mx-auto flex w-full max-w-screen-2xl flex-col gap-4"
-      >
+      <div v-else-if="summary" class="flex w-full flex-col gap-4">
         <DashboardTraceChart
           :buckets="summary.traceBuckets"
           :overview="summary.overview"

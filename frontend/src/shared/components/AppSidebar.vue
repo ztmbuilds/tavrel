@@ -68,9 +68,10 @@ const OBSERVE_ITEMS: readonly NavItem[] = [
 ];
 
 const ITEM_CLASSES =
-  "flex h-[1.875rem] w-auto cursor-pointer items-center justify-start gap-2 rounded-[0.3125rem] px-2 text-[0.8125rem] font-medium whitespace-nowrap transition-colors duration-120 ease-out hover:bg-hover hover:text-secondary max-[56.25rem]:w-8 max-[56.25rem]:justify-center max-[56.25rem]:px-0";
+  "flex h-8 w-auto shrink-0 cursor-pointer items-center justify-start gap-2 rounded-[10px] px-2.5 text-[0.8125rem] font-medium whitespace-nowrap text-tertiary transition-colors duration-120 ease-out hover:bg-hover hover:text-secondary max-[56.25rem]:w-8 max-[56.25rem]:justify-center max-[56.25rem]:px-0 max-[40rem]:w-auto max-[40rem]:justify-start max-[40rem]:px-2.5";
 
-const COLLAPSED_ITEM_CLASSES = "w-8 justify-center px-0";
+const COLLAPSED_ITEM_CLASSES =
+  "w-8 justify-center px-0 max-[40rem]:w-auto max-[40rem]:justify-start max-[40rem]:px-2.5";
 
 const ACTIVE_CLASSES = "bg-active text-ink hover:bg-active hover:text-ink";
 
@@ -115,7 +116,7 @@ function handleToggle(): void {
     aria-label="Primary"
     :class="
       cn(
-        'border-subtle bg-panel flex w-51 shrink-0 flex-col items-stretch gap-0.5 overflow-y-auto border-r pt-2 pr-4 pb-4 pl-2 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5',
+        'border-subtle bg-panel flex w-52 shrink-0 flex-col items-stretch gap-0.5 overflow-y-auto border-r pt-2 pr-4 pb-4 pl-2 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5 max-[40rem]:w-full max-[40rem]:flex-row max-[40rem]:flex-wrap max-[40rem]:items-center max-[40rem]:gap-1 max-[40rem]:overflow-visible max-[40rem]:border-r-0 max-[40rem]:border-b max-[40rem]:px-3 max-[40rem]:py-2',
         isCollapsed && 'w-13 items-center px-1.5',
       )
     "
@@ -125,6 +126,7 @@ function handleToggle(): void {
         cn(
           'flex items-center justify-end pb-1 max-[56.25rem]:hidden',
           isCollapsed && 'justify-center px-0',
+          'max-[40rem]:hidden',
         )
       "
     >
@@ -165,7 +167,7 @@ function handleToggle(): void {
         :is="item.icon"
         aria-hidden="true"
         :class="
-          cn('text-tertiary size-3.75 shrink-0', isActive(item) && 'text-ink')
+          cn('text-tertiary size-4 shrink-0', isActive(item) && 'text-ink')
         "
       />
       <span
@@ -173,6 +175,7 @@ function handleToggle(): void {
           cn(
             'overflow-hidden text-ellipsis whitespace-nowrap max-[56.25rem]:hidden',
             isCollapsed && 'hidden',
+            'max-[40rem]:inline',
           )
         "
         >{{ item.label }}</span

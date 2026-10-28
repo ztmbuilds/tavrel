@@ -354,7 +354,7 @@ function openTrace(traceId: string): void {
     <PageHead title="Spans" />
     <FilterBar label="Filter spans">
       <div class="flex flex-wrap items-center gap-2.5">
-        <div class="min-w-40 flex-1">
+        <div class="min-w-40 flex-1 max-[40rem]:basis-full">
           <SearchBox
             v-model="searchInput"
             input-id="span-search"
@@ -408,7 +408,7 @@ function openTrace(traceId: string): void {
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
     </FilterBar>
-    <div class="relative mx-4 mb-3 min-h-0 flex-1">
+    <div class="relative mx-10 mb-4 min-h-0 flex-1 max-[40rem]:mx-4">
       <div
         id="span-list"
         ref="scrollerEl"
