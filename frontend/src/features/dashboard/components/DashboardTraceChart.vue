@@ -11,7 +11,7 @@ import type {
   TooltipComponentOption,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import VChart from "vue-echarts";
+import VChart, { type Exposed } from "vue-echarts";
 
 import type {
   DashboardOverview,
@@ -35,6 +35,7 @@ type ChartOption = ComposeOption<
 >;
 
 const router = useRouter();
+const chartRef = ref<Exposed | null>(null);
 
 function cssVar(name: string, fallback: string): string {
   const value = getComputedStyle(document.documentElement)
@@ -210,10 +211,39 @@ function onChartClick(event: unknown): void {
   void router.push(tracesTo(bucket));
 }
 
-function onChartHover(event: unknown): void {
-  if (typeof event !== "object" || event === null) return;
-  if (!("dataIndex" in event) || typeof event.dataIndex !== "number") return;
-  hoveredIndex.value = event.dataIndex;
+function indexFromPixel(x: number, y: number): number | null {
+  const chart = chartRef.value?.chart;
+  if (chart === undefined) return null;
+  const value = chart.convertFromPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [
+    x,
+    y,
+  ]);
+  if (!Array.isArray(value)) return null;
+  const xValue = value[0];
+  if (typeof xValue === "number") {
+    if (
+      Number.isInteger(xValue) &&
+      xValue >= 0 &&
+      xValue < props.buckets.length
+    )
+      return xValue;
+    return null;
+  }
+  if (typeof xValue === "string") {
+    const index = labels.value.indexOf(xValue);
+    return index >= 0 ? index : null;
+  }
+  return null;
+}
+
+function onChartMouseMove(event: MouseEvent): void {
+  if (!(event.currentTarget instanceof HTMLElement)) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  const index = indexFromPixel(
+    event.clientX - rect.left,
+    event.clientY - rect.top,
+  );
+  hoveredIndex.value = index;
 }
 
 function clearHover(): void {
@@ -249,16 +279,20 @@ function clearHover(): void {
     <p v-if="isEmpty" class="text-tertiary py-14 text-center text-[0.8125rem]">
       No traces in this window.
     </p>
-    <div v-else class="mt-3 h-72">
+    <div
+      v-else
+      class="mt-3 h-72"
+      @mousemove="onChartMouseMove"
+      @mouseleave="clearHover"
+    >
       <VChart
+        ref="chartRef"
         :option="option"
         autoresize
         role="img"
         :aria-label="summaryLabel"
         class="cursor-pointer"
         @click="onChartClick"
-        @mouseover="onChartHover"
-        @globalout="clearHover"
       />
     </div>
   </Card>
