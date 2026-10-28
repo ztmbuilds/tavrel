@@ -21,11 +21,12 @@ defineEmits<{ remove: [] }>();
       )
     "
   >
-    {{ props.label }}: <span class="text-heading">{{ props.value }}</span>
+    {{ props.label }}:
+    <span class="text-heading tabular-nums">{{ props.value }}</span>
     <button
       type="button"
       :aria-label="`Clear ${props.label.toLowerCase()} filter`"
-      class="text-secondary hover:bg-hover hover:text-heading inline-grid size-5 cursor-pointer place-items-center rounded-full bg-transparent p-0"
+      class="text-secondary hover:bg-hover hover:text-heading inline-grid size-6 cursor-pointer place-items-center rounded-full bg-transparent p-0"
       @click="$emit('remove')"
     >
       <component :is="xIcon" aria-hidden="true" class="size-3.5" />

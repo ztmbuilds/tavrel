@@ -302,7 +302,7 @@ function applyCustom(): void {
       type="button"
       :class="
         cn(
-          'raised text-heading inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg pr-2.5 pl-3 whitespace-nowrap',
+          'raised text-heading inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg pr-2.5 pl-3 whitespace-nowrap tabular-nums',
           'transition-[background-image,box-shadow] duration-150',
           dateOpen && 'raised-pressed',
         )
@@ -420,7 +420,7 @@ function applyCustom(): void {
             <component :is="chevronLeftIcon" class="size-3.5" />
           </Button>
           <span
-            class="text-primary font-sans text-[0.8125rem] font-semibold"
+            class="text-primary font-sans text-[0.8125rem] font-semibold tabular-nums"
             aria-live="polite"
             >{{ monthLabel }}</span
           >
@@ -457,7 +457,7 @@ function applyCustom(): void {
                 :aria-label="dayLabel(date)"
                 :class="
                   cn(
-                    'text-secondary hover:bg-hover hover:text-heading flex size-8 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-transparent p-0 font-sans text-[0.78125rem] transition-colors duration-120 ease-out',
+                    'text-secondary hover:bg-hover hover:text-heading flex size-8 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-transparent p-0 font-sans text-[0.78125rem] tabular-nums transition-colors duration-120 ease-out',
                     isInRangeDate(date) && 'bg-signal/10 text-primary',
                     isSelectedDate(date) && 'raised text-heading',
                     isTodayDate(date) &&

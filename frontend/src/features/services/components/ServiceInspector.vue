@@ -57,7 +57,7 @@ defineEmits<{
         <div class="flex flex-col gap-4">
           <section>
             <p
-              class="text-tertiary mb-1.5 text-[0.65625rem] font-semibold tracking-wider uppercase"
+              class="text-tertiary mb-1.5 text-[0.65625rem] font-semibold tracking-wider uppercase tabular-nums"
             >
               Calls ({{ calls.length }})
             </p>
@@ -87,7 +87,7 @@ defineEmits<{
           </section>
           <section>
             <p
-              class="text-tertiary mb-1.5 text-[0.65625rem] font-semibold tracking-wider uppercase"
+              class="text-tertiary mb-1.5 text-[0.65625rem] font-semibold tracking-wider uppercase tabular-nums"
             >
               Called by ({{ calledBy.length }})
             </p>

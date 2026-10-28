@@ -143,7 +143,6 @@ function handlePanelKeydown(event: KeyboardEvent): void {
     <button
       ref="triggerRef"
       type="button"
-      :aria-label="`${props.label}: ${selectedLabels.join(', ')}`"
       :aria-expanded="open"
       aria-haspopup="listbox"
       :class="
@@ -199,7 +198,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="modelValue.length === 0"
           :class="
             cn(
-              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
+              'text-secondary hover:bg-hover hover:text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
               modelValue.length === 0 && 'bg-hover text-primary',
             )
           "
@@ -238,7 +237,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="isSelected(option.value)"
           :class="
             cn(
-              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
+              'text-secondary hover:bg-hover hover:text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
               isSelected(option.value) && 'bg-hover text-primary',
             )
           "

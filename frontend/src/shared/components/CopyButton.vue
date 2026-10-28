@@ -39,10 +39,10 @@ onUnmounted(() => {
     :title="copied ? 'Copied' : title"
     :class="
       cn(
-        'h-5 p-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 [&_svg]:size-3.5',
+        'h-6 p-0 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 focus-visible:opacity-100 [&_svg]:size-3.5',
         compact
-          ? 'w-0 overflow-hidden group-focus-within:w-5 group-hover:w-5 focus-visible:w-5 [@media(hover:none)]:w-5 [@media(hover:none)]:opacity-100'
-          : 'w-5',
+          ? 'w-0 overflow-hidden group-focus-within:w-6 group-hover:w-6 focus-visible:w-6 [@media(hover:none)]:w-6 [@media(hover:none)]:opacity-100'
+          : 'w-6',
       )
     "
     @click.stop="copyText"

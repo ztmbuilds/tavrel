@@ -286,7 +286,13 @@ function onScrollerScroll(event: Event): void {
 }
 
 function scrollToTop(): void {
-  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  scrollerEl.value?.scrollTo({
+    top: 0,
+    behavior: reduceMotion ? "auto" : "smooth",
+  });
 }
 
 function updateTime(time: SharedTime): void {
@@ -451,8 +457,6 @@ function openTrace(traceId: string): void {
         id="log-list"
         ref="scrollerEl"
         class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
-        role="list"
-        aria-label="Logs"
         tabindex="-1"
         @scroll="onScrollerScroll"
       >
@@ -514,14 +518,16 @@ function openTrace(traceId: string): void {
               Trace
             </div>
           </div>
-          <LogRow
-            v-for="log in logs"
-            :key="log.id"
-            :log="log"
-            :expanded="expanded.has(log.id)"
-            @toggle="toggleLog"
-            @open-trace="openTrace"
-          />
+          <div role="list" aria-label="Logs">
+            <LogRow
+              v-for="log in logs"
+              :key="log.id"
+              :log="log"
+              :expanded="expanded.has(log.id)"
+              @toggle="toggleLog"
+              @open-trace="openTrace"
+            />
+          </div>
           <div
             ref="sentinelEl"
             class="flex flex-col items-center gap-2 px-5 py-4 text-center"

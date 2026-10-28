@@ -318,7 +318,13 @@ function onScrollerScroll(event: Event): void {
 }
 
 function scrollToTop(): void {
-  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  scrollerEl.value?.scrollTo({
+    top: 0,
+    behavior: reduceMotion ? "auto" : "smooth",
+  });
 }
 
 function updateTime(time: SharedTime): void {
@@ -493,8 +499,6 @@ function removeChip(key: string): void {
         id="trace-list"
         ref="scrollerEl"
         class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
-        role="list"
-        aria-label="Traces"
         tabindex="-1"
         @scroll="onScrollerScroll"
       >
@@ -574,12 +578,14 @@ function removeChip(key: string): void {
               />
             </button>
           </div>
-          <TraceRow
-            v-for="trace in traces"
-            :key="trace.traceId"
-            :trace="trace"
-            :max-duration-ms="maxTraceDurationMs"
-          />
+          <div role="list" aria-label="Traces">
+            <TraceRow
+              v-for="trace in traces"
+              :key="trace.traceId"
+              :trace="trace"
+              :max-duration-ms="maxTraceDurationMs"
+            />
+          </div>
           <div
             ref="sentinelEl"
             class="flex flex-col items-center gap-2 px-5 py-4 text-center"

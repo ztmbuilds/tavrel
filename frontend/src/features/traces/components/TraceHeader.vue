@@ -59,6 +59,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
       variant="ghost"
       size="sm"
       class="group decoration-strong -ml-1.5 h-6 gap-1 px-1.5 font-mono text-[0.71875rem] underline decoration-dotted underline-offset-4 [&_svg]:size-3"
+      :aria-label="`trace ${shortTraceId}, copy full trace ID`"
       title="Copy full trace ID"
       @click="$emit('copy')"
     >
@@ -187,7 +188,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
     </div>
 
     <div
-      class="text-tertiary mt-3 ml-4.25 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs"
+      class="text-tertiary mt-3 ml-4.25 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs tabular-nums"
     >
       <span
         v-for="entry in legend"

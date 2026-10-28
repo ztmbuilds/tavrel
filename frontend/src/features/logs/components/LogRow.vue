@@ -129,6 +129,7 @@ const rowLabel = computed(
         variant="ghost"
         size="sm"
         class="text-tertiary hover:text-heading h-auto p-0 font-mono text-[0.71875rem] hover:bg-transparent"
+        :aria-label="`trace:${shortTraceId}, open trace`"
         :title="`Open trace ${log.traceId}`"
         @click.stop="$emit('openTrace', log.traceId)"
       >
@@ -171,6 +172,7 @@ const rowLabel = computed(
               variant="ghost"
               size="sm"
               class="text-secondary hover:text-heading h-auto p-0 font-mono text-[0.71875rem] hover:bg-transparent"
+              :aria-label="`${log.traceId}, open trace`"
               :title="log.traceId"
               @click="$emit('openTrace', log.traceId)"
             >

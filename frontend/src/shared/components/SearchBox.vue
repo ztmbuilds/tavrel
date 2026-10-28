@@ -73,7 +73,7 @@ function clearSearch(): void {
         v-else
         variant="ghost"
         size="sm"
-        class="size-5 shrink-0 p-0 [&_svg]:size-3"
+        class="size-6 shrink-0 p-0 [&_svg]:size-3.5"
         aria-label="Clear search"
         @click="clearSearch"
       >

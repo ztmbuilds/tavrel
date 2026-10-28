@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue";
+import { computed, type HTMLAttributes } from "vue";
 
 import {
   SelectContent,
@@ -32,12 +32,24 @@ const props = defineProps<{
 }>();
 
 const model = defineModel<string>({ required: true });
+
+const selectedLabel = computed(
+  () =>
+    props.options.find((option) => option.value === model.value)?.label ??
+    props.placeholder ??
+    "",
+);
+
+const accessibleLabel = computed(() => {
+  const label = props.ariaLabel ?? props.label ?? "";
+  return label === "" ? selectedLabel.value : `${label} ${selectedLabel.value}`;
+});
 </script>
 
 <template>
   <SelectRoot v-model="model" :disabled="props.disabled">
     <SelectTrigger
-      :aria-label="props.ariaLabel"
+      :aria-label="accessibleLabel"
       :class="
         cn(
           'raised text-heading inline-flex h-8 min-w-36 cursor-pointer items-center justify-between gap-2.5 rounded-lg pr-2.5 pl-3',

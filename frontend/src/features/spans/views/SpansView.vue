@@ -264,7 +264,13 @@ function onScrollerScroll(event: Event): void {
 }
 
 function scrollToTop(): void {
-  scrollerEl.value?.scrollTo({ top: 0, behavior: "smooth" });
+  const reduceMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  scrollerEl.value?.scrollTo({
+    top: 0,
+    behavior: reduceMotion ? "auto" : "smooth",
+  });
 }
 
 function updateTime(time: SharedTime): void {
@@ -412,8 +418,6 @@ function removeChip(key: string): void {
         id="span-list"
         ref="scrollerEl"
         class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
-        role="list"
-        aria-label="Spans"
         tabindex="-1"
         @scroll="onScrollerScroll"
       >
@@ -470,12 +474,14 @@ function removeChip(key: string): void {
               Time
             </div>
           </div>
-          <SpanRow
-            v-for="span in spans"
-            :key="span.spanId"
-            :span="span"
-            :max-duration-ms="maxDurationMs"
-          />
+          <div role="list" aria-label="Spans">
+            <SpanRow
+              v-for="span in spans"
+              :key="span.spanId"
+              :span="span"
+              :max-duration-ms="maxDurationMs"
+            />
+          </div>
           <div
             ref="sentinelEl"
             class="flex flex-col items-center gap-2 px-5 py-4 text-center"

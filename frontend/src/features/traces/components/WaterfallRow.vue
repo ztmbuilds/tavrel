@@ -90,11 +90,6 @@ const statusText = computed(() => {
   return "";
 });
 
-const rowLabel = computed(
-  () =>
-    `${statusText.value}${props.node.span.name}, ${props.node.span.service}, ${formatDurationMs(durationMs.value)}, ${props.node.span.status}`,
-);
-
 function onChevron(event: MouseEvent): void {
   event.stopPropagation();
   if (props.node.children.length > 0)
@@ -119,7 +114,6 @@ function onChevron(event: MouseEvent): void {
       :aria-level="level"
       :aria-selected="isSelected"
       :aria-expanded="node.children.length > 0 ? !isCollapsed : undefined"
-      :aria-label="rowLabel"
       :data-span-id="node.span.spanId"
       tabindex="-1"
       @click="context.select(node.span.spanId)"
@@ -185,12 +179,25 @@ function onChevron(event: MouseEvent): void {
           {{ node.span.name
           }}<span
             v-if="node.span.kind !== 'internal'"
-            class="text-tertiary ml-1.5 text-[0.625rem]"
+            :class="
+              cn(
+                'ml-1.5 text-[0.625rem]',
+                isSelected ? 'text-secondary' : 'text-tertiary',
+              )
+            "
             >{{ node.span.kind }}</span
           ><span
             v-if="showAsync"
-            class="text-tertiary border-default ml-1.5 rounded-[3px] border px-1 text-[0.625rem] font-semibold tracking-wide"
+            :class="
+              cn(
+                'border-default ml-1.5 rounded-[3px] border px-1 text-[0.625rem] font-semibold tracking-wide',
+                isSelected ? 'text-secondary' : 'text-tertiary',
+              )
+            "
             >async</span
+          >
+          <span class="sr-only"
+            >, {{ formatDurationMs(durationMs) }}, {{ node.span.service }}</span
           >
         </span>
       </div>
@@ -208,7 +215,7 @@ function onChevron(event: MouseEvent): void {
         >
           <span
             v-if="!labelFitsAfterBar"
-            class="text-heading absolute top-1/2 right-1.5 -translate-y-1/2 text-[0.6875rem] font-medium whitespace-nowrap tabular-nums"
+            class="text-primary bg-canvas/85 absolute top-1/2 right-1.5 -translate-y-1/2 rounded px-1 text-[0.6875rem] font-medium whitespace-nowrap tabular-nums"
           >
             {{ formatDurationMs(durationMs) }}
           </span>
