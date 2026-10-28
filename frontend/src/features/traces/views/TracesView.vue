@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import {
-  useRoute,
-  useRouter,
-  type RouteLocationNormalizedLoaded,
-} from "vue-router";
+import { useRoute, type RouteLocationNormalizedLoaded } from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg?component";
 
@@ -74,7 +70,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
-const router = useRouter();
 
 function readDurationMsParam(
   route: RouteLocationNormalizedLoaded,
@@ -428,15 +423,14 @@ function removeChip(key: string): void {
   } else return;
   resetList();
 }
-
-function openTrace(traceId: string): void {
-  void router.push({ name: "trace-detail", params: { id: traceId } });
-}
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead title="Traces" />
+    <PageHead
+      title="Traces"
+      description="Every request that entered the system, root operation first."
+    />
     <FilterBar label="Filter traces">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1 max-[40rem]:basis-full">
@@ -527,47 +521,47 @@ function openTrace(traceId: string): void {
         />
         <template v-else>
           <div
-            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
+            class="border-default bg-panel sticky top-0 z-5 flex h-11 items-center gap-3 border-b px-5"
           >
             <div
-              class="text-tertiary w-[5.25rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[5.25rem] shrink-0 text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase"
               aria-hidden="true"
             >
               ID
             </div>
             <div
-              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+              class="text-tertiary min-w-0 flex-1 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase"
               aria-hidden="true"
             >
               Trace
             </div>
             <div
-              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-28 shrink-0 truncate text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase max-[53.75rem]:hidden"
               aria-hidden="true"
             >
               Environment
             </div>
             <div
-              class="text-tertiary w-[9.375rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-[9.375rem] shrink-0 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[53.75rem]:hidden"
               aria-hidden="true"
             >
               Timeline
             </div>
             <div
-              class="text-tertiary w-[3.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[3.625rem] shrink-0 text-right text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase"
               aria-hidden="true"
             >
               Duration
             </div>
             <div
-              class="text-tertiary w-[3.875rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-[3.875rem] shrink-0 text-right text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase max-[53.75rem]:hidden"
               aria-hidden="true"
             >
               Spans
             </div>
             <button
               type="button"
-              class="text-tertiary hover:text-primary flex w-[10.75rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
+              class="text-tertiary hover:text-primary flex w-[10.75rem] shrink-0 cursor-pointer items-center justify-end gap-1 border-none bg-transparent p-0 text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase transition-colors duration-120 ease-out max-[40rem]:hidden"
               :aria-label="sortAriaLabel"
               @click="toggleOrder"
             >
@@ -585,7 +579,6 @@ function openTrace(traceId: string): void {
             :key="trace.traceId"
             :trace="trace"
             :max-duration-ms="maxTraceDurationMs"
-            @open-trace="openTrace"
           />
           <div
             ref="sentinelEl"

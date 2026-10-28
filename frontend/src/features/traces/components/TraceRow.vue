@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 import type { Trace } from "@/shared/types/entities/trace";
+import Badge from "@/shared/components/ui/Badge.vue";
 import { cn } from "@/shared/utils/cn";
 import { SHORT_LIST_ID_LENGTH, truncateTraceId } from "@/shared/utils/format";
 import {
@@ -17,11 +19,8 @@ const props = defineProps<{
   maxDurationMs: number;
 }>();
 
-defineEmits<{
-  openTrace: [traceId: string];
-}>();
-
 const FULL_METER_PERCENT = 100;
+const MIN_METER_PERCENT = 6;
 
 const durationMs = computed(() => {
   const value = diffMsPrecise(props.trace.startTime, props.trace.endTime);
@@ -43,9 +42,12 @@ const shortTraceId = computed(() =>
 
 const meterWidth = computed(() => {
   if (props.maxDurationMs <= 0) return 0;
-  return Math.min(
-    FULL_METER_PERCENT,
-    (durationMs.value / props.maxDurationMs) * FULL_METER_PERCENT,
+  return Math.max(
+    MIN_METER_PERCENT,
+    Math.min(
+      FULL_METER_PERCENT,
+      (durationMs.value / props.maxDurationMs) * FULL_METER_PERCENT,
+    ),
   );
 });
 
@@ -59,56 +61,73 @@ const rowLabel = computed(
   <div
     :class="
       cn(
-        'border-subtle hover:bg-hover flex cursor-pointer items-center gap-3 border-b border-l-2 border-l-transparent px-4 py-2 transition-colors duration-120 ease-out',
-        trace.status === 'error' && 'border-l-error',
+        'group border-subtle relative flex min-h-[3.375rem] items-center gap-3 border-b px-5 py-2 transition-colors duration-120 ease-out',
+        trace.status === 'error'
+          ? 'bg-error/[0.05] hover:bg-error/[0.08] shadow-[inset_2px_0_0_0_var(--color-error)]'
+          : 'hover:bg-white/[0.035]',
       )
     "
     role="listitem"
-    tabindex="0"
-    :aria-label="rowLabel"
-    @click="$emit('openTrace', trace.traceId)"
-    @keydown.enter.prevent="$emit('openTrace', trace.traceId)"
-    @keydown.space.prevent="$emit('openTrace', trace.traceId)"
   >
+    <RouterLink
+      :to="{ name: 'trace-detail', params: { id: trace.traceId } }"
+      class="absolute inset-0 z-10"
+      :aria-label="rowLabel"
+    />
     <div
       class="text-tertiary w-[5.25rem] shrink-0 font-mono text-xs tabular-nums"
     >
-      <span class="group inline-flex items-center gap-1">
+      <span class="inline-flex items-center gap-1">
         <span class="truncate" :title="trace.traceId">{{ shortTraceId }}</span>
-        <CopyButton
-          :text="trace.traceId"
-          label="Copy trace ID"
-          title="Copy trace ID"
-        />
+        <span class="relative z-20 inline-flex">
+          <CopyButton
+            :text="trace.traceId"
+            label="Copy trace ID"
+            title="Copy trace ID"
+          />
+        </span>
       </span>
     </div>
     <div class="min-w-0 flex-1">
-      <div
-        :class="
-          cn(
-            'truncate text-[0.78125rem] leading-snug font-medium',
-            trace.status === 'error' ? 'text-error' : 'text-heading',
-          )
-        "
-      >
-        <span :title="trace.rootName">{{ trace.rootName }}</span>
+      <div class="flex min-w-0 items-center gap-2">
+        <span
+          :class="
+            cn(
+              'truncate text-[0.78125rem] leading-snug font-medium',
+              trace.status === 'error' ? 'text-error-text' : 'text-heading',
+            )
+          "
+          :title="trace.rootName"
+        >
+          {{ trace.rootName }}
+        </span>
+        <Badge
+          v-if="trace.status === 'error'"
+          variant="error"
+          class="h-5 shrink-0 px-2 text-[0.6875rem]"
+        >
+          Error
+        </Badge>
+      </div>
+      <div class="text-tertiary mt-0.5 truncate text-[0.6875rem]">
+        {{ trace.rootService || "Unknown service" }}
       </div>
     </div>
     <div
-      class="text-tertiary w-[5.5rem] shrink-0 truncate text-xs max-[53.75rem]:hidden"
+      class="text-tertiary w-28 shrink-0 truncate text-xs max-[53.75rem]:hidden"
       :title="trace.environment"
     >
       {{ trace.environment }}
     </div>
     <div
-      class="bg-surface relative h-3.5 w-[9.375rem] shrink-0 overflow-hidden rounded-sm max-[53.75rem]:hidden"
+      class="relative h-1.5 w-[9.375rem] shrink-0 overflow-hidden rounded-[3px] bg-white/[0.06] max-[53.75rem]:hidden"
       aria-hidden="true"
     >
       <div
         :class="
           cn(
-            'absolute top-0 bottom-0 left-0 rounded-sm opacity-90',
-            trace.status === 'error' ? 'bg-error' : 'bg-ok',
+            'absolute top-0 bottom-0 left-0 rounded-[3px]',
+            trace.status === 'error' ? 'bg-chart-error' : 'bg-chart-ok',
           )
         "
         :style="{ width: `${meterWidth}%` }"
@@ -125,10 +144,10 @@ const rowLabel = computed(
       {{ trace.spanCount }}
     </div>
     <div
-      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right font-mono text-xs tabular-nums max-[40rem]:hidden"
-      :title="relativeLabel"
+      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right text-xs tabular-nums max-[40rem]:hidden"
+      :title="dateTimeLabel"
     >
-      {{ dateTimeLabel }}
+      {{ relativeLabel }}
     </div>
   </div>
 </template>
