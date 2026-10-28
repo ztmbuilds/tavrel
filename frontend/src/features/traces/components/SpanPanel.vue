@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
 import xIcon from "@/assets/icons/x.svg?component";
 import Badge from "@/shared/components/ui/Badge.vue";
 import Button from "@/shared/components/ui/Button.vue";
@@ -45,6 +47,14 @@ defineEmits<{
 const activeTab = defineModel<TraceDetailTab>("activeTab", {
   default: "overview",
 });
+
+const statusLabel = computed(() =>
+  props.span.status === "error"
+    ? "Error"
+    : props.span.status === "ok"
+      ? "OK"
+      : "Unset",
+);
 
 const TABS: readonly { value: TraceDetailTab; label: string }[] = [
   { value: "overview", label: "Overview" },
@@ -112,7 +122,7 @@ function logOffsetMs(timestamp: string): number {
       <template #overview>
         <div class="mb-3.5 grid grid-cols-2 gap-2">
           <div
-            :class="cn('border-subtle bg-raised rounded border px-2.5 py-2')"
+            :class="cn('border-subtle bg-canvas rounded border px-2.5 py-2')"
           >
             <div
               class="text-tertiary mb-1 text-[0.65625rem] font-medium tracking-wider uppercase"
@@ -125,7 +135,7 @@ function logOffsetMs(timestamp: string): number {
               {{ formatDurationMs(durationMs) }}
             </div>
           </div>
-          <div class="border-subtle bg-raised rounded border px-2.5 py-2">
+          <div class="border-subtle bg-canvas rounded border px-2.5 py-2">
             <div
               class="text-tertiary mb-1 text-[0.65625rem] font-medium tracking-wider uppercase"
             >
@@ -137,7 +147,7 @@ function logOffsetMs(timestamp: string): number {
               {{ formatDurationMs(selfTimeMs) }}
             </div>
           </div>
-          <div class="border-subtle bg-raised rounded border px-2.5 py-2">
+          <div class="border-subtle bg-canvas rounded border px-2.5 py-2">
             <div
               class="text-tertiary mb-1 text-[0.65625rem] font-medium tracking-wider uppercase"
             >
@@ -149,7 +159,7 @@ function logOffsetMs(timestamp: string): number {
               {{ percentOfTrace }}%
             </div>
           </div>
-          <div class="border-subtle bg-raised rounded border px-2.5 py-2">
+          <div class="border-subtle bg-canvas rounded border px-2.5 py-2">
             <div
               class="text-tertiary mb-1 text-[0.65625rem] font-medium tracking-wider uppercase"
             >
@@ -163,7 +173,7 @@ function logOffsetMs(timestamp: string): number {
                 )
               "
             >
-              {{ span.status }}
+              {{ statusLabel }}
             </div>
           </div>
         </div>
@@ -178,7 +188,11 @@ function logOffsetMs(timestamp: string): number {
             :class="
               cn(
                 'absolute top-0 bottom-0 rounded-full',
-                span.status === 'error' ? 'bg-error' : 'bg-ok',
+                span.status === 'error'
+                  ? 'bg-error'
+                  : span.status === 'ok'
+                    ? 'bg-ok'
+                    : 'bg-strong',
               )
             "
             :style="{
@@ -253,14 +267,12 @@ function logOffsetMs(timestamp: string): number {
       </template>
 
       <template #events>
-        <div v-if="events.length === 0" class="px-2 py-6 text-center">
-          <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
-            No events on this span
-          </div>
-          <div class="text-tertiary text-xs leading-relaxed text-pretty">
-            Events mark exceptions and milestones during the span.
-          </div>
-        </div>
+        <p
+          v-if="events.length === 0"
+          class="text-tertiary m-0 px-2 py-8 text-center text-[0.8125rem] leading-relaxed text-pretty"
+        >
+          Events mark exceptions and milestones during the span.
+        </p>
         <div
           v-for="(event, index) in events"
           :key="index"
@@ -304,14 +316,12 @@ function logOffsetMs(timestamp: string): number {
           </div>
           <Button size="sm" @click="$emit('retryLinks')">Retry</Button>
         </div>
-        <div v-else-if="links.length === 0" class="px-2 py-6 text-center">
-          <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
-            No links on this span
-          </div>
-          <div class="text-tertiary text-xs leading-relaxed text-pretty">
-            Links point at related spans, like a batch producer or a trigger.
-          </div>
-        </div>
+        <p
+          v-else-if="links.length === 0"
+          class="text-tertiary m-0 px-2 py-8 text-center text-[0.8125rem] leading-relaxed text-pretty"
+        >
+          Links point at related spans, like a batch producer or a trigger.
+        </p>
         <SpanLinkRow
           v-for="link in links"
           :key="`${link.traceId}:${link.spanId}`"
@@ -330,14 +340,12 @@ function logOffsetMs(timestamp: string): number {
           </div>
           <Button size="sm" @click="$emit('retryLogs')">Retry</Button>
         </div>
-        <div v-else-if="logs.length === 0" class="px-2 py-6 text-center">
-          <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
-            No logs in this span’s window
-          </div>
-          <div class="text-tertiary text-xs leading-relaxed text-pretty">
-            Logs from this service and time range will appear here.
-          </div>
-        </div>
+        <p
+          v-else-if="logs.length === 0"
+          class="text-tertiary m-0 px-2 py-8 text-center text-[0.8125rem] leading-relaxed text-pretty"
+        >
+          Logs from this service and time range will appear here.
+        </p>
         <div
           v-for="log in logs"
           :key="log.id"

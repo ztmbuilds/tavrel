@@ -40,11 +40,12 @@ const {
 </script>
 
 <template>
-  <div v-if="isEmpty" class="px-2 py-6 text-center">
-    <div class="text-primary text-[0.78125rem] font-semibold">
-      No attributes on this span
-    </div>
-  </div>
+  <p
+    v-if="isEmpty"
+    class="text-tertiary m-0 px-2 py-8 text-center text-[0.8125rem]"
+  >
+    No attributes on this span.
+  </p>
   <div v-else>
     <div class="mb-2 flex items-center justify-between">
       <SegmentedControl

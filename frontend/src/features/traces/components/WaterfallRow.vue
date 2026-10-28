@@ -62,7 +62,7 @@ const barGeom = computed(() => {
 
 const barBackground = computed(() =>
   props.node.span.status === "error"
-    ? "var(--color-error)"
+    ? "var(--color-chart-error)"
     : serviceColor(props.node.span.service),
 );
 
@@ -107,10 +107,12 @@ function onChevron(event: MouseEvent): void {
     <div
       :class="
         cn(
-          'hover:bg-hover flex h-[1.875rem] cursor-pointer items-center border-l-[3px] border-l-transparent transition-colors duration-120 ease-out',
-          node.span.status === 'error' && 'border-l-error bg-error/10',
-          isSelected &&
-            'bg-raised shadow-[inset_3px_0_0_0_var(--color-signal)]',
+          'flex h-10 cursor-pointer items-center border-l-2 transition-colors duration-120 ease-out',
+          isSelected
+            ? 'border-l-signal bg-signal/15'
+            : node.span.status === 'error'
+              ? 'border-l-error bg-error/[0.05] hover:bg-error/[0.08]'
+              : 'border-l-transparent hover:bg-white/[0.035]',
         )
       "
       role="treeitem"
@@ -123,7 +125,16 @@ function onChevron(event: MouseEvent): void {
       @click="context.select(node.span.spanId)"
     >
       <div
-        class="border-subtle bg-panel flex h-full shrink-0 items-center gap-1 border-r pr-2.5"
+        :class="
+          cn(
+            'border-subtle flex h-full shrink-0 items-center gap-1 border-r pr-2.5',
+            isSelected
+              ? 'bg-signal/15'
+              : node.span.status === 'error'
+                ? 'bg-error/[0.05]'
+                : 'bg-panel',
+          )
+        "
         :style="{ width: context.labelWidth.value + 'rem' }"
       >
         <TreeGuides :guides="guides" :depth="depth" :is-last="isLast" />
@@ -165,7 +176,7 @@ function onChevron(event: MouseEvent): void {
             cn(
               'min-w-0 flex-1 truncate text-[0.78125rem] leading-snug',
               node.span.status === 'error'
-                ? 'text-error font-medium'
+                ? 'text-error-text font-medium'
                 : 'text-primary',
             )
           "
@@ -188,7 +199,7 @@ function onChevron(event: MouseEvent): void {
         aria-hidden="true"
       >
         <div
-          class="absolute top-1/2 h-4 -translate-y-1/2 rounded-[3px]"
+          class="absolute top-1/2 h-[1.125rem] -translate-y-1/2 rounded-[5px]"
           :style="{
             left: `${barGeom.left}%`,
             width: `${barGeom.width}%`,
@@ -233,7 +244,7 @@ function onChevron(event: MouseEvent): void {
     <div
       v-else-if="node.children.length > 0 && isCollapsed"
       role="group"
-      class="flex h-[1.875rem] items-center border-l-[3px] border-l-transparent"
+      class="flex h-10 items-center border-l-2 border-l-transparent"
     >
       <div
         class="border-subtle bg-panel flex h-full shrink-0 items-center border-r"

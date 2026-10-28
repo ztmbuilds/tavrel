@@ -17,7 +17,7 @@ export interface WaterfallContext {
 export const waterfallKey: InjectionKey<WaterfallContext> =
   Symbol("trace-waterfall");
 
-export const DEFAULT_LABEL_WIDTH_REM = 24;
+export const DEFAULT_LABEL_WIDTH_REM = 20;
 export const NARROW_LABEL_WIDTH_REM = 9.375;
 export const MIN_LABEL_WIDTH_REM = 8;
 export const MAX_LABEL_WIDTH_REM = 40;

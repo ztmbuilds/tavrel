@@ -43,7 +43,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
 
 <template>
   <header
-    class="border-subtle bg-panel flex h-9.5 shrink-0 items-center gap-2.5 border-b px-5"
+    class="border-subtle bg-panel flex h-9.5 shrink-0 items-center gap-2.5 border-b px-10 max-[40rem]:px-4"
   >
     <Button
       variant="ghost"
@@ -84,7 +84,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
   </header>
 
   <section
-    class="border-subtle bg-panel shrink-0 border-b px-5 pt-4.5 pb-3.5"
+    class="border-subtle bg-panel shrink-0 border-b px-10 pt-7 pb-5 max-[40rem]:px-4 max-[40rem]:pt-5 max-[40rem]:pb-4"
     aria-labelledby="trace-title"
   >
     <div class="flex flex-wrap items-end justify-between gap-6">
@@ -100,7 +100,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
         <div class="flex flex-wrap items-center gap-2">
           <h1
             id="trace-title"
-            class="text-heading m-0 text-[1.3125rem] leading-snug font-semibold tracking-[-0.01em]"
+            class="text-heading m-0 text-[1.875rem] leading-[1.2] font-semibold tracking-[-0.02em]"
           >
             {{ rootName }}
           </h1>
@@ -122,10 +122,10 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
       </div>
       <div class="shrink-0 text-right">
         <span
-          class="text-heading text-[2rem] leading-none font-semibold tracking-[-0.02em] tabular-nums"
+          class="text-heading text-[2.75rem] leading-none font-semibold tracking-[-0.03em] tabular-nums"
           >{{ durationLabel }}</span
         >
-        <span class="text-tertiary mt-0.5 block text-[0.6875rem]"
+        <span class="text-tertiary mt-1 block text-[0.8125rem]"
           >total duration</span
         >
       </div>

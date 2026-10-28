@@ -505,7 +505,7 @@ function copyTraceId(): void {
 
         <aside
           v-if="selectedSpan"
-          class="border-subtle bg-surface relative z-10 flex min-h-0 max-w-[90vw] shrink-0 border-l max-[68.75rem]:absolute max-[68.75rem]:top-0 max-[68.75rem]:right-0 max-[68.75rem]:bottom-0 max-[68.75rem]:z-20 max-[68.75rem]:shadow-xl"
+          class="border-subtle bg-panel relative z-10 flex min-h-0 max-w-[90vw] shrink-0 border-l max-[68.75rem]:absolute max-[68.75rem]:top-0 max-[68.75rem]:right-0 max-[68.75rem]:bottom-0 max-[68.75rem]:z-20"
           :style="{ width: `${panelWidth}rem` }"
           aria-label="Span details"
         >
