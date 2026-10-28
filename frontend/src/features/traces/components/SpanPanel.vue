@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import xIcon from "@/assets/icons/x.svg?component";
 import Button from "@/shared/components/ui/Button.vue";
+import Tabs from "@/shared/components/ui/Tabs.vue";
 import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
@@ -98,32 +99,15 @@ function logOffsetMs(timestamp: string): number {
       </div>
     </div>
 
-    <div
-      class="border-subtle flex shrink-0 [scrollbar-width:none] gap-0.5 overflow-x-auto border-b px-5 [&::-webkit-scrollbar]:hidden"
-      role="tablist"
+    <Tabs
+      v-model="activeTab"
+      :items="TABS"
       aria-label="Span detail views"
+      class="flex min-h-0 flex-1 flex-col"
+      list-class="shrink-0 gap-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      content-class="min-h-0 flex-1 overflow-y-auto px-4 py-3"
     >
-      <button
-        v-for="tab in TABS"
-        :key="tab.value"
-        type="button"
-        role="tab"
-        :aria-selected="activeTab === tab.value"
-        :class="
-          cn(
-            'text-tertiary hover:text-secondary mr-4 cursor-pointer border-x-0 border-t-0 border-b-2 border-b-transparent bg-transparent px-1 py-2.5 text-[0.78125rem] leading-snug transition-colors duration-120 ease-out',
-            activeTab === tab.value &&
-              'text-heading border-b-signal font-medium',
-          )
-        "
-        @click="activeTab = tab.value"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
-
-    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3" role="tabpanel">
-      <template v-if="activeTab === 'overview'">
+      <template #overview>
         <div class="mb-3.5 grid grid-cols-2 gap-2">
           <div
             :class="cn('border-subtle bg-raised rounded border px-2.5 py-2')"
@@ -262,11 +246,11 @@ function logOffsetMs(timestamp: string): number {
         </table>
       </template>
 
-      <template v-else-if="activeTab === 'attributes'">
+      <template #attributes>
         <SpanAttributes :attributes="span.attributes" />
       </template>
 
-      <template v-else-if="activeTab === 'events'">
+      <template #events>
         <div v-if="events.length === 0" class="px-2 py-6 text-center">
           <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
             No events on this span
@@ -308,7 +292,7 @@ function logOffsetMs(timestamp: string): number {
         </div>
       </template>
 
-      <template v-else-if="activeTab === 'links'">
+      <template #links>
         <div v-if="linksPending" class="flex justify-center px-2 py-6">
           <LoadingSpinner size="sm" label="Loading links" />
         </div>
@@ -334,7 +318,7 @@ function logOffsetMs(timestamp: string): number {
         />
       </template>
 
-      <template v-else>
+      <template #logs>
         <div v-if="logsPending" class="flex justify-center px-2 py-6">
           <LoadingSpinner size="sm" label="Loading logs" />
         </div>
@@ -376,7 +360,7 @@ function logOffsetMs(timestamp: string): number {
           </div>
         </div>
       </template>
-    </div>
+    </Tabs>
 
     <div
       class="border-subtle text-tertiary flex shrink-0 flex-wrap gap-4 border-t px-4 py-2 text-[0.6875rem] leading-relaxed max-[47.5rem]:hidden"

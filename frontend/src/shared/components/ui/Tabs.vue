@@ -1,22 +1,21 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string">
 import type { HTMLAttributes } from "vue";
 
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from "reka-ui";
 
 import { cn } from "@/shared/utils/cn";
 
-export interface TabItem {
-  value: string;
-  label: string;
-}
-
 const props = defineProps<{
-  items: readonly TabItem[];
+  items: readonly {
+    value: T;
+    label: string;
+  }[];
   ariaLabel?: string;
   class?: HTMLAttributes["class"];
   listClass?: HTMLAttributes["class"];
+  contentClass?: HTMLAttributes["class"];
 }>();
-const model = defineModel<string>({ required: true });
+const model = defineModel<T>({ required: true });
 </script>
 
 <template>
@@ -44,7 +43,7 @@ const model = defineModel<string>({ required: true });
       v-for="tab in props.items"
       :key="tab.value"
       :value="tab.value"
-      class="pt-5 outline-none"
+      :class="cn('pt-5 outline-none', props.contentClass)"
     >
       <slot :name="tab.value" />
     </TabsContent>
