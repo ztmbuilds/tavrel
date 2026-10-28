@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 
 import arrowUpIcon from "@/assets/icons/arrow-up.svg?component";
 
@@ -65,7 +65,6 @@ const SEARCH_DEBOUNCE_MS = 300;
 const BACK_TO_TOP_THRESHOLD_PX = 600;
 
 const route = useRoute();
-const router = useRouter();
 
 function filtersFromRoute(): SpansFilters {
   const statusRaw = readQueryParam(route, "status");
@@ -343,15 +342,14 @@ function removeChip(key: string): void {
   } else return;
   resetList();
 }
-
-function openTrace(traceId: string): void {
-  void router.push({ name: "trace-detail", params: { id: traceId } });
-}
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead title="Spans" />
+    <PageHead
+      title="Spans"
+      description="Every unit of work recorded, independent of which trace it belongs to."
+    />
     <FilterBar label="Filter spans">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1 max-[40rem]:basis-full">
@@ -442,32 +440,32 @@ function openTrace(traceId: string): void {
         />
         <template v-else>
           <div
-            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-3 border-b py-1.5 pr-4 pl-[1.1875rem]"
+            class="border-default bg-panel sticky top-0 z-5 flex h-11 items-center gap-3 border-b px-5"
             aria-hidden="true"
           >
             <div class="w-4 shrink-0" />
             <div
-              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+              class="text-tertiary min-w-0 flex-1 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase"
             >
               Span
             </div>
             <div
-              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-28 shrink-0 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[53.75rem]:hidden"
             >
               Environment
             </div>
             <div
-              class="text-tertiary w-[8.125rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[53.75rem]:hidden"
+              class="text-tertiary w-[8.125rem] shrink-0 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[53.75rem]:hidden"
             >
               Timeline
             </div>
             <div
-              class="text-tertiary w-[3.625rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[3.625rem] shrink-0 text-right text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase"
             >
               Duration
             </div>
             <div
-              class="text-tertiary w-[10.75rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider whitespace-nowrap uppercase"
+              class="text-tertiary w-[10.75rem] shrink-0 text-right text-xs leading-relaxed font-normal tracking-[0.06em] whitespace-nowrap uppercase max-[40rem]:hidden"
             >
               Time
             </div>
@@ -477,7 +475,6 @@ function openTrace(traceId: string): void {
             :key="span.spanId"
             :span="span"
             :max-duration-ms="maxDurationMs"
-            @open-trace="openTrace"
           />
           <div
             ref="sentinelEl"

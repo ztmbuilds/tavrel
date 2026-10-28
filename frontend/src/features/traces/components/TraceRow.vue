@@ -134,12 +134,12 @@ const rowLabel = computed(
       />
     </div>
     <div
-      class="text-secondary w-[3.625rem] shrink-0 text-right font-mono text-xs tabular-nums"
+      class="text-secondary w-[3.625rem] shrink-0 text-right text-xs tabular-nums"
     >
       {{ durationLabel }}
     </div>
     <div
-      class="text-tertiary w-[3.875rem] shrink-0 text-right font-mono text-xs tabular-nums max-[53.75rem]:hidden"
+      class="text-tertiary w-[3.875rem] shrink-0 text-right text-xs tabular-nums max-[53.75rem]:hidden"
     >
       {{ trace.spanCount }}
     </div>

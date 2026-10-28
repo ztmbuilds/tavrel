@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 
 import type { Span } from "@/shared/types/entities/span";
+import Badge from "@/shared/components/ui/Badge.vue";
 import { cn } from "@/shared/utils/cn";
 import { SHORT_LIST_ID_LENGTH } from "@/shared/utils/format";
 import { serviceColor } from "@/shared/utils/service-color";
@@ -12,15 +14,10 @@ import {
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
 import CopyButton from "@/shared/components/CopyButton.vue";
-import Button from "@/shared/components/ui/Button.vue";
 
 const props = defineProps<{
   span: Span;
   maxDurationMs: number;
-}>();
-
-defineEmits<{
-  openTrace: [traceId: string];
 }>();
 
 const durationMs = computed(() => {
@@ -30,6 +27,7 @@ const durationMs = computed(() => {
 });
 
 const FULL_METER_PERCENT = 100;
+const MIN_METER_PERCENT = 6;
 
 const durationLabel = computed(() => formatDurationMs(durationMs.value));
 
@@ -49,15 +47,18 @@ const shortTraceId = computed(() =>
 
 const meterWidth = computed(() => {
   if (props.maxDurationMs <= 0) return 0;
-  return Math.min(
-    FULL_METER_PERCENT,
-    (durationMs.value / props.maxDurationMs) * FULL_METER_PERCENT,
+  return Math.max(
+    MIN_METER_PERCENT,
+    Math.min(
+      FULL_METER_PERCENT,
+      (durationMs.value / props.maxDurationMs) * FULL_METER_PERCENT,
+    ),
   );
 });
 
 const rowLabel = computed(
   () =>
-    `${props.span.name}, ${props.span.service}, ${durationLabel.value}, ${dateTimeLabel.value}`,
+    `${props.span.name}, ${props.span.service}, ${props.span.status}, ${durationLabel.value}, ${dateTimeLabel.value}`,
 );
 </script>
 
@@ -65,17 +66,19 @@ const rowLabel = computed(
   <div
     :class="
       cn(
-        'border-subtle hover:bg-hover flex cursor-pointer items-center gap-3 border-b border-l-2 border-l-transparent px-4 py-2 transition-colors duration-120 ease-out',
-        span.status === 'error' && 'border-l-error',
+        'group border-subtle relative flex min-h-[3.375rem] items-center gap-3 border-b px-5 py-2 transition-colors duration-120 ease-out',
+        span.status === 'error'
+          ? 'bg-error/[0.05] hover:bg-error/[0.08] shadow-[inset_2px_0_0_0_var(--color-error)]'
+          : 'hover:bg-white/[0.035]',
       )
     "
     role="listitem"
-    tabindex="0"
-    :aria-label="rowLabel"
-    @click="$emit('openTrace', span.traceId)"
-    @keydown.enter.prevent="$emit('openTrace', span.traceId)"
-    @keydown.space.prevent="$emit('openTrace', span.traceId)"
   >
+    <RouterLink
+      :to="{ name: 'trace-detail', params: { id: span.traceId } }"
+      class="absolute inset-0 z-10"
+      :aria-label="rowLabel"
+    />
     <div class="flex w-4 shrink-0 justify-center" aria-hidden="true">
       <span
         class="size-1.75 rounded-full"
@@ -83,15 +86,25 @@ const rowLabel = computed(
       />
     </div>
     <div class="min-w-0 flex-1">
-      <div
-        :class="
-          cn(
-            'text-primary truncate text-sm leading-snug font-medium',
-            span.status === 'error' && 'text-error',
-          )
-        "
-      >
-        <span :title="span.name">{{ span.name }}</span>
+      <div class="flex min-w-0 items-center gap-2">
+        <span
+          :class="
+            cn(
+              'truncate text-[0.78125rem] leading-snug font-medium',
+              span.status === 'error' ? 'text-error-text' : 'text-primary',
+            )
+          "
+          :title="span.name"
+        >
+          {{ span.name }}
+        </span>
+        <Badge
+          v-if="span.status === 'error'"
+          variant="error"
+          class="h-5 shrink-0 px-2 text-[0.6875rem]"
+        >
+          Error
+        </Badge>
       </div>
       <div
         class="text-tertiary mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs"
@@ -104,72 +117,70 @@ const rowLabel = computed(
         </span>
         <span class="inline-flex shrink-0 items-center gap-2">
           <span class="text-tertiary">span</span>
-          <span class="group inline-flex items-center" :title="span.spanId">
+          <span class="inline-flex items-center" :title="span.spanId">
             <span class="text-secondary font-mono tabular-nums">{{
               shortSpanId
             }}</span>
-            <CopyButton
-              compact
-              :text="span.spanId"
-              label="Copy span ID"
-              title="Copy span ID"
-            />
+            <span class="relative z-20 inline-flex">
+              <CopyButton
+                compact
+                :text="span.spanId"
+                label="Copy span ID"
+                title="Copy span ID"
+              />
+            </span>
           </span>
           <span aria-hidden="true">·</span>
         </span>
         <span class="inline-flex shrink-0 items-center gap-2">
           <span class="text-tertiary">trace</span>
-          <span class="group inline-flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              class="text-secondary hover:text-heading h-auto p-0 font-mono text-xs hover:bg-transparent"
-              :title="`Open trace ${span.traceId}`"
-              @click.stop="$emit('openTrace', span.traceId)"
-            >
-              {{ shortTraceId }}
-            </Button>
-            <CopyButton
-              compact
-              :text="span.traceId"
-              label="Copy trace ID"
-              title="Copy trace ID"
-            />
+          <span class="inline-flex items-center">
+            <span class="text-secondary font-mono tabular-nums">{{
+              shortTraceId
+            }}</span>
+            <span class="relative z-20 inline-flex">
+              <CopyButton
+                compact
+                :text="span.traceId"
+                label="Copy trace ID"
+                title="Copy trace ID"
+              />
+            </span>
           </span>
         </span>
       </div>
     </div>
     <div
-      class="text-tertiary w-[5.5rem] shrink-0 truncate text-xs max-[53.75rem]:hidden"
+      class="text-tertiary w-28 shrink-0 truncate text-xs max-[53.75rem]:hidden"
       :title="span.environment"
       aria-hidden="true"
     >
       {{ span.environment }}
     </div>
     <div
-      class="bg-surface relative h-3.5 w-[8.125rem] shrink-0 overflow-hidden rounded-sm max-[53.75rem]:hidden"
+      class="relative h-1.5 w-[8.125rem] shrink-0 overflow-hidden rounded-[3px] bg-white/[0.06] max-[53.75rem]:hidden"
       aria-hidden="true"
     >
       <div
         :class="
           cn(
-            'absolute top-0 bottom-0 left-0 rounded-sm opacity-90',
-            span.status === 'error' ? 'bg-error' : 'bg-ok',
+            'absolute top-0 bottom-0 left-0 rounded-[3px]',
+            span.status === 'error' ? 'bg-chart-error' : 'bg-chart-ok',
           )
         "
         :style="{ width: `${meterWidth}%` }"
       />
     </div>
     <div
-      class="text-secondary w-[3.625rem] shrink-0 text-right font-mono text-xs tabular-nums"
+      class="text-secondary w-[3.625rem] shrink-0 text-right text-xs tabular-nums"
     >
       {{ durationLabel }}
     </div>
     <div
-      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right font-mono text-xs tabular-nums"
-      :title="relativeLabel"
+      class="text-tertiary w-[10.75rem] shrink-0 truncate text-right text-xs tabular-nums max-[40rem]:hidden"
+      :title="dateTimeLabel"
     >
-      {{ dateTimeLabel }}
+      {{ relativeLabel }}
     </div>
   </div>
 </template>

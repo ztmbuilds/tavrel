@@ -77,7 +77,7 @@ const rowLabel = computed(
       {{ log.level }}
     </div>
     <div
-      class="text-tertiary w-[10.75rem] shrink-0 truncate pt-px font-mono text-xs tabular-nums max-[40rem]:hidden"
+      class="text-tertiary w-[10.75rem] shrink-0 truncate pt-px text-xs tabular-nums max-[40rem]:hidden"
       :title="relativeLabel"
     >
       {{ dateTimeLabel }}
