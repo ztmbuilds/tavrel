@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { use } from "echarts/core";
 import type { ComposeOption } from "echarts/core";
@@ -61,9 +61,18 @@ function onMotionChange(event: MediaQueryListEvent): void {
   reducedMotion.value = event.matches;
 }
 reducedMotionQuery.addEventListener("change", onMotionChange);
-onUnmounted(() =>
-  reducedMotionQuery.removeEventListener("change", onMotionChange),
-);
+onMounted(() => {
+  window.addEventListener("scroll", clearHover, {
+    capture: true,
+    passive: true,
+  });
+  window.addEventListener("resize", clearHover);
+});
+onUnmounted(() => {
+  reducedMotionQuery.removeEventListener("change", onMotionChange);
+  window.removeEventListener("scroll", clearHover, { capture: true });
+  window.removeEventListener("resize", clearHover);
+});
 
 const totalCount = computed(() => props.overview.traceCount);
 const errorCount = computed(() => props.overview.errorTraceCount);
@@ -101,8 +110,25 @@ const errorCounts = computed(() =>
   props.buckets.map((bucket) => bucket.errorCount),
 );
 
+const HOVER_CARD_WIDTH = 160;
+const HOVER_CARD_HEIGHT = 84;
+const HOVER_GAP = 12;
+const HOVER_EDGE = 8;
+
 const hoveredIndex = ref<number | null>(null);
+const hoverLeft = ref(HOVER_EDGE);
+const hoverTop = ref(HOVER_EDGE);
 const BAR_RADIUS_PX = 3;
+
+const hoveredBucket = computed(() => {
+  if (hoveredIndex.value === null) return null;
+  return props.buckets[hoveredIndex.value] ?? null;
+});
+
+const hoveredLabel = computed(() => {
+  if (hoveredIndex.value === null) return "";
+  return labels.value[hoveredIndex.value] ?? "";
+});
 
 const readout = computed(() => {
   const index = hoveredIndex.value;
@@ -221,13 +247,8 @@ function indexFromPixel(x: number, y: number): number | null {
   if (!Array.isArray(value)) return null;
   const xValue = value[0];
   if (typeof xValue === "number") {
-    if (
-      Number.isInteger(xValue) &&
-      xValue >= 0 &&
-      xValue < props.buckets.length
-    )
-      return xValue;
-    return null;
+    if (props.buckets.length === 0) return null;
+    return Math.min(Math.max(Math.round(xValue), 0), props.buckets.length - 1);
   }
   if (typeof xValue === "string") {
     const index = labels.value.indexOf(xValue);
@@ -239,11 +260,30 @@ function indexFromPixel(x: number, y: number): number | null {
 function onChartMouseMove(event: MouseEvent): void {
   if (!(event.currentTarget instanceof HTMLElement)) return;
   const rect = event.currentTarget.getBoundingClientRect();
-  const index = indexFromPixel(
-    event.clientX - rect.left,
-    event.clientY - rect.top,
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  hoveredIndex.value = indexFromPixel(x, y);
+
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const pointerX = event.clientX;
+  const pointerY = event.clientY;
+
+  let left = pointerX + HOVER_GAP;
+  if (left + HOVER_CARD_WIDTH > viewportWidth - HOVER_EDGE) {
+    left = pointerX - HOVER_GAP - HOVER_CARD_WIDTH;
+  }
+  hoverLeft.value = Math.min(
+    Math.max(left, HOVER_EDGE),
+    Math.max(viewportWidth - HOVER_CARD_WIDTH - HOVER_EDGE, HOVER_EDGE),
   );
-  hoveredIndex.value = index;
+
+  let top = pointerY - HOVER_CARD_HEIGHT - HOVER_GAP;
+  if (top < HOVER_EDGE) top = pointerY + HOVER_GAP;
+  hoverTop.value = Math.min(
+    Math.max(top, HOVER_EDGE),
+    Math.max(viewportHeight - HOVER_CARD_HEIGHT - HOVER_EDGE, HOVER_EDGE),
+  );
 }
 
 function clearHover(): void {
@@ -281,7 +321,8 @@ function clearHover(): void {
     </p>
     <div
       v-else
-      class="mt-3 h-72"
+      class="relative mt-3 h-72"
+      @mouseenter="onChartMouseMove"
       @mousemove="onChartMouseMove"
       @mouseleave="clearHover"
     >
@@ -294,6 +335,38 @@ function clearHover(): void {
         class="cursor-pointer"
         @click="onChartClick"
       />
+      <Teleport to="body">
+        <div
+          v-if="hoveredBucket"
+          aria-hidden="true"
+          class="border-default bg-raised shadow-pop pointer-events-none fixed z-50 w-40 rounded-lg border px-3 py-2.5"
+          :style="{ left: `${hoverLeft}px`, top: `${hoverTop}px` }"
+        >
+          <div class="text-tertiary text-xs leading-relaxed tabular-nums">
+            {{ hoveredLabel }}
+          </div>
+          <div class="mt-1.5 flex flex-col gap-1 text-xs">
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-secondary flex items-center gap-1.5">
+                <span class="bg-chart-ok size-1.5 rounded-full" />
+                OK
+              </span>
+              <span class="text-heading font-medium tabular-nums">{{
+                formatCount(hoveredBucket.okCount)
+              }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-secondary flex items-center gap-1.5">
+                <span class="bg-chart-error size-1.5 rounded-full" />
+                Error
+              </span>
+              <span class="text-heading font-medium tabular-nums">{{
+                formatCount(hoveredBucket.errorCount)
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </Card>
 </template>
