@@ -30,6 +30,7 @@ const modelValue = defineModel<string[]>({ required: true });
 
 const open = ref(false);
 const filter = ref("");
+const draft = ref<string[]>([]);
 const rootRef = ref<HTMLDivElement | null>(null);
 const triggerRef = ref<HTMLButtonElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);
@@ -61,8 +62,8 @@ const serviceRows = computed(() => {
   );
 });
 
-function isSelected(value: string): boolean {
-  return modelValue.value.includes(value);
+function isDraftSelected(value: string): boolean {
+  return draft.value.includes(value);
 }
 
 function close(returnFocus: boolean): void {
@@ -76,6 +77,7 @@ function toggle(): void {
     return;
   }
   filter.value = "";
+  draft.value = [...modelValue.value];
   open.value = true;
   void nextTick(() => {
     document.getElementById(`${props.label}-search`)?.focus();
@@ -83,15 +85,23 @@ function toggle(): void {
 }
 
 function toggleValue(value: string): void {
-  if (isSelected(value)) {
-    modelValue.value = modelValue.value.filter((item) => item !== value);
+  if (isDraftSelected(value)) {
+    draft.value = draft.value.filter((item) => item !== value);
   } else {
-    modelValue.value = [...modelValue.value, value];
+    draft.value = [...draft.value, value];
   }
 }
 
-function clearSelection(): void {
-  modelValue.value = [];
+function clearDraft(): void {
+  draft.value = [];
+}
+
+function applyDraft(): void {
+  const changed =
+    draft.value.length !== modelValue.value.length ||
+    draft.value.some((value, index) => value !== modelValue.value[index]);
+  if (changed) modelValue.value = [...draft.value];
+  close(true);
 }
 
 function handleOutside(event: PointerEvent): void {
@@ -199,7 +209,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :key="option.value"
           type="button"
           role="option"
-          :aria-selected="isSelected(option.value)"
+          :aria-selected="isDraftSelected(option.value)"
           :class="
             cn(
               'text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left font-sans text-[0.8125rem] outline-none select-none hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
@@ -211,7 +221,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
             :class="
               cn(
                 'flex size-4 shrink-0 items-center justify-center rounded-[4px] border',
-                isSelected(option.value)
+                isDraftSelected(option.value)
                   ? 'border-signal bg-signal'
                   : 'border-strong bg-transparent',
               )
@@ -219,7 +229,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
             aria-hidden="true"
           >
             <img
-              v-if="isSelected(option.value)"
+              v-if="isDraftSelected(option.value)"
               :src="checkIcon"
               alt=""
               class="size-3"
@@ -235,20 +245,17 @@ function handlePanelKeydown(event: KeyboardEvent): void {
         No {{ props.label.toLowerCase() }}s match “{{ filter.trim() }}”.
       </p>
       <div
-        class="border-subtle mt-2 flex items-center justify-between border-t px-2.5 pt-2 pb-1"
+        class="border-subtle mt-2 flex items-center justify-between gap-2 border-t pt-2"
       >
-        <span class="text-tertiary text-xs tabular-nums" aria-live="polite"
-          >{{ selectedCount }} selected</span
-        >
         <Button
-          variant="ghost"
+          variant="default"
           size="sm"
-          class="text-heading h-auto p-0"
-          :disabled="selectedCount === 0"
-          @click="clearSelection"
+          :disabled="draft.length === 0"
+          @click="clearDraft"
         >
           Clear
         </Button>
+        <Button variant="primary" size="sm" @click="applyDraft"> Apply </Button>
       </div>
     </div>
   </div>
