@@ -515,7 +515,7 @@ function openTrace(traceId: string): void {
           <span class="leading-relaxed"
             >Something went wrong fetching traces. Try again.</span
           >
-          <Button variant="secondary" @click="refetch()">Retry</Button>
+          <Button @click="refetch()">Retry</Button>
         </div>
         <EmptyState
           v-else-if="traces.length === 0"
@@ -597,7 +597,7 @@ function openTrace(traceId: string): void {
               <span class="text-tertiary text-[0.78125rem]" role="alert"
                 >Couldn’t load more traces.</span
               >
-              <Button variant="secondary" @click="loadMore()">Retry</Button>
+              <Button @click="loadMore()">Retry</Button>
             </template>
             <template v-else-if="hasNextPage">
               <span
@@ -605,9 +605,7 @@ function openTrace(traceId: string): void {
                 role="status"
                 >{{ loadedCount }}</span
               >
-              <Button variant="secondary" @click="loadMore()"
-                >Load more traces</Button
-              >
+              <Button @click="loadMore()">Load more traces</Button>
             </template>
             <span
               v-else

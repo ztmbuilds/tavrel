@@ -426,12 +426,7 @@ function copyTraceId(): void {
         :action-label="isNotFound ? 'Back to traces' : 'Retry'"
         @clear="isNotFound ? back() : void detailQuery.refetch()"
       />
-      <Button
-        v-if="!isNotFound"
-        variant="secondary"
-        class="mt-1"
-        @click="back()"
-      >
+      <Button v-if="!isNotFound" class="mt-1" @click="back()">
         Back to traces
       </Button>
     </div>

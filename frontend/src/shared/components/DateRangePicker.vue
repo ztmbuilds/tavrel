@@ -473,10 +473,13 @@ function applyCustom(): void {
           </div>
         </div>
         <div class="mt-2.5 flex gap-1.5">
-          <Button variant="secondary" @click="closeDatePop(true)"
-            >Cancel</Button
+          <Button @click="closeDatePop(true)">Cancel</Button>
+          <Button
+            variant="primary"
+            class="flex-1"
+            :disabled="!canApply"
+            @click="applyCustom"
           >
-          <Button class="flex-1" :disabled="!canApply" @click="applyCustom">
             Apply range
           </Button>
         </div>

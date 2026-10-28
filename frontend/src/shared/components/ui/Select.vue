@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from "vue";
+
 import {
   SelectContent,
   SelectItem,
+  SelectItemIndicator,
   SelectItemText,
   SelectPortal,
   SelectRoot,
@@ -11,6 +14,7 @@ import {
 } from "reka-ui";
 
 import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
+import checkIcon from "@/assets/icons/check-ok.svg?component";
 import { cn } from "@/shared/utils/cn";
 
 export interface SelectOption {
@@ -18,58 +22,69 @@ export interface SelectOption {
   label: string;
 }
 
-const props = withDefaults(
-  defineProps<{
-    label: string;
-    options: readonly SelectOption[];
-    placeholder?: string;
-    triggerClass?: string;
-  }>(),
-  {
-    placeholder: "Select an option",
-  },
-);
+const props = defineProps<{
+  options: readonly SelectOption[];
+  label?: string;
+  placeholder?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
+  class?: HTMLAttributes["class"];
+}>();
 
-const modelValue = defineModel<string>({ required: true });
-
-const CONTENT_SIDE_OFFSET = 6;
+const model = defineModel<string>({ required: true });
 </script>
 
 <template>
-  <SelectRoot v-model="modelValue">
+  <SelectRoot v-model="model" :disabled="props.disabled">
     <SelectTrigger
-      :aria-label="props.label"
+      :aria-label="props.ariaLabel ?? props.label"
       :class="
         cn(
-          'border-default bg-surface text-secondary hover:border-strong data-[state=open]:border-signal flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap transition-colors duration-120 ease-out outline-none',
-          props.triggerClass,
+          'raised text-heading inline-flex h-8 min-w-36 cursor-pointer items-center justify-between gap-2.5 rounded-lg pr-2.5 pl-3',
+          'data-[state=open]:raised-pressed data-[placeholder]:text-secondary',
+          'transition-[background-image,box-shadow] duration-150 disabled:pointer-events-none disabled:opacity-50',
+          props.class,
         )
       "
     >
-      <span aria-hidden="true">{{ props.label }}</span>
+      <span
+        v-if="props.label"
+        aria-hidden="true"
+        class="text-secondary shrink-0"
+        >{{ props.label }}</span
+      >
       <SelectValue
-        :placeholder="props.placeholder"
-        class="text-primary flex-1 truncate text-left"
+        :placeholder="props.placeholder ?? ''"
+        class="min-w-0 flex-1 truncate text-left"
       />
       <component
         :is="chevronDownIcon"
-        class="text-tertiary size-2.5 shrink-0"
+        aria-hidden="true"
+        class="text-secondary size-4 shrink-0"
       />
     </SelectTrigger>
     <SelectPortal>
       <SelectContent
         position="popper"
-        :side-offset="CONTENT_SIDE_OFFSET"
-        class="border-default bg-raised z-50 min-w-[var(--reka-select-trigger-width)] overflow-hidden rounded-lg border p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
+        :side-offset="6"
+        align="start"
+        class="animate-pop border-default bg-raised text-primary shadow-pop z-50 min-w-(--reka-select-trigger-width) rounded-xl border motion-reduce:animate-none"
       >
-        <SelectViewport class="max-h-60 overflow-y-auto">
+        <SelectViewport class="p-1.5">
           <SelectItem
-            v-for="option in props.options"
-            :key="option.value"
-            :value="option.value"
-            class="text-secondary data-[highlighted]:bg-hover data-[highlighted]:text-primary data-[state=checked]:bg-active data-[state=checked]:text-ink data-[highlighted]:data-[state=checked]:bg-active data-[highlighted]:data-[state=checked]:text-ink flex cursor-pointer items-center rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-40"
+            v-for="o in props.options"
+            :key="o.value"
+            :value="o.value"
+            class="data-[highlighted]:bg-hover relative flex min-h-8 cursor-pointer items-center justify-between gap-4 rounded-lg px-3 outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
           >
-            <SelectItemText>{{ option.label }}</SelectItemText>
+            <SelectItemText>{{ o.label }}</SelectItemText>
+            <SelectItemIndicator class="inline-flex">
+              <component
+                :is="checkIcon"
+                aria-hidden="true"
+                class="text-heading size-4"
+              />
+            </SelectItemIndicator>
           </SelectItem>
         </SelectViewport>
       </SelectContent>

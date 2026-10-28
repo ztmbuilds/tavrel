@@ -35,6 +35,26 @@
 
   --color-chart-ok: #22c55e;
   --color-chart-error: #ef4444;
+
+  --color-spot-from: #346fc4;
+  --color-spot-to: #28559f;
+  --color-error-text: #ff8a9a;
+
+  --shadow-raised:
+    inset 0 1px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(0 0 0 / 0.35);
+  --shadow-raised-pressed:
+    inset 0 1px 3px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.35);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
+
+  --animate-pop: pop 160ms ease-out;
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
 }
 
 @utility service-map-surface {
@@ -93,6 +113,29 @@
   border: 0;
 }
 
+@utility raised {
+  background-color: var(--color-raised);
+  background-image: linear-gradient(180deg, #252f3a 0%, #1a222b 100%);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-bottom-color: rgb(255 255 255 / 0.03);
+  box-shadow: var(--shadow-raised);
+
+  &:hover {
+    background-image: linear-gradient(180deg, #2d3945 0%, #202a34 100%);
+  }
+
+  &:active {
+    background-image: linear-gradient(180deg, #151c24 0%, #1a222b 100%);
+    box-shadow: var(--shadow-raised-pressed);
+    transform: translateY(0.5px);
+  }
+}
+
+@utility raised-pressed {
+  background-image: linear-gradient(180deg, #151c24 0%, #1a222b 100%);
+  box-shadow: var(--shadow-raised-pressed);
+}
+
 @utility skip-link {
   position: absolute;
   top: -2.5rem;
@@ -120,5 +163,9 @@
   *::after {
     transition-duration: 0ms !important;
     animation-duration: 0ms !important;
+  }
+
+  .raised:active {
+    transform: none;
   }
 }

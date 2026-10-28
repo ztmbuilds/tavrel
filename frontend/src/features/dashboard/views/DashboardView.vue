@@ -70,11 +70,9 @@ const updatedLabel = computed(() => {
           v-model="range"
           label="Window"
           :options="rangeOptions"
-          trigger-class="min-w-45"
+          class="min-w-45"
         />
-        <Button variant="secondary" :disabled="isFetching" @click="refetch()">
-          Refresh
-        </Button>
+        <Button :disabled="isFetching" @click="refetch()"> Refresh </Button>
       </template>
     </PageHead>
 
@@ -91,7 +89,7 @@ const updatedLabel = computed(() => {
         <span class="leading-relaxed"
           >Something went wrong fetching dashboard data. Try again.</span
         >
-        <Button variant="secondary" @click="refetch()">Retry</Button>
+        <Button @click="refetch()">Retry</Button>
       </div>
       <div
         v-else-if="summary"

@@ -24,7 +24,7 @@ defineEmits<{
         message
       }}</span>
     </div>
-    <Button v-if="actionLabel" variant="secondary" @click="$emit('clear')">
+    <Button v-if="actionLabel" @click="$emit('clear')">
       {{ actionLabel }}
     </Button>
   </div>

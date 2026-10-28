@@ -128,7 +128,7 @@ function handleToggle(): void {
         )
       "
     >
-      <Tooltip :label="tooltipText">
+      <Tooltip :content="tooltipText">
         <button
           type="button"
           :aria-expanded="!isCollapsed"

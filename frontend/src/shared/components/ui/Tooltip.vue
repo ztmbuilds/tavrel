@@ -7,28 +7,18 @@ import {
   TooltipTrigger,
 } from "reka-ui";
 
-import { cn } from "@/shared/utils/cn";
-
-type TooltipSide = "top" | "right" | "bottom" | "left";
-
 const props = withDefaults(
   defineProps<{
-    label: string;
-    side?: TooltipSide;
-    sideOffset?: number;
-    delayDuration?: number;
-    contentClass?: string;
+    content: string;
+    side?: "top" | "right" | "bottom" | "left";
+    delay?: number;
   }>(),
-  {
-    side: "right",
-    sideOffset: 8,
-    delayDuration: 300,
-  },
+  { side: "top", delay: 300 },
 );
 </script>
 
 <template>
-  <TooltipProvider :delay-duration="props.delayDuration">
+  <TooltipProvider :delay-duration="props.delay">
     <TooltipRoot>
       <TooltipTrigger as-child>
         <slot />
@@ -36,15 +26,10 @@ const props = withDefaults(
       <TooltipPortal>
         <TooltipContent
           :side="props.side"
-          :side-offset="props.sideOffset"
-          :class="
-            cn(
-              'border-default bg-raised text-primary z-50 rounded-md border px-2 py-1 font-sans text-xs shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]',
-              props.contentClass,
-            )
-          "
+          :side-offset="8"
+          class="animate-pop border-default bg-raised text-primary shadow-pop z-60 max-w-70 rounded-lg border px-2.5 py-1.5 text-xs leading-snug motion-reduce:animate-none"
         >
-          {{ props.label }}
+          {{ props.content }}
         </TooltipContent>
       </TooltipPortal>
     </TooltipRoot>

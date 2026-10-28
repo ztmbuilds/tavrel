@@ -214,7 +214,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
           <span class="leading-relaxed"
             >Something went wrong fetching the service graph. Try again.</span
           >
-          <Button variant="secondary" @click="refetch()">Retry</Button>
+          <Button @click="refetch()">Retry</Button>
         </div>
         <EmptyState
           v-else-if="!hasGraph"
