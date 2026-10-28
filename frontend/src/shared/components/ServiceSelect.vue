@@ -4,6 +4,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import checkIcon from "@/assets/icons/check.svg";
 import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import searchIcon from "@/assets/icons/search.svg?component";
+import Button from "@/shared/components/ui/Button.vue";
 import Input from "@/shared/components/ui/Input.vue";
 import { cn } from "@/shared/utils/cn";
 
@@ -50,9 +51,7 @@ const firstLabel = computed(
   () => selectedLabels.value[0] ?? pinnedOption.value?.label ?? "All",
 );
 
-const extraCount = computed(() =>
-  selectedLabels.value.length > 1 ? selectedLabels.value.length - 1 : 0,
-);
+const selectedCount = computed(() => modelValue.value.length);
 
 const serviceRows = computed(() => {
   const query = filter.value.trim().toLowerCase();
@@ -84,15 +83,15 @@ function toggle(): void {
 }
 
 function toggleValue(value: string): void {
-  if (value === "all") {
-    modelValue.value = [];
-    return;
-  }
   if (isSelected(value)) {
     modelValue.value = modelValue.value.filter((item) => item !== value);
   } else {
     modelValue.value = [...modelValue.value, value];
   }
+}
+
+function clearSelection(): void {
+  modelValue.value = [];
 }
 
 function handleOutside(event: PointerEvent): void {
@@ -145,6 +144,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
       type="button"
       :aria-expanded="open"
       aria-haspopup="listbox"
+      :aria-controls="`${props.label}-listbox`"
       :class="
         cn(
           'raised text-heading inline-flex h-8 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg pr-2.5 pl-3',
@@ -156,24 +156,20 @@ function handlePanelKeydown(event: KeyboardEvent): void {
       @click="toggle"
       @keydown.escape="close(true)"
     >
-      <span aria-hidden="true" class="text-secondary shrink-0">{{
-        props.label
+      <span class="text-secondary shrink-0">{{ props.label }}</span>
+      <span class="min-w-0 flex-1 truncate text-left font-medium">{{
+        firstLabel
       }}</span>
-      <span class="min-w-0 flex-1 truncate text-left">{{ firstLabel }}</span>
       <span
-        v-if="extraCount > 0"
-        aria-hidden="true"
-        class="bg-hover text-secondary shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium tabular-nums"
-        >+{{ extraCount }}</span
+        v-if="selectedCount > 1"
+        class="bg-raised text-heading ring-default flex size-5 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-medium tabular-nums ring-1 ring-inset"
+        >{{ selectedCount }}</span
       >
       <component :is="chevronDownIcon" class="text-secondary size-4 shrink-0" />
     </button>
     <div
       v-if="open"
-      role="listbox"
-      aria-multiselectable="true"
-      :aria-label="`${props.label} options`"
-      class="border-default bg-raised animate-pop shadow-pop absolute top-[calc(100%+0.375rem)] left-0 z-30 w-60 rounded-xl border p-1.5 motion-reduce:animate-none"
+      class="border-default bg-raised animate-pop shadow-pop absolute top-[calc(100%+0.375rem)] left-0 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-xl border p-2 motion-reduce:animate-none"
       @keydown="handlePanelKeydown"
     >
       <Input
@@ -183,52 +179,21 @@ function handlePanelKeydown(event: KeyboardEvent): void {
         :placeholder="props.searchPlaceholder"
         autocomplete="off"
         spellcheck="false"
-        class="bg-surface mb-1 h-7 text-xs"
+        class="bg-canvas mb-2 h-8 text-xs"
         @click.stop
       >
         <template #leading>
           <component :is="searchIcon" />
         </template>
       </Input>
-      <div ref="listRef" class="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
-        <button
-          v-if="pinnedOption !== undefined"
-          type="button"
-          role="option"
-          :aria-selected="modelValue.length === 0"
-          :class="
-            cn(
-              'text-secondary hover:bg-hover hover:text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
-              modelValue.length === 0 && 'bg-hover text-primary',
-            )
-          "
-          @click="toggleValue(pinnedOption.value)"
-        >
-          <span
-            :class="
-              cn(
-                'flex size-4 shrink-0 items-center justify-center rounded border',
-                modelValue.length === 0
-                  ? 'border-signal bg-signal'
-                  : 'border-strong',
-              )
-            "
-            aria-hidden="true"
-          >
-            <img
-              v-if="modelValue.length === 0"
-              :src="checkIcon"
-              alt=""
-              class="size-3"
-            />
-          </span>
-          <span class="truncate">{{ pinnedOption.label }}</span>
-        </button>
-        <div
-          v-if="pinnedOption !== undefined"
-          class="border-subtle my-1 border-t"
-          aria-hidden="true"
-        />
+      <div
+        :id="`${props.label}-listbox`"
+        ref="listRef"
+        role="listbox"
+        aria-multiselectable="true"
+        :aria-label="`${props.label} options`"
+        class="flex max-h-60 flex-col gap-0.5 overflow-y-auto"
+      >
         <button
           v-for="option in serviceRows"
           :key="option.value"
@@ -237,8 +202,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="isSelected(option.value)"
           :class="
             cn(
-              'text-secondary hover:bg-hover hover:text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
-              isSelected(option.value) && 'bg-hover text-primary',
+              'text-primary focus-visible:outline-signal flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left font-sans text-[0.8125rem] outline-none select-none hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-solid',
             )
           "
           @click="toggleValue(option.value)"
@@ -246,10 +210,10 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           <span
             :class="
               cn(
-                'flex size-4 shrink-0 items-center justify-center rounded border',
+                'flex size-4 shrink-0 items-center justify-center rounded-[4px] border',
                 isSelected(option.value)
                   ? 'border-signal bg-signal'
-                  : 'border-strong',
+                  : 'border-strong bg-transparent',
               )
             "
             aria-hidden="true"
@@ -263,12 +227,28 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           </span>
           <span class="truncate">{{ option.label }}</span>
         </button>
-        <div
-          v-if="serviceRows.length === 0"
-          class="text-tertiary px-2 py-1.5 font-sans text-[0.8125rem]"
+      </div>
+      <p
+        v-if="serviceRows.length === 0"
+        class="text-tertiary m-0 px-2.5 py-2 text-xs"
+      >
+        No {{ props.label.toLowerCase() }}s match “{{ filter.trim() }}”.
+      </p>
+      <div
+        class="border-subtle mt-2 flex items-center justify-between border-t px-2.5 pt-2 pb-1"
+      >
+        <span class="text-tertiary text-xs tabular-nums" aria-live="polite"
+          >{{ selectedCount }} selected</span
         >
-          No services match “{{ filter.trim() }}”.
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="text-heading h-auto p-0"
+          :disabled="selectedCount === 0"
+          @click="clearSelection"
+        >
+          Clear
+        </Button>
       </div>
     </div>
   </div>
