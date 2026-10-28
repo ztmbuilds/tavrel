@@ -385,7 +385,10 @@ function openTrace(traceId: string): void {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead title="Logs" />
+    <PageHead
+      title="Logs"
+      description="Log lines, linked to the trace and span that produced them."
+    />
     <FilterBar label="Filter logs">
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="min-w-40 flex-1 max-[40rem]:basis-full">
@@ -476,37 +479,37 @@ function openTrace(traceId: string): void {
         />
         <template v-else>
           <div
-            class="border-default bg-panel sticky top-0 z-5 flex items-center gap-2.5 border-b px-4 py-1.5"
+            class="border-default bg-panel sticky top-0 z-5 flex h-11 items-center gap-2.5 border-b px-5"
             aria-hidden="true"
           >
-            <div class="w-[0.1875rem] shrink-0" />
+            <div class="w-0.5 shrink-0" />
             <div
-              class="text-tertiary w-10 shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
+              class="text-tertiary w-11 shrink-0 text-xs leading-relaxed font-normal tracking-[0.06em] uppercase"
             >
               Level
             </div>
             <div
-              class="text-tertiary w-[10.75rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[40rem]:hidden"
+              class="text-tertiary w-[10.75rem] shrink-0 text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[40rem]:hidden"
             >
               Time
             </div>
             <div
-              class="text-tertiary w-[7.375rem] shrink-0 text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+              class="text-tertiary w-[7.375rem] shrink-0 text-xs leading-relaxed font-normal tracking-[0.06em] uppercase"
             >
               Service
             </div>
             <div
-              class="text-tertiary w-[5.5rem] shrink-0 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
+              class="text-tertiary w-28 shrink-0 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[56.25rem]:hidden"
             >
               Environment
             </div>
             <div
-              class="text-tertiary min-w-0 flex-1 truncate text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase"
+              class="text-tertiary min-w-0 flex-1 truncate text-xs leading-relaxed font-normal tracking-[0.06em] uppercase"
             >
               Message
             </div>
             <div
-              class="text-tertiary w-[7.5rem] shrink-0 text-right text-[0.65625rem] leading-relaxed font-semibold tracking-wider uppercase max-[56.25rem]:hidden"
+              class="text-tertiary w-[7.5rem] shrink-0 text-right text-xs leading-relaxed font-normal tracking-[0.06em] uppercase max-[56.25rem]:hidden"
             >
               Trace
             </div>

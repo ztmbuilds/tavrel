@@ -42,7 +42,10 @@ const rowLabel = computed(
   <div
     :class="
       cn(
-        'border-subtle hover:bg-hover flex cursor-pointer items-start gap-2.5 border-b px-4 py-1.5 transition-colors duration-120 ease-out',
+        'border-subtle flex min-h-10 cursor-pointer items-start gap-2.5 border-b px-5 py-1.5 transition-colors duration-120 ease-out',
+        log.level === 'error'
+          ? 'bg-error/[0.05] hover:bg-error/[0.08]'
+          : 'hover:bg-white/[0.035]',
       )
     "
     role="listitem"
@@ -56,7 +59,7 @@ const rowLabel = computed(
     <div
       :class="
         cn(
-          'mt-0.5 w-[0.1875rem] shrink-0 self-stretch rounded-sm',
+          'mt-0.5 w-0.5 shrink-0 self-stretch rounded-sm',
           log.level === 'error' && 'bg-error',
           log.level === 'warn' && 'bg-warn',
           log.level === 'info' && 'bg-info',
@@ -67,8 +70,8 @@ const rowLabel = computed(
     <div
       :class="
         cn(
-          'text-tertiary w-10 shrink-0 pt-0.5 text-[0.6875rem] font-semibold tracking-wide uppercase max-[40rem]:hidden',
-          log.level === 'error' && 'text-error',
+          'text-tertiary w-11 shrink-0 pt-0.5 text-[0.6875rem] font-semibold tracking-wide uppercase',
+          log.level === 'error' && 'text-error-text',
           log.level === 'warn' && 'text-warn',
         )
       "
@@ -101,7 +104,7 @@ const rowLabel = computed(
       </Badge>
     </div>
     <div
-      class="text-tertiary w-[5.5rem] shrink-0 truncate pt-0.5 text-xs max-[56.25rem]:hidden"
+      class="text-tertiary w-28 shrink-0 truncate pt-0.5 text-xs max-[56.25rem]:hidden"
       :title="log.environment"
       aria-hidden="true"
     >
@@ -111,7 +114,7 @@ const rowLabel = computed(
       :class="
         cn(
           'text-primary min-w-0 flex-1 truncate text-[0.78125rem] leading-relaxed',
-          log.level === 'error' && 'text-error',
+          log.level === 'error' && 'text-error-text',
         )
       "
       :title="log.message"
@@ -140,10 +143,10 @@ const rowLabel = computed(
   </div>
   <div
     v-if="expanded"
-    class="border-subtle bg-surface border-b py-2.5 pr-4 pl-[3.6875rem] max-[40rem]:px-4"
+    class="border-subtle bg-surface border-b py-2.5 pr-5 pl-[3.6875rem] max-[40rem]:px-5"
   >
     <div
-      class="text-secondary bg-raised rounded px-2.5 py-2 text-[0.78125rem] leading-relaxed break-words whitespace-pre-wrap"
+      class="text-secondary bg-canvas rounded px-2.5 py-2 text-[0.78125rem] leading-relaxed break-words whitespace-pre-wrap"
     >
       {{ log.message }}
     </div>
