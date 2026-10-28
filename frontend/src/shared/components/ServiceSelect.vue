@@ -4,6 +4,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import checkIcon from "@/assets/icons/check.svg";
 import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import searchIcon from "@/assets/icons/search.svg?component";
+import Input from "@/shared/components/ui/Input.vue";
 import { cn } from "@/shared/utils/cn";
 
 export interface ServiceSelectOption {
@@ -30,7 +31,6 @@ const open = ref(false);
 const filter = ref("");
 const rootRef = ref<HTMLDivElement | null>(null);
 const triggerRef = ref<HTMLButtonElement | null>(null);
-const searchRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLDivElement | null>(null);
 
 const pinnedOption = computed(() =>
@@ -79,7 +79,7 @@ function toggle(): void {
   filter.value = "";
   open.value = true;
   void nextTick(() => {
-    searchRef.value?.focus();
+    document.getElementById(`${props.label}-search`)?.focus();
   });
 }
 
@@ -179,25 +179,20 @@ function handlePanelKeydown(event: KeyboardEvent): void {
       class="border-default bg-raised absolute top-[calc(100%+0.375rem)] left-0 z-30 w-55 rounded-lg border p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
       @keydown="handlePanelKeydown"
     >
-      <div
-        class="border-default bg-surface text-tertiary mb-1 flex items-center gap-1.5 rounded border px-2 py-1.5"
+      <Input
+        :id="`${props.label}-search`"
+        v-model="filter"
+        :aria-label="`Search ${props.label.toLowerCase()}s`"
+        :placeholder="props.searchPlaceholder"
+        autocomplete="off"
+        spellcheck="false"
+        class="bg-surface mb-1 h-7 text-xs"
+        @click.stop
       >
-        <component :is="searchIcon" class="size-3.5 shrink-0" />
-        <label class="sr-only" :for="`${props.label}-search`"
-          >Search {{ props.label.toLowerCase() }}s</label
-        >
-        <input
-          :id="`${props.label}-search`"
-          ref="searchRef"
-          v-model="filter"
-          type="text"
-          :placeholder="props.searchPlaceholder"
-          autocomplete="off"
-          spellcheck="false"
-          class="text-primary placeholder:text-tertiary w-full min-w-0 flex-1 border-none bg-transparent font-sans text-[0.8125rem] outline-none"
-          @click.stop
-        />
-      </div>
+        <template #leading>
+          <component :is="searchIcon" />
+        </template>
+      </Input>
       <div ref="listRef" class="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
         <button
           v-if="pinnedOption !== undefined"

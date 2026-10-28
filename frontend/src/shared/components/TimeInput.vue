@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+import Input from "@/shared/components/ui/Input.vue";
 import { cn } from "@/shared/utils/cn";
 import { isValidTimeText } from "@/shared/utils/time";
 
@@ -21,35 +22,29 @@ const showInvalid = computed(
     !isValidTimeText(modelValue.value),
 );
 
-function handleInput(event: Event): void {
-  const target = event.target;
-  if (!(target instanceof HTMLInputElement)) return;
-  const digits = target.value.replace(/\D/g, "").slice(0, MAX_TIME_DIGITS);
-  modelValue.value =
-    digits.length <= HOUR_DIGITS
-      ? digits
-      : `${digits.slice(0, HOUR_DIGITS)}:${digits.slice(HOUR_DIGITS)}`;
-}
+const maskedValue = computed({
+  get: () => modelValue.value,
+  set: (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, MAX_TIME_DIGITS);
+    modelValue.value =
+      digits.length <= HOUR_DIGITS
+        ? digits
+        : `${digits.slice(0, HOUR_DIGITS)}:${digits.slice(HOUR_DIGITS)}`;
+  },
+});
 </script>
 
 <template>
-  <input
+  <Input
     :id="inputId"
-    :value="modelValue"
+    v-model="maskedValue"
     :aria-label="label"
-    type="text"
     inputmode="numeric"
     autocomplete="off"
     spellcheck="false"
     placeholder="HH:MM"
     maxlength="5"
-    :aria-invalid="showInvalid"
-    :class="
-      cn(
-        'border-default bg-surface text-primary placeholder:text-tertiary focus:border-signal w-full min-w-0 rounded-md border px-1.5 py-1.5 font-sans text-[0.78125rem] tabular-nums transition-colors duration-120 ease-out outline-none',
-        showInvalid && 'border-error',
-      )
-    "
-    @input="handleInput"
+    :aria-invalid="showInvalid || undefined"
+    :class="cn('h-7 px-2 tabular-nums', showInvalid && 'border-error')"
   />
 </template>
