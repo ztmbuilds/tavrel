@@ -6,6 +6,8 @@ import checkOkIcon from "@/assets/icons/check-ok.svg?component";
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg?component";
 import copyIcon from "@/assets/icons/copy.svg?component";
 import ArrowLink from "@/shared/components/ArrowLink.vue";
+import Badge from "@/shared/components/ui/Badge.vue";
+import Button from "@/shared/components/ui/Button.vue";
 import type { TraceStatus } from "@/shared/types/entities/trace";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
@@ -43,18 +45,20 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
   <header
     class="border-subtle bg-panel flex h-9.5 shrink-0 items-center gap-2.5 border-b px-5"
   >
-    <button
-      type="button"
-      class="text-tertiary hover:bg-hover hover:text-secondary -ml-2 flex cursor-pointer items-center gap-1.5 rounded-md border-none bg-transparent px-2 py-1.5 text-[0.78125rem] transition-colors duration-120 ease-out"
+    <Button
+      variant="ghost"
+      size="sm"
+      class="-ml-2 h-7 gap-1.5 px-2 text-[0.78125rem] [&_svg]:size-3.5"
       @click="$emit('back')"
     >
-      <component :is="chevronLeftIcon" aria-hidden="true" class="size-3.5" />
+      <component :is="chevronLeftIcon" aria-hidden="true" />
       Traces
-    </button>
+    </Button>
     <div class="bg-subtle h-3.5 w-px shrink-0" aria-hidden="true" />
-    <button
-      type="button"
-      class="text-tertiary hover:text-secondary hover:bg-hover group decoration-strong -ml-1.5 inline-flex cursor-pointer items-center gap-1 rounded border-none bg-transparent px-1.5 py-0.5 font-mono text-[0.71875rem] underline decoration-dotted underline-offset-4 transition-colors duration-120 ease-out"
+    <Button
+      variant="ghost"
+      size="sm"
+      class="group decoration-strong -ml-1.5 h-6 gap-1 px-1.5 font-mono text-[0.71875rem] underline decoration-dotted underline-offset-4 [&_svg]:size-3"
       title="Copy full trace ID"
       @click="$emit('copy')"
     >
@@ -64,14 +68,14 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
         aria-hidden="true"
         :class="
           cn(
-            'size-3 transition-opacity duration-120 ease-out',
+            'transition-opacity duration-120 ease-out',
             copied
               ? 'text-ok opacity-100'
               : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
           )
         "
       />
-    </button>
+    </Button>
     <span v-if="copied" class="sr-only" role="status">Copied</span>
     <div class="flex-1" />
     <span class="text-tertiary text-xs tabular-nums max-[47.5rem]:hidden">{{
@@ -100,26 +104,20 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
           >
             {{ rootName }}
           </h1>
-          <span
-            :class="
-              cn(
-                'ml-2.5 inline-flex items-center gap-1.5 rounded-full py-0.5 pr-2.5 pl-2 text-[0.71875rem] font-semibold',
-                status === 'error'
-                  ? 'text-error bg-error/10'
-                  : 'text-ok bg-ok/10',
-              )
-            "
+          <Badge
+            :variant="status === 'error' ? 'error' : 'ok'"
+            dot
+            class="ml-1"
           >
-            <span class="size-1.5 rounded-full bg-current" aria-hidden="true" />
             {{ statusLabel }}
-          </span>
-          <span
+          </Badge>
+          <Badge
             v-if="environment !== ''"
-            class="border-default bg-surface text-secondary inline-flex items-center rounded-full border px-2.5 py-0.5 text-[0.71875rem] font-medium"
+            variant="outline"
             :title="`Environment: ${environment}`"
           >
             {{ environment }}
-          </span>
+          </Badge>
         </div>
       </div>
       <div class="shrink-0 text-right">
@@ -164,11 +162,12 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
     </p>
 
     <div v-if="issues.length > 0" class="mt-2.5 ml-4.25 flex flex-wrap gap-1.5">
-      <button
+      <Button
         v-for="issue in issues"
         :key="issue.spanId"
-        type="button"
-        class="text-secondary border-default bg-surface hover:border-strong hover:bg-hover hover:text-heading inline-flex cursor-pointer items-center gap-1.5 rounded-full border py-1 pr-2.5 pl-2 text-[0.71875rem] transition-colors duration-120 ease-out"
+        variant="ghost"
+        size="sm"
+        class="border-subtle hover:border-default h-6 rounded-full border px-2 text-[0.71875rem]"
         @click="$emit('select', issue.spanId)"
       >
         <span
@@ -184,7 +183,7 @@ const statusLabel = computed(() => (props.status === "error" ? "Error" : "OK"));
         <span class="text-tertiary tabular-nums">{{
           formatDurationMs(issue.durationMs)
         }}</span>
-      </button>
+      </Button>
     </div>
 
     <div

@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
+import Button from "@/shared/components/ui/Button.vue";
 import { cn } from "@/shared/utils/cn";
 import { serviceColor } from "@/shared/utils/service-color";
 import { formatDurationMs } from "@/shared/utils/time";
@@ -126,26 +127,23 @@ function onChevron(event: MouseEvent): void {
         :style="{ width: context.labelWidth.value + 'rem' }"
       >
         <TreeGuides :guides="guides" :depth="depth" :is-last="isLast" />
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           :class="
             cn(
-              'text-tertiary hover:bg-hover hover:text-secondary flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-[5px] border-none bg-transparent p-0 transition-colors duration-120 ease-out',
+              'size-6 shrink-0 p-0 [&_svg]:size-2.5',
               isCollapsed && '-rotate-90',
               node.children.length === 0 && 'invisible',
             )
           "
-          type="button"
           :tabindex="node.children.length === 0 ? -1 : 0"
           :aria-label="`${isCollapsed ? 'Expand' : 'Collapse'} ${node.span.name}`"
           :aria-expanded="node.children.length > 0 ? !isCollapsed : undefined"
           @click="onChevron"
         >
-          <component
-            :is="chevronDownIcon"
-            aria-hidden="true"
-            class="size-2.5"
-          />
-        </button>
+          <component :is="chevronDownIcon" aria-hidden="true" />
+        </Button>
         <span
           v-if="node.span.status === 'error'"
           class="bg-error mx-[1px] size-2 shrink-0 scale-90 rotate-45 rounded-[2px]"

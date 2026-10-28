@@ -12,6 +12,7 @@ import {
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
 import CopyButton from "@/shared/components/CopyButton.vue";
+import Button from "@/shared/components/ui/Button.vue";
 
 const props = defineProps<{
   span: Span;
@@ -119,14 +120,15 @@ const rowLabel = computed(
         <span class="inline-flex shrink-0 items-center gap-2">
           <span class="text-tertiary">trace</span>
           <span class="group inline-flex items-center">
-            <button
-              type="button"
-              class="text-secondary hover:text-signal cursor-pointer border-none bg-transparent p-0 font-mono text-xs tabular-nums hover:underline hover:underline-offset-2"
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-secondary hover:text-heading h-auto p-0 font-mono text-xs hover:bg-transparent"
               :title="`Open trace ${span.traceId}`"
               @click.stop="$emit('openTrace', span.traceId)"
             >
               {{ shortTraceId }}
-            </button>
+            </Button>
             <CopyButton
               compact
               :text="span.traceId"

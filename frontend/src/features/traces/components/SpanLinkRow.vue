@@ -6,6 +6,7 @@ import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import chevronRightIcon from "@/assets/icons/chevron-right.svg?component";
 import { formatAttributeValue } from "@/shared/api/otel";
 import CopyButton from "@/shared/components/CopyButton.vue";
+import Button from "@/shared/components/ui/Button.vue";
 import type { SpanLink } from "@/shared/types/entities/span-link";
 import { serviceColor } from "@/shared/utils/service-color";
 
@@ -33,19 +34,19 @@ const attributes = computed(() =>
       class="hover:bg-hover flex cursor-pointer items-center gap-2 px-1 py-2.5 transition-colors duration-120 ease-out"
       @click="expanded = !expanded"
     >
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         :aria-expanded="expanded"
         :aria-label="expanded ? 'Collapse link details' : 'Expand link details'"
-        class="text-secondary hover:text-primary flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border-none bg-transparent p-0 transition-colors duration-120 ease-out"
+        class="size-5 shrink-0 p-0 [&_svg]:size-3.5"
         @click.stop="expanded = !expanded"
       >
         <component
           :is="expanded ? chevronDownIcon : chevronRightIcon"
           aria-hidden="true"
-          class="size-3.5"
         />
-      </button>
+      </Button>
 
       <template v-if="link.target">
         <span
@@ -53,9 +54,10 @@ const attributes = computed(() =>
           :style="{ background: serviceColor(link.target.service) }"
           aria-hidden="true"
         />
-        <button
-          type="button"
-          class="text-primary group/name hover:text-signal flex min-w-0 cursor-pointer items-center gap-1 border-none bg-transparent p-0 text-left text-[0.8125rem] leading-snug font-medium transition-colors duration-120 ease-out hover:underline hover:underline-offset-2"
+        <Button
+          variant="ghost"
+          size="sm"
+          class="group/name h-auto min-w-0 gap-1 p-0 text-left text-[0.8125rem] font-medium hover:bg-transparent hover:underline hover:underline-offset-2 [&_svg]:size-3"
           :title="link.target.name"
           @click.stop="emit('open')"
         >
@@ -63,9 +65,9 @@ const attributes = computed(() =>
           <component
             :is="arrowUpRightIcon"
             aria-hidden="true"
-            class="size-3 shrink-0 opacity-0 group-hover/name:opacity-100 group-focus-visible/name:opacity-100"
+            class="shrink-0 opacity-0 group-hover/name:opacity-100 group-focus-visible/name:opacity-100"
           />
-        </button>
+        </Button>
         <span class="sr-only">, status {{ link.target.status }}</span>
       </template>
       <span

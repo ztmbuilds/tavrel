@@ -2,6 +2,7 @@
 import { toRef } from "vue";
 
 import { cn } from "@/shared/utils/cn";
+import Button from "@/shared/components/ui/Button.vue";
 import CopyButton from "@/shared/components/CopyButton.vue";
 import AttributeTreeNode from "./AttributeTreeNode.vue";
 import { useAttributeTree } from "../composables/useAttributeTree";
@@ -75,20 +76,22 @@ const {
         v-if="mode === 'nested' && hasGroups"
         class="flex items-center gap-3"
       >
-        <button
-          type="button"
-          class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-auto p-0 text-[0.6875rem]"
           @click="expandAll"
         >
           Expand all
-        </button>
-        <button
-          type="button"
-          class="text-tertiary hover:text-secondary cursor-pointer border-none bg-transparent p-0 text-[0.6875rem] leading-relaxed"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-auto p-0 text-[0.6875rem]"
           @click="collapseAll"
         >
           Collapse all
-        </button>
+        </Button>
       </div>
     </div>
 

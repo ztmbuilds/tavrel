@@ -481,14 +481,15 @@ function openTrace(traceId: string): void {
           @update:model-value="resetList"
         />
         <div class="ml-auto flex shrink-0 items-center gap-3">
-          <button
+          <Button
             v-if="facetsActive"
-            type="button"
-            class="text-secondary hover:text-primary decoration-strong shrink-0 cursor-pointer border-none bg-transparent p-0 text-[0.78125rem] underline underline-offset-2 transition-colors duration-120 ease-out"
+            variant="ghost"
+            size="sm"
+            class="h-auto shrink-0 p-0"
             @click="clearFacets"
           >
             Clear all
-          </button>
+          </Button>
         </div>
       </div>
       <ActiveFilterChips :chips="activeChips" @remove="removeChip" />
@@ -616,20 +617,15 @@ function openTrace(traceId: string): void {
           </div>
         </template>
       </div>
-      <button
+      <Button
         v-show="showBackToTop"
-        type="button"
         aria-label="Back to top of traces"
         title="Back to top"
-        class="border-default bg-raised hover:border-strong hover:bg-hover absolute right-4 bottom-4 z-10 flex size-10 cursor-pointer items-center justify-center rounded-full border shadow-lg transition-colors duration-120 ease-out"
+        class="absolute right-4 bottom-4 z-10 size-10 rounded-full p-0"
         @click="scrollToTop"
       >
-        <component
-          :is="arrowUpIcon"
-          aria-hidden="true"
-          class="text-tertiary size-4"
-        />
-      </button>
+        <component :is="arrowUpIcon" aria-hidden="true" class="text-tertiary" />
+      </Button>
     </div>
   </div>
 </template>

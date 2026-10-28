@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import xIcon from "@/assets/icons/x.svg?component";
+import Button from "@/shared/components/ui/Button.vue";
 import LoadingSpinner from "@/shared/components/LoadingSpinner.vue";
 import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
@@ -67,14 +68,15 @@ function logOffsetMs(timestamp: string): number {
         >
           {{ span.name }}
         </p>
-        <button
-          type="button"
-          class="text-tertiary hover:bg-hover hover:text-secondary flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-none bg-transparent transition-colors duration-120 ease-out"
+        <Button
+          variant="ghost"
+          size="sm"
+          class="size-7 shrink-0 p-0 [&_svg]:size-3.5"
           aria-label="Close span details"
           @click="$emit('close')"
         >
-          <component :is="xIcon" aria-hidden="true" class="size-3" />
-        </button>
+          <component :is="xIcon" aria-hidden="true" />
+        </Button>
       </div>
       <div
         class="text-secondary mt-1.5 flex items-center gap-1.5 text-xs leading-relaxed"
@@ -314,13 +316,7 @@ function logOffsetMs(timestamp: string): number {
           <div class="text-heading mb-1 text-[0.78125rem] font-semibold">
             Couldn’t load links
           </div>
-          <button
-            type="button"
-            class="text-signal cursor-pointer border-none bg-transparent p-0 text-xs hover:underline hover:underline-offset-2"
-            @click="$emit('retryLinks')"
-          >
-            Retry
-          </button>
+          <Button size="sm" @click="$emit('retryLinks')">Retry</Button>
         </div>
         <div v-else-if="links.length === 0" class="px-2 py-6 text-center">
           <div class="text-primary mb-1 text-[0.78125rem] font-semibold">
@@ -346,13 +342,7 @@ function logOffsetMs(timestamp: string): number {
           <div class="text-heading mb-1 text-[0.78125rem] font-semibold">
             Couldn’t load logs
           </div>
-          <button
-            type="button"
-            class="text-signal cursor-pointer border-none bg-transparent p-0 text-xs hover:underline hover:underline-offset-2"
-            @click="$emit('retryLogs')"
-          >
-            Retry
-          </button>
+          <Button size="sm" @click="$emit('retryLogs')">Retry</Button>
         </div>
         <div v-else-if="logs.length === 0" class="px-2 py-6 text-center">
           <div class="text-primary mb-1 text-[0.78125rem] font-semibold">

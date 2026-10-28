@@ -10,6 +10,7 @@ import {
   formatShortDateTimeWithSeconds,
 } from "@/shared/utils/time";
 import CopyButton from "@/shared/components/CopyButton.vue";
+import Button from "@/shared/components/ui/Button.vue";
 const props = defineProps<{
   log: Log;
   expanded: boolean;
@@ -119,14 +120,15 @@ const rowLabel = computed(
       v-if="log.traceId !== ''"
       class="group inline-flex shrink-0 items-center gap-1 max-[56.25rem]:hidden"
     >
-      <button
-        type="button"
-        class="text-signal cursor-pointer border-none bg-transparent p-0.5 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2"
+      <Button
+        variant="ghost"
+        size="sm"
+        class="text-tertiary hover:text-heading h-auto p-0 font-mono text-[0.71875rem] hover:bg-transparent"
         :title="`Open trace ${log.traceId}`"
         @click.stop="$emit('openTrace', log.traceId)"
       >
         trace:{{ shortTraceId }}
-      </button>
+      </Button>
       <CopyButton
         :text="log.traceId"
         label="Copy trace ID"
@@ -160,14 +162,15 @@ const rowLabel = computed(
         <dt class="text-tertiary">trace_id&nbsp;</dt>
         <dd class="m-0">
           <span class="group inline-flex items-center gap-1">
-            <button
-              type="button"
-              class="text-signal cursor-pointer border-none bg-transparent p-0 font-mono text-[0.71875rem] tabular-nums hover:underline hover:underline-offset-2"
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-secondary hover:text-heading h-auto p-0 font-mono text-[0.71875rem] hover:bg-transparent"
               :title="log.traceId"
               @click="$emit('openTrace', log.traceId)"
             >
               {{ log.traceId }}
-            </button>
+            </Button>
             <CopyButton
               :text="log.traceId"
               label="Copy trace ID"

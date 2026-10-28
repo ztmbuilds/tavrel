@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { RouteLocationRaw } from "vue-router";
 
+import xIcon from "@/assets/icons/x.svg?component";
 import PreloadLink from "@/shared/components/PreloadLink.vue";
+import Button from "@/shared/components/ui/Button.vue";
 import { serviceColor } from "@/shared/utils/service-color";
 
 defineProps<{
@@ -41,14 +43,15 @@ defineEmits<{
         >
           {{ selected }}
         </h3>
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
+          class="size-6 shrink-0 p-0 [&_svg]:size-3.5"
           aria-label="Clear selection"
-          class="text-tertiary hover:text-primary ml-auto shrink-0 cursor-pointer rounded border-none bg-transparent px-1.5 py-1 text-[0.8125rem] transition-colors duration-120 ease-out"
           @click="$emit('clear')"
         >
-          ✕
-        </button>
+          <component :is="xIcon" aria-hidden="true" />
+        </Button>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto pr-1">
         <div class="flex flex-col gap-4">
@@ -59,11 +62,12 @@ defineEmits<{
               Calls ({{ calls.length }})
             </p>
             <div class="flex flex-col gap-1">
-              <button
+              <Button
                 v-for="id in calls"
                 :key="id"
-                type="button"
-                class="border-default bg-raised hover:border-strong text-primary flex w-full cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-left font-mono text-xs transition-colors duration-120 ease-out"
+                variant="default"
+                size="sm"
+                class="h-7 w-full justify-start gap-2 px-2 font-mono"
                 @click="$emit('select', id)"
               >
                 <span
@@ -72,7 +76,7 @@ defineEmits<{
                   aria-hidden="true"
                 />
                 {{ id }}
-              </button>
+              </Button>
               <div
                 v-if="calls.length === 0"
                 class="text-tertiary font-sans text-xs"
@@ -88,11 +92,12 @@ defineEmits<{
               Called by ({{ calledBy.length }})
             </p>
             <div class="flex flex-col gap-1">
-              <button
+              <Button
                 v-for="id in calledBy"
                 :key="id"
-                type="button"
-                class="border-default bg-raised hover:border-strong text-primary flex w-full cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-left font-mono text-xs transition-colors duration-120 ease-out"
+                variant="default"
+                size="sm"
+                class="h-7 w-full justify-start gap-2 px-2 font-mono"
                 @click="$emit('select', id)"
               >
                 <span
@@ -101,7 +106,7 @@ defineEmits<{
                   aria-hidden="true"
                 />
                 {{ id }}
-              </button>
+              </Button>
               <div
                 v-if="calledBy.length === 0"
                 class="text-tertiary font-sans text-xs"
@@ -116,20 +121,14 @@ defineEmits<{
         v-if="tracesTo !== null && logsTo !== null"
         class="border-subtle flex shrink-0 gap-2 border-t pt-3"
       >
-        <PreloadLink
-          :to="tracesTo"
-          route-name="traces"
-          class="bg-signal text-ink hover:bg-signal-hover inline-flex min-h-7 flex-1 cursor-pointer items-center justify-center rounded-md px-3 text-xs font-semibold whitespace-nowrap transition-colors duration-120 ease-out"
-        >
-          View traces
-        </PreloadLink>
-        <PreloadLink
-          :to="logsTo"
-          route-name="logs"
-          class="border-default bg-raised text-primary hover:border-strong hover:bg-hover inline-flex min-h-7 flex-1 cursor-pointer items-center justify-center rounded-md border px-3 text-xs font-medium whitespace-nowrap transition-colors duration-120 ease-out"
-        >
-          View logs
-        </PreloadLink>
+        <Button as="a" as-child variant="primary" class="flex-1">
+          <PreloadLink :to="tracesTo" route-name="traces"
+            >View traces</PreloadLink
+          >
+        </Button>
+        <Button as="a" as-child class="flex-1">
+          <PreloadLink :to="logsTo" route-name="logs">View logs</PreloadLink>
+        </Button>
       </div>
     </template>
   </div>

@@ -12,6 +12,7 @@ import PreloadLink from "@/shared/components/PreloadLink.vue";
 import { preserveTimeQuery } from "@/shared/composables/useGlobalTimeRange";
 
 import { cn } from "@/shared/utils/cn";
+import Button from "@/shared/components/ui/Button.vue";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
 import dashboardIcon from "@/assets/icons/dashboard.svg?component";
 import logsIcon from "@/assets/icons/logs.svg?component";
@@ -131,19 +132,20 @@ function handleToggle(): void {
       "
     >
       <Tooltip :content="tooltipText">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="sm"
           :aria-expanded="!isCollapsed"
           :aria-label="toggleLabel"
-          class="hover:bg-hover flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-120 ease-out"
+          class="size-6 shrink-0 p-0 [&_svg]:size-4"
           @click="handleToggle"
         >
           <component
             :is="isCollapsed ? sidebarExpandIcon : sidebarCollapseIcon"
             aria-hidden="true"
-            class="text-tertiary size-4 shrink-0"
+            class="text-tertiary shrink-0"
           />
-        </button>
+        </Button>
       </Tooltip>
     </div>
 
