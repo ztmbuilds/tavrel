@@ -143,40 +143,38 @@ function handlePanelKeydown(event: KeyboardEvent): void {
     <button
       ref="triggerRef"
       type="button"
-      :aria-label="props.label"
+      :aria-label="`${props.label}: ${selectedLabels.join(', ')}`"
       :aria-expanded="open"
       aria-haspopup="listbox"
       :class="
         cn(
-          'border-default bg-surface text-secondary hover:border-strong flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap transition-colors duration-120 ease-out',
-          open && 'border-strong',
+          'raised text-heading inline-flex h-8 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg pr-2.5 pl-3',
+          'transition-[background-image,box-shadow] duration-150',
+          open && 'raised-pressed',
           props.triggerClass,
         )
       "
       @click="toggle"
       @keydown.escape="close(true)"
     >
-      <span aria-hidden="true">{{ props.label }}</span>
-      <span class="text-primary min-w-0 flex-1 truncate text-left">{{
-        firstLabel
+      <span aria-hidden="true" class="text-secondary shrink-0">{{
+        props.label
       }}</span>
+      <span class="min-w-0 flex-1 truncate text-left">{{ firstLabel }}</span>
       <span
         v-if="extraCount > 0"
         aria-hidden="true"
         class="bg-hover text-secondary shrink-0 rounded-md px-1.5 py-0.5 text-[0.6875rem] font-medium tabular-nums"
         >+{{ extraCount }}</span
       >
-      <component
-        :is="chevronDownIcon"
-        class="text-tertiary size-2.5 shrink-0"
-      />
+      <component :is="chevronDownIcon" class="text-secondary size-4 shrink-0" />
     </button>
     <div
       v-if="open"
       role="listbox"
       aria-multiselectable="true"
       :aria-label="`${props.label} options`"
-      class="border-default bg-raised absolute top-[calc(100%+0.375rem)] left-0 z-30 w-55 rounded-lg border p-1.5 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
+      class="border-default bg-raised animate-pop shadow-pop absolute top-[calc(100%+0.375rem)] left-0 z-30 w-60 rounded-xl border p-1.5 motion-reduce:animate-none"
       @keydown="handlePanelKeydown"
     >
       <Input
@@ -201,7 +199,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="modelValue.length === 0"
           :class="
             cn(
-              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
+              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
               modelValue.length === 0 && 'bg-hover text-primary',
             )
           "
@@ -210,7 +208,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           <span
             :class="
               cn(
-                'flex size-3.5 shrink-0 items-center justify-center rounded border',
+                'flex size-4 shrink-0 items-center justify-center rounded border',
                 modelValue.length === 0
                   ? 'border-signal bg-signal'
                   : 'border-strong',
@@ -222,7 +220,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
               v-if="modelValue.length === 0"
               :src="checkIcon"
               alt=""
-              class="size-2.5"
+              class="size-3"
             />
           </span>
           <span class="truncate">{{ pinnedOption.label }}</span>
@@ -240,7 +238,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           :aria-selected="isSelected(option.value)"
           :class="
             cn(
-              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
+              'text-secondary hover:bg-hover hover:text-primary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 font-sans text-[0.8125rem] outline-none select-none',
               isSelected(option.value) && 'bg-hover text-primary',
             )
           "
@@ -249,7 +247,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
           <span
             :class="
               cn(
-                'flex size-3.5 shrink-0 items-center justify-center rounded border',
+                'flex size-4 shrink-0 items-center justify-center rounded border',
                 isSelected(option.value)
                   ? 'border-signal bg-signal'
                   : 'border-strong',
@@ -261,7 +259,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
               v-if="isSelected(option.value)"
               :src="checkIcon"
               alt=""
-              class="size-2.5"
+              class="size-3"
             />
           </span>
           <span class="truncate">{{ option.label }}</span>

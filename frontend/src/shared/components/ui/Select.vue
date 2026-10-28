@@ -37,7 +37,7 @@ const model = defineModel<string>({ required: true });
 <template>
   <SelectRoot v-model="model" :disabled="props.disabled">
     <SelectTrigger
-      :aria-label="props.ariaLabel ?? props.label"
+      :aria-label="props.ariaLabel"
       :class="
         cn(
           'raised text-heading inline-flex h-8 min-w-36 cursor-pointer items-center justify-between gap-2.5 rounded-lg pr-2.5 pl-3',
@@ -47,12 +47,9 @@ const model = defineModel<string>({ required: true });
         )
       "
     >
-      <span
-        v-if="props.label"
-        aria-hidden="true"
-        class="text-secondary shrink-0"
-        >{{ props.label }}</span
-      >
+      <span v-if="props.label" class="text-secondary shrink-0">{{
+        props.label
+      }}</span>
       <SelectValue
         :placeholder="props.placeholder ?? ''"
         class="min-w-0 flex-1 truncate text-left"

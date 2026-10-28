@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 
 import calendarIcon from "@/assets/icons/calendar.svg?component";
+import chevronDownIcon from "@/assets/icons/chevron-down.svg?component";
 import chevronLeftIcon from "@/assets/icons/chevron-left.svg?component";
 import chevronRightIcon from "@/assets/icons/chevron-right.svg?component";
 import Button from "@/shared/components/ui/Button.vue";
@@ -299,16 +300,26 @@ function applyCustom(): void {
     <button
       ref="triggerRef"
       type="button"
-      class="border-default bg-surface text-secondary hover:border-strong flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 font-sans text-[0.8125rem] whitespace-nowrap transition-colors duration-120 ease-out"
+      :class="
+        cn(
+          'raised text-heading inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg pr-2.5 pl-3 whitespace-nowrap',
+          'transition-[background-image,box-shadow] duration-150',
+          dateOpen && 'raised-pressed',
+        )
+      "
       :aria-expanded="dateOpen"
       aria-haspopup="dialog"
       aria-controls="span-date-pop"
       @click="toggleDatePop"
       @keydown.escape="closeDatePop(true)"
     >
-      <component :is="calendarIcon" class="text-tertiary size-3.5 shrink-0" />
+      <component :is="calendarIcon" class="text-secondary size-4 shrink-0" />
       <span>{{ dateLabel }}</span>
-      <span class="text-tertiary text-[0.625rem]" aria-hidden="true">▾</span>
+      <component
+        :is="chevronDownIcon"
+        class="text-secondary size-4 shrink-0"
+        aria-hidden="true"
+      />
     </button>
     <div
       v-if="dateOpen"
@@ -316,13 +327,16 @@ function applyCustom(): void {
       ref="panelRef"
       role="dialog"
       aria-label="Choose time range"
-      class="border-default bg-raised absolute top-[calc(100%+0.375rem)] right-0 z-30 flex w-130 max-w-[calc(100vw-3rem)] gap-2 rounded-lg border p-2 shadow-[0_0.25rem_0.75rem_rgba(0,0,0,0.4)]"
+      class="border-default bg-raised animate-pop shadow-pop absolute top-[calc(100%+0.375rem)] right-0 z-30 flex w-130 max-w-[calc(100vw-3rem)] gap-2 rounded-xl border p-2.5 motion-reduce:animate-none max-[40rem]:fixed max-[40rem]:inset-x-4 max-[40rem]:top-1/2 max-[40rem]:w-auto max-[40rem]:max-w-none max-[40rem]:-translate-y-1/2 max-[40rem]:flex-col"
       @keydown.escape="closeDatePop(true)"
     >
-      <div class="border-subtle w-37.5 shrink-0 border-r pr-2">
+      <div
+        class="border-subtle w-37.5 shrink-0 border-r pr-2 max-[40rem]:flex max-[40rem]:w-full max-[40rem]:flex-wrap max-[40rem]:gap-1 max-[40rem]:border-r-0 max-[40rem]:border-b max-[40rem]:pb-2"
+      >
         <div
           role="group"
           aria-label="Preset ranges"
+          class="max-[40rem]:contents"
           @keydown="handleOptionsKeydown"
         >
           <button
@@ -333,9 +347,8 @@ function applyCustom(): void {
             :aria-pressed="active === preset.value"
             :class="
               cn(
-                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
-                active === preset.value &&
-                  'bg-active text-ink hover:bg-active hover:text-ink',
+                'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
+                active === preset.value && 'raised text-heading',
               )
             "
             @click="selectPreset(preset.value)"
@@ -343,10 +356,14 @@ function applyCustom(): void {
             Last {{ preset.label }}
           </button>
         </div>
-        <div class="border-subtle my-1 border-t" aria-hidden="true" />
+        <div
+          class="border-subtle my-1 border-t max-[40rem]:hidden"
+          aria-hidden="true"
+        />
         <div
           role="group"
           aria-label="Day ranges"
+          class="max-[40rem]:contents"
           @keydown="handleOptionsKeydown"
         >
           <button
@@ -357,9 +374,8 @@ function applyCustom(): void {
             :aria-pressed="active === day.value"
             :class="
               cn(
-                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
-                active === day.value &&
-                  'bg-active text-ink hover:bg-active hover:text-ink',
+                'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
+                active === day.value && 'raised text-heading',
               )
             "
             @click="selectPreset(day.value)"
@@ -367,17 +383,24 @@ function applyCustom(): void {
             {{ day.label }}
           </button>
         </div>
-        <div class="border-subtle my-1 border-t" aria-hidden="true" />
-        <div role="group" aria-label="All time" @keydown="handleOptionsKeydown">
+        <div
+          class="border-subtle my-1 border-t max-[40rem]:hidden"
+          aria-hidden="true"
+        />
+        <div
+          role="group"
+          aria-label="All time"
+          class="max-[40rem]:contents"
+          @keydown="handleOptionsKeydown"
+        >
           <button
             type="button"
             data-range-option="true"
             :aria-pressed="active === ALL_TIME"
             :class="
               cn(
-                'text-secondary hover:text-primary flex min-h-8 w-full cursor-pointer items-center rounded-md border border-transparent bg-transparent px-2 py-1.5 font-sans text-[0.8125rem] transition-colors duration-120 ease-out',
-                active === ALL_TIME &&
-                  'bg-active text-ink hover:bg-active hover:text-ink',
+                'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
+                active === ALL_TIME && 'raised text-heading',
               )
             "
             @click="selectPreset(ALL_TIME)"
@@ -434,13 +457,12 @@ function applyCustom(): void {
                 :aria-label="dayLabel(date)"
                 :class="
                   cn(
-                    'text-secondary hover:bg-hover hover:text-primary flex size-8 cursor-pointer items-center justify-center rounded-md border-none bg-transparent p-0 font-sans text-[0.78125rem] transition-colors duration-120 ease-out',
-                    isInRangeDate(date) && 'bg-signal-muted/60 text-primary',
-                    isSelectedDate(date) &&
-                      'bg-active text-ink hover:bg-active hover:text-ink',
+                    'text-secondary hover:bg-hover hover:text-heading flex size-8 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-transparent p-0 font-sans text-[0.78125rem] transition-colors duration-120 ease-out',
+                    isInRangeDate(date) && 'bg-signal/10 text-primary',
+                    isSelectedDate(date) && 'raised text-heading',
                     isTodayDate(date) &&
                       !isSelectedDate(date) &&
-                      'ring-strong ring-1 ring-inset',
+                      'ring-default ring-1 ring-inset',
                   )
                 "
                 @click="selectDate(date)"
