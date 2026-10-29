@@ -58,16 +58,13 @@
 }
 
 @utility service-map-surface {
-  background-color: var(--color-panel);
-  background-image:
-    radial-gradient(circle, rgb(168 180 189 / 0.13) 1px, transparent 1px),
-    radial-gradient(ellipse at 50% 45%, rgb(71 83 95 / 0.16), transparent 72%);
-  background-position:
-    0 0,
-    center;
-  background-size:
-    1.5rem 1.5rem,
-    100% 100%;
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(
+    circle,
+    rgb(168 180 189 / 0.13) 1px,
+    transparent 1px
+  );
+  background-size: 1.5rem 1.5rem;
 }
 
 @layer base {
@@ -121,7 +118,9 @@
 }
 
 .service-map-surface .vue-flow__controls {
-  gap: 1px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   overflow: hidden;
   margin: 0.75rem;
   border: 1px solid var(--color-default);
@@ -131,14 +130,19 @@
 }
 
 .service-map-surface .vue-flow__controls-button {
-  width: 2rem;
-  height: 2rem;
+  box-sizing: border-box;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 0;
   background: transparent;
   color: var(--color-secondary);
   fill: currentColor;
   transition-property: color, background-color;
   transition-duration: 120ms;
+}
+
+.service-map-surface .vue-flow__controls-button + .vue-flow__controls-button {
+  border-top: 1px solid var(--color-subtle);
 }
 
 .service-map-surface .vue-flow__controls-button:hover {
@@ -159,6 +163,20 @@
 .service-map-surface .vue-flow__controls-button:focus-visible {
   outline: 2px solid var(--color-signal);
   outline-offset: -2px;
+}
+
+@media (max-width: 80rem) {
+  .service-map-surface .vue-flow__controls {
+    top: auto;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    flex-direction: row;
+  }
+
+  .service-map-surface .vue-flow__controls-button + .vue-flow__controls-button {
+    border-top: 0;
+    border-left: 1px solid var(--color-subtle);
+  }
 }
 
 @utility raised {

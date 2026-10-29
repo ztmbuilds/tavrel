@@ -4,6 +4,7 @@ import { computed, useSlots } from "vue";
 const props = defineProps<{
   title: string;
   description?: string;
+  descriptionLive?: boolean;
 }>();
 
 const slots = useSlots();
@@ -26,6 +27,7 @@ const hasActions = computed(() => slots.actions !== undefined);
         <p
           v-if="props.description"
           class="text-tertiary mt-1 text-xs leading-relaxed tabular-nums"
+          :aria-live="props.descriptionLive ? 'polite' : undefined"
         >
           {{ props.description }}
         </p>

@@ -36,6 +36,14 @@ function handleKeydown(event: KeyboardEvent): void {
     : KEYBOARD_MOVE_STEP;
   props.data.onMove({ x: delta.x * step, y: delta.y * step });
 }
+
+function dotStyle(name: string): Record<string, string> {
+  const color = serviceColor(name);
+  return {
+    background: color,
+    boxShadow: `0 0 0 3px color-mix(in srgb, ${color} 16%, transparent)`,
+  };
+}
 </script>
 
 <template>
@@ -64,26 +72,27 @@ function handleKeydown(event: KeyboardEvent): void {
       type="button"
       :class="
         cn(
-          'bg-surface focus-visible:outline-signal relative flex h-full w-full cursor-grab items-center gap-3 rounded-xl border px-4 text-left transition-[border-color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[3px] active:cursor-grabbing',
-          data.dimmed && 'opacity-30',
+          'focus-visible:outline-signal relative flex h-full w-full cursor-grab items-center gap-2.5 rounded-lg border px-3.5 text-left transition-[border-color,background-color,color,opacity] duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-[3px] active:cursor-grabbing',
+          data.dimmed && 'opacity-40',
           data.focused
-            ? 'border-signal ring-signal/40 ring-1'
-            : 'border-default hover:border-strong',
+            ? 'border-signal bg-surface text-heading ring-signal/25 ring-1'
+            : 'border-default bg-panel text-secondary hover:border-strong hover:text-primary',
         )
       "
       :aria-label="`${props.id}. Drag to reposition. Hold Alt and use an arrow key to move. Activate to inspect.`"
       :aria-pressed="props.data.focused"
+      :title="props.id"
       aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
       @click.stop="props.data.onSelect"
       @keydown.stop="handleKeydown"
     >
       <span
-        class="h-6 w-1 shrink-0 rounded-full"
-        :style="{ background: serviceColor(props.id) }"
+        class="size-2 shrink-0 rounded-full"
+        :style="dotStyle(props.id)"
         aria-hidden="true"
       />
       <span
-        class="text-heading min-w-0 flex-1 font-mono text-[0.8125rem] font-medium"
+        class="min-w-0 flex-1 truncate font-sans text-[0.8125rem] font-medium"
       >
         {{ props.id }}
       </span>

@@ -4,6 +4,10 @@ import { Background } from "@vue-flow/background";
 import { ControlButton, Controls } from "@vue-flow/controls";
 import { VueFlow } from "@vue-flow/core";
 
+import fitIcon from "@/assets/icons/fit.svg?component";
+import historyIcon from "@/assets/icons/history.svg?component";
+import minusIcon from "@/assets/icons/minus.svg?component";
+import plusIcon from "@/assets/icons/plus.svg?component";
 import ServiceMapNode from "@/features/services/components/ServiceMapNode.vue";
 
 import type { MapLayout } from "../layout";
@@ -43,9 +47,7 @@ const {
 </script>
 
 <template>
-  <div
-    class="service-map-surface relative h-full min-h-[32.5rem] overflow-hidden max-[53.75rem]:min-h-0"
-  >
+  <div class="service-map-surface relative h-full overflow-hidden">
     <VueFlow
       v-model:nodes="nodes"
       :edges="edges"
@@ -57,8 +59,9 @@ const {
       :pan-on-drag="true"
       :zoom-on-scroll="false"
       :zoom-on-pinch="true"
-      :fit-view-on-init="true"
+      :fit-view-on-init="false"
       class="h-full w-full bg-transparent"
+      @nodes-initialized="handleFitView"
       @node-mouse-enter="handleNodeMouseEnter"
       @node-mouse-leave="handleNodeMouseLeave"
       @edge-click="handleEdgeClick"
@@ -84,7 +87,7 @@ const {
           :disabled="!canZoomIn"
           @click.stop="handleZoomIn"
         >
-          +
+          <component :is="plusIcon" />
         </ControlButton>
         <ControlButton
           title="Zoom out"
@@ -92,21 +95,21 @@ const {
           :disabled="!canZoomOut"
           @click.stop="handleZoomOut"
         >
-          −
+          <component :is="minusIcon" />
         </ControlButton>
         <ControlButton
           title="Fit map to view"
           aria-label="Fit map to view"
           @click.stop="handleFitView"
         >
-          ⌖
+          <component :is="fitIcon" />
         </ControlButton>
         <ControlButton
           title="Reset node layout"
           aria-label="Reset node layout"
           @click.stop="resetLayout"
         >
-          ↺
+          <component :is="historyIcon" />
         </ControlButton>
       </Controls>
     </VueFlow>

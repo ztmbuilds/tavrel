@@ -22,9 +22,10 @@ import {
 } from "../layout";
 import type { ServiceMapNodeData } from "../types";
 
-const FIT_PADDING = 0.14;
-const EDGE_DIMMED_OPACITY = 0.07;
-const EDGE_DEFAULT_OPACITY = 0.72;
+const FIT_PADDING = { top: 0.08, right: 0.2, bottom: 0.08, left: 0.08 };
+const FIT_MAX_ZOOM = 1.2;
+const EDGE_DIMMED_OPACITY = 0.18;
+const EDGE_DEFAULT_OPACITY = 0.85;
 const EDGE_HOT_WIDTH = 1.8;
 const EDGE_DEFAULT_WIDTH = 1.4;
 
@@ -122,7 +123,7 @@ export function useServiceMapFlow(
         targetHandle: handles.targetHandle,
         markerEnd: {
           type: MarkerType.ArrowClosed,
-          color: "var(--color-secondary)",
+          color: isHot ? "var(--color-secondary)" : "var(--color-strong)",
           width: 9,
           height: 9,
         },
@@ -204,7 +205,7 @@ export function useServiceMapFlow(
   }
 
   function handleFitView(): void {
-    void fitView({ padding: FIT_PADDING });
+    void fitView({ padding: FIT_PADDING, maxZoom: FIT_MAX_ZOOM });
   }
 
   function handleZoomIn(): void {

@@ -110,6 +110,22 @@ const countLabel = computed(() => {
   return `${nodeCount.value} ${services} · ${edgeCount.value} ${connections}`;
 });
 
+const rangeDetail = computed(() => {
+  if (filters.value.range === CUSTOM_RANGE) return "in a custom range";
+  if (filters.value.range === ALL_TIME) return "across all time";
+  const day = DAY_PRESETS.find((item) => item.value === filters.value.range);
+  if (day !== undefined) return `for ${day.label.toLowerCase()}`;
+  const preset = TIME_PRESETS.find(
+    (item) => item.value === filters.value.range,
+  );
+  return preset === undefined ? "" : `in the last ${preset.label}`;
+});
+
+const description = computed(() => {
+  const detail = rangeDetail.value;
+  return detail === "" ? countLabel.value : `${countLabel.value} ${detail}`;
+});
+
 const hasGraph = computed(() => nodeCount.value > 0);
 
 watch(
@@ -170,8 +186,18 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <PageHead title="Service map">
+    <PageHead title="Services" :description="description" description-live>
       <template #actions>
+        <div
+          class="w-56 max-[40rem]:w-auto max-[40rem]:min-w-0 max-[40rem]:flex-1"
+        >
+          <SearchBox
+            v-model="searchInput"
+            input-id="service-search"
+            label="Find a service"
+            placeholder="Find a service…"
+          />
+        </div>
         <DateRangePicker
           :presets="TIME_PRESETS"
           :day-presets="DAY_PRESETS"
@@ -184,28 +210,19 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
       </template>
     </PageHead>
 
-    <div class="flex shrink-0 items-center gap-2.5 px-10 pb-4 max-[40rem]:px-4">
-      <div class="max-w-70 min-w-40 flex-1">
-        <SearchBox
-          v-model="searchInput"
-          input-id="service-search"
-          label="Find a service"
-          placeholder="Find a service…"
-        />
-      </div>
-      <span class="text-tertiary shrink-0 text-xs tabular-nums" role="status">{{
-        countLabel
-      }}</span>
-    </div>
     <div
-      class="border-subtle bg-subtle mx-10 mb-4 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_16.25rem] gap-px overflow-hidden rounded-xl border max-[53.75rem]:grid-cols-1 max-[53.75rem]:overflow-y-auto max-[40rem]:mx-4"
+      class="mx-10 mb-4 grid max-h-[40rem] min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-4 max-[65rem]:grid-cols-1 max-[65rem]:overflow-y-auto max-[40rem]:mx-4"
       @keydown.escape="clearSelection"
     >
-      <div class="bg-panel min-h-0 min-w-0 max-[53.75rem]:h-[24rem]">
-        <LoadingState v-if="isPending" label="Loading service graph" />
+      <div
+        class="border-subtle bg-canvas min-h-0 min-w-0 overflow-hidden rounded-xl border max-[65rem]:h-[24rem]"
+      >
+        <div v-if="isPending" class="flex h-full items-center justify-center">
+          <LoadingState label="Loading service graph" />
+        </div>
         <div
           v-else-if="isError"
-          class="text-tertiary flex flex-col items-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
+          class="text-tertiary flex h-full flex-col items-center justify-center gap-3.5 px-5 py-12 text-center text-[0.8125rem]"
           role="alert"
         >
           <span class="text-heading text-sm font-semibold"
@@ -216,11 +233,15 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
           >
           <Button @click="refetch()">Retry</Button>
         </div>
-        <EmptyState
+        <div
           v-else-if="!hasGraph"
-          title="No services found"
-          message="No service calls in this time window. Try widening the time range."
-        />
+          class="flex h-full items-center justify-center"
+        >
+          <EmptyState
+            title="No services found"
+            message="No service calls in this time window. Try widening the time range."
+          />
+        </div>
         <ServiceMapCanvas
           v-else
           :layout="layout"
@@ -230,7 +251,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
         />
       </div>
       <aside
-        class="bg-panel min-h-0 min-w-0 max-[53.75rem]:h-auto"
+        class="border-subtle bg-panel min-h-0 min-w-0 overflow-hidden rounded-xl border max-[65rem]:min-h-56"
         aria-label="Service inspector"
       >
         <ServiceInspector

@@ -6,11 +6,11 @@ import dagre, {
 
 import type { ServiceEdge } from "@/shared/types/entities/service";
 
-export const MAP_NODE_W = 184;
-export const MAP_NODE_H = 52;
+export const MAP_NODE_W = 200;
+export const MAP_NODE_H = 48;
 
 const SERVICE_LABEL_CHAR_WIDTH = 8;
-const NODE_HORIZONTAL_PADDING = 36;
+const NODE_HORIZONTAL_PADDING = 44;
 const MAP_RANK_GAP = 104;
 const MAP_NODE_GAP = 48;
 const MAP_EDGE_GAP = 32;
