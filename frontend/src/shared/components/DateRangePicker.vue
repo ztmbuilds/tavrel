@@ -47,6 +47,9 @@ export interface DayPreset {
 }
 
 const CUSTOM = "custom";
+const PRIMARY_CONTROL_CLASSES =
+  "border border-white/25 border-b-white/10 bg-linear-to-b from-signal to-signal-hover text-ink shadow-raised transition-[background-color,background-image,box-shadow,transform,filter] duration-150 ease-out hover:brightness-95 active:translate-y-px active:brightness-90 active:shadow-raised-pressed motion-reduce:transition-none";
+const ACTIVE_OPTION_CLASSES = `${PRIMARY_CONTROL_CLASSES} font-medium hover:bg-transparent hover:text-ink`;
 const DEFAULT_START_TEXT = "00:00";
 const DEFAULT_END_TEXT = "23:59";
 const WEEK_COLUMNS = 7;
@@ -348,7 +351,7 @@ function applyCustom(): void {
             :class="
               cn(
                 'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
-                active === preset.value && 'raised text-heading',
+                active === preset.value && ACTIVE_OPTION_CLASSES,
               )
             "
             @click="selectPreset(preset.value)"
@@ -375,7 +378,7 @@ function applyCustom(): void {
             :class="
               cn(
                 'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
-                active === day.value && 'raised text-heading',
+                active === day.value && ACTIVE_OPTION_CLASSES,
               )
             "
             @click="selectPreset(day.value)"
@@ -400,7 +403,7 @@ function applyCustom(): void {
             :class="
               cn(
                 'text-secondary hover:text-heading flex min-h-8 w-full cursor-pointer items-center rounded-lg bg-transparent px-2.5 py-1.5 text-left font-sans text-[0.8125rem] transition-colors duration-120 ease-out max-[40rem]:w-auto',
-                active === ALL_TIME && 'raised text-heading',
+                active === ALL_TIME && ACTIVE_OPTION_CLASSES,
               )
             "
             @click="selectPreset(ALL_TIME)"
@@ -458,8 +461,10 @@ function applyCustom(): void {
                 :class="
                   cn(
                     'text-secondary hover:bg-hover hover:text-heading flex size-8 cursor-pointer items-center justify-center rounded-lg border border-transparent bg-transparent p-0 font-sans text-[0.78125rem] tabular-nums transition-colors duration-120 ease-out',
-                    isInRangeDate(date) && 'bg-signal/10 text-primary',
-                    isSelectedDate(date) && 'raised text-heading',
+                    isInRangeDate(date) &&
+                      !isSelectedDate(date) &&
+                      'bg-signal/10 text-primary',
+                    isSelectedDate(date) && ACTIVE_OPTION_CLASSES,
                     isTodayDate(date) &&
                       !isSelectedDate(date) &&
                       'ring-default ring-1 ring-inset',
