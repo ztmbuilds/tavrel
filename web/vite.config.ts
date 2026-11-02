@@ -1,18 +1,20 @@
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig, type PluginOption } from "vite";
+import { defineConfig, loadEnv, type PluginOption } from "vite";
 import svgLoader from "vite-svg-loader";
 
 const DEFAULT_APP_PORT = "5678";
 
-function resolveAppPort(): string {
-  return process.env.APP_PORT?.trim() || DEFAULT_APP_PORT;
+function resolveAppPort(env: Record<string, string>): string {
+  return process.env.APP_PORT?.trim() || env.APP_PORT?.trim() || DEFAULT_APP_PORT;
 }
 
 // https://vite.dev/config/
-export default defineConfig(() => {
-  const appPort = resolveAppPort();
+export default defineConfig(({ mode }) => {
+  const repoRoot = fileURLToPath(new URL("..", import.meta.url));
+  const env = loadEnv(mode, repoRoot, "");
+  const appPort = resolveAppPort(env);
   // vite-svg-loader types its plugin as Plugin<any>, which collapses mixed arrays to any[].
   const svgPlugin = svgLoader({
     defaultImport: "url",
@@ -35,7 +37,7 @@ export default defineConfig(() => {
       },
     },
     build: {
-      outDir: "dist",
+      outDir: "../internal/web/dist",
       emptyOutDir: true,
     },
   };
