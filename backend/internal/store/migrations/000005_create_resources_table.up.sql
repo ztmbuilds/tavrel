@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS resources (
+    id INTEGER PRIMARY KEY,
+    hash TEXT NOT NULL UNIQUE,
+    attributes TEXT NOT NULL
+);

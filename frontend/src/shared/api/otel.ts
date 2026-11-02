@@ -114,6 +114,7 @@ export interface SpanDto {
   endTime: string;
   attributes: unknown;
   events: unknown;
+  resourceId: number;
 }
 
 export interface LogDto {
@@ -159,6 +160,21 @@ export interface StringListResponse {
   message: string;
   data: string[];
   meta: { nextCursor: string | null };
+}
+
+export interface TraceResourceDto {
+  id: number;
+  attributes: unknown;
+}
+
+export function toTraceResources(
+  resources: TraceResourceDto[],
+): Map<number, Attributes> {
+  const byId = new Map<number, Attributes>();
+  for (const resource of resources) {
+    byId.set(resource.id, toAttributes(resource.attributes));
+  }
+  return byId;
 }
 
 function toAttributes(value: unknown): Attributes {
@@ -232,6 +248,7 @@ export function toSpan(dto: SpanDto): Span {
     endTime: dto.endTime,
     attributes: toAttributes(dto.attributes),
     events: toSpanEvents(dto.events),
+    resourceId: dto.resourceId,
   };
 }
 

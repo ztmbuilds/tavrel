@@ -2,6 +2,7 @@
 import { computed } from "vue";
 
 import xIcon from "@/assets/icons/x.svg?component";
+import type { Attributes } from "@/shared/api/otel";
 import Badge from "@/shared/components/ui/Badge.vue";
 import Button from "@/shared/components/ui/Button.vue";
 import Tabs from "@/shared/components/ui/Tabs.vue";
@@ -10,6 +11,7 @@ import type { Log } from "@/shared/types/entities/log";
 import type { Span } from "@/shared/types/entities/span";
 import type { SpanLink } from "@/shared/types/entities/span-link";
 import { cn } from "@/shared/utils/cn";
+import { mergeAttributes } from "@/shared/utils/merge-attributes";
 import { serviceColor } from "@/shared/utils/service-color";
 import { diffMsPrecise, formatDurationMs } from "@/shared/utils/time";
 
@@ -20,6 +22,7 @@ import type { SpanEventView, TraceDetailTab } from "../types";
 
 const props = defineProps<{
   span: Span;
+  resourceAttributes: Attributes;
   childCount: number;
   selfTimeMs: number;
   percentOfTrace: number;
@@ -63,6 +66,10 @@ const TABS: readonly { value: TraceDetailTab; label: string }[] = [
   { value: "links", label: "Links" },
   { value: "logs", label: "Logs" },
 ];
+
+const mergedAttributes = computed((): Attributes =>
+  mergeAttributes(props.resourceAttributes, props.span.attributes),
+);
 
 function logOffsetMs(timestamp: string): number {
   const offset = diffMsPrecise(props.span.startTime, timestamp);
@@ -263,7 +270,7 @@ function logOffsetMs(timestamp: string): number {
       </template>
 
       <template #attributes>
-        <SpanAttributes :attributes="span.attributes" />
+        <SpanAttributes :attributes="mergedAttributes" />
       </template>
 
       <template #events>

@@ -19,4 +19,5 @@ export interface Span {
   endTime: string;
   attributes: Attributes;
   events: SpanEventDto[];
+  resourceId: number;
 }

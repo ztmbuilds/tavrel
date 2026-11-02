@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"log/slog"
+	"noname/internal/jsonvalue"
 	"noname/internal/store"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 type traceStore interface {
 	StoreTrace(ctx context.Context, trace store.Trace, spans []store.Span) error
+	ResolveResource(ctx context.Context, attributes jsonvalue.Attributes) (store.Resource, error)
 }
 
 type TraceExportProcessor struct {
@@ -34,29 +36,14 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 	traceGroups := make(map[string]traceData)
 
 	for _, rs := range req.ResourceSpans {
-		var serviceName string
-		var environment string
-
-		for _, attr := range rs.Resource.Attributes {
-			switch attr.Key {
-			case "service.name":
-				serviceName = attr.Value.GetStringValue()
-
-			case "deployment.environment.name":
-				environment = attr.Value.GetStringValue()
-
-			// Backwards compatibility with older instrumentation
-			case "deployment.environment":
-				if environment == "" {
-					environment = attr.Value.GetStringValue()
-				}
-			}
-
-			// Stop once we've found everything we care about.
-			if serviceName != "" && environment != "" {
-				break
-			}
+		resource, err := tp.store.ResolveResource(context.Background(), attributesToJSON(rs.GetResource().GetAttributes()))
+		if err != nil {
+			slog.Error("failed to resolve resource", "error", err)
+			continue
 		}
+
+		serviceName, environment := resourceIdentity(resource.Attributes)
+
 		for _, ss := range rs.ScopeSpans {
 			for _, s := range ss.Spans {
 
@@ -64,14 +51,14 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					continue
 				}
 
-				spanAttributes := attributesToMap(s.Attributes)
+				spanAttributes := attributesToJSON(s.Attributes)
 
 				var events []store.Event
 				for _, e := range s.Events {
 					events = append(events, store.Event{
 						Time:       time.Unix(0, int64(e.TimeUnixNano)),
 						Name:       e.Name,
-						Attributes: attributesToMap(e.Attributes),
+						Attributes: attributesToJSON(e.Attributes),
 					})
 				}
 
@@ -84,7 +71,7 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					links = append(links, store.Link{
 						TraceID:    hex.EncodeToString(l.TraceId),
 						SpanID:     hex.EncodeToString(l.SpanId),
-						Attributes: attributesToMap(l.Attributes),
+						Attributes: attributesToJSON(l.Attributes),
 					})
 				}
 
@@ -110,6 +97,7 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 					Attributes:    spanAttributes,
 					Events:        events,
 					Links:         links,
+					ResourceID:    resource.ID,
 				}
 
 				td, ok := traceGroups[span.TraceID]

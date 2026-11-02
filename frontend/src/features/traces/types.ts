@@ -1,3 +1,4 @@
+import type { Attributes } from "@/shared/api/otel";
 import type { SharedTime } from "@/shared/composables/useGlobalTimeRange";
 import type { Span, SpanStatus } from "@/shared/types/entities/span";
 import type { Trace } from "@/shared/types/entities/trace";
@@ -28,6 +29,7 @@ export interface SpanNode {
 export interface TraceDetail {
   trace: Trace;
   spans: SpanNode[];
+  resources: Map<number, Attributes>;
 }
 
 export type TraceDetailTab =

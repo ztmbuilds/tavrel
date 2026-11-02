@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS logs (
     service TEXT NOT NULL,
     environment TEXT,
     attributes TEXT,
-    resource_attributes TEXT
+    resource_id INTEGER NOT NULL REFERENCES resources(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp_id ON logs (timestamp_ns,id);

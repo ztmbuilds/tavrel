@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS spans (
     status_message TEXT,
     attributes TEXT,
     events TEXT,
+    resource_id INTEGER NOT NULL REFERENCES resources(id),
     FOREIGN KEY (trace_id) REFERENCES traces(trace_id)
 );
 

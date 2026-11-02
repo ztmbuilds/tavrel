@@ -1,6 +1,11 @@
 package pipeline
 
 import (
+	"encoding/base64"
+	"math"
+
+	"noname/internal/jsonvalue"
+
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
@@ -33,57 +38,73 @@ func isInvalidSpanID(id []byte) bool {
 	return true
 }
 
-func attributesToMap(attributes []*commonpb.KeyValue) map[string]any {
-	m := make(map[string]any, len(attributes))
+func attributesToJSON(attributes []*commonpb.KeyValue) jsonvalue.Attributes {
+	result := make(jsonvalue.Attributes, len(attributes))
 
 	for _, attr := range attributes {
-		m[attr.Key] = anyValueToGo(attr.Value)
+		result[attr.Key] = anyValueToJSON(attr.Value)
 	}
 
-	return m
+	return result
 }
 
-func anyValueToGo(v *commonpb.AnyValue) any {
+func anyValueToJSON(v *commonpb.AnyValue) jsonvalue.Value {
 	if v == nil {
-		return nil
+		return jsonvalue.Null()
 	}
 
 	switch v := v.Value.(type) {
 
 	case *commonpb.AnyValue_StringValue:
-		return v.StringValue
+		return jsonvalue.String(v.StringValue)
 
 	case *commonpb.AnyValue_BoolValue:
-		return v.BoolValue
+		return jsonvalue.Bool(v.BoolValue)
 
 	case *commonpb.AnyValue_IntValue:
-		return v.IntValue
+		return jsonvalue.Int(v.IntValue)
 
 	case *commonpb.AnyValue_DoubleValue:
-		return v.DoubleValue
+		return doubleToJSON(v.DoubleValue)
 
 	case *commonpb.AnyValue_ArrayValue:
-
-		s := make([]any, 0, len(v.ArrayValue.Values))
+		values := make([]jsonvalue.Value, 0, len(v.ArrayValue.Values))
 
 		for _, x := range v.ArrayValue.Values {
-			s = append(s, anyValueToGo(x))
+			values = append(values, anyValueToJSON(x))
 		}
-		return s
+		return jsonvalue.Array(values)
 
 	case *commonpb.AnyValue_KvlistValue:
-		m := make(map[string]any, len(v.KvlistValue.Values))
+		attributes := make(jsonvalue.Attributes, len(v.KvlistValue.Values))
 
 		for _, kv := range v.KvlistValue.Values {
-			m[kv.Key] = anyValueToGo(kv.Value)
+			attributes[kv.Key] = anyValueToJSON(kv.Value)
 		}
-		return m
+		return jsonvalue.Object(attributes)
 
 	case *commonpb.AnyValue_BytesValue:
-		return v.BytesValue
+		return jsonvalue.String(base64.StdEncoding.EncodeToString(v.BytesValue))
 
 	default:
-		return nil
+		return jsonvalue.Null()
 	}
 
+}
+
+func doubleToJSON(value float64) jsonvalue.Value {
+	converted, err := jsonvalue.Float(value)
+	if err == nil {
+		return converted
+	}
+
+	// protojson represents non-finite doubles as these strings.
+	switch {
+	case math.IsNaN(value):
+		return jsonvalue.String("NaN")
+	case math.IsInf(value, 1):
+		return jsonvalue.String("Infinity")
+	default:
+		return jsonvalue.String("-Infinity")
+	}
 }

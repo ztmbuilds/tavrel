@@ -3,8 +3,10 @@ package store
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"noname/internal/jsonvalue"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
@@ -95,6 +99,125 @@ func (s *SQLiteStore) Close() error {
 	return errors.Join(s.readDB.Close(), s.writeDB.Close())
 }
 
+func (s *SQLiteStore) ResolveResource(ctx context.Context, attributes jsonvalue.Attributes) (Resource, error) {
+	hash, raw, err := hashAttributes(attributes)
+	if err != nil {
+		return Resource{}, err
+	}
+
+	result, err := s.writeDB.ExecContext(ctx, `INSERT INTO resources (hash, attributes) VALUES (?, ?) ON CONFLICT(hash) DO NOTHING`, hash, string(raw))
+	if err != nil {
+		return Resource{}, err
+	}
+
+	var id int64
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return Resource{}, err
+	}
+
+	if affected == 1 {
+		id, err = result.LastInsertId()
+		if err != nil {
+			return Resource{}, err
+		}
+	} else {
+		if err := s.readDB.QueryRowContext(ctx, `SELECT id FROM resources WHERE hash = ?`, hash).Scan(&id); err != nil {
+			return Resource{}, err
+		}
+	}
+
+	return Resource{
+		ID:         id,
+		Attributes: attributes,
+	}, nil
+}
+
+func hashAttributes(attributes jsonvalue.Attributes) (hash string, raw []byte, err error) {
+	raw, err = json.Marshal(attributes)
+	if err != nil {
+		return "", nil, err
+	}
+
+	sum := sha256.Sum256(raw)
+
+	return hex.EncodeToString(sum[:]), raw, nil
+}
+
+const resourceLookupBatchSize = 500
+
+func (s *SQLiteStore) loadResources(ctx context.Context, tx *sql.Tx, ids []int64) (map[int64]jsonvalue.Attributes, error) {
+	resources := make(map[int64]jsonvalue.Attributes, len(ids))
+	if len(ids) == 0 {
+		return resources, nil
+	}
+
+	uniqueIDs := make([]int64, 0, len(ids))
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		uniqueIDs = append(uniqueIDs, id)
+	}
+
+	for left := 0; left < len(uniqueIDs); left += resourceLookupBatchSize {
+		right := min(left+resourceLookupBatchSize, len(uniqueIDs))
+		if err := s.loadResourceBatch(ctx, tx, uniqueIDs[left:right], resources); err != nil {
+			return nil, err
+		}
+	}
+
+	return resources, nil
+}
+
+func (s *SQLiteStore) loadResourceBatch(ctx context.Context, tx *sql.Tx, ids []int64, resources map[int64]jsonvalue.Attributes) (err error) {
+	args := make([]any, 0, len(ids))
+	for _, id := range ids {
+		args = append(args, id)
+	}
+
+	query := `SELECT id, attributes FROM resources WHERE id IN ` + inPlaceholders(len(ids))
+
+	var rows *sql.Rows
+	if tx != nil {
+		rows, err = tx.QueryContext(ctx, query, args...)
+	} else {
+		rows, err = s.readDB.QueryContext(ctx, query, args...)
+	}
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := rows.Close(); err == nil {
+			err = closeErr
+		}
+	}()
+
+	for rows.Next() {
+		var id int64
+		var raw []byte
+		if err := rows.Scan(&id, &raw); err != nil {
+			return err
+		}
+
+		var attributes jsonvalue.Attributes
+		if err := decodeJson(raw, &attributes); err != nil {
+			return err
+		}
+		resources[id] = attributes
+	}
+
+	return rows.Err()
+}
+
+func attachResourceAttributes(logs []Log, resources map[int64]jsonvalue.Attributes) {
+	for i := range logs {
+		logs[i].ResourceAttributes = resources[logs[i].ResourceID]
+	}
+}
+
 func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span) error {
 
 	tx, err := s.writeDB.BeginTx(ctx, nil)
@@ -159,23 +282,23 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 
 		placeholders := make([]string, 0, len(spanBatch))
 
-		query := `INSERT OR IGNORE INTO spans (span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events) VALUES`
+		query := `INSERT OR IGNORE INTO spans (span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events, resource_id) VALUES`
 
-		//underlying array size is set to the total number of spans * the number of fields in each span (currently 13)
-		values := make([]any, 0, len(spanBatch)*13)
+		// underlying array size is set to the number of spans in the batch * the number of fields in each span (currently 14)
+		values := make([]any, 0, len(spanBatch)*14)
 
 		for _, span := range spanBatch {
 			attributes, err := json.Marshal(span.Attributes)
 			if err != nil {
-				attributes = []byte("{}")
+				return fmt.Errorf("marshal span attributes: %w", err)
 			}
 
 			events, err := json.Marshal(span.Events)
 			if err != nil {
-				events = []byte("[]")
+				return fmt.Errorf("marshal span events: %w", err)
 			}
 
-			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?,?,?)")
+			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
 			values = append(values,
 				span.SpanID,
@@ -191,6 +314,7 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 				span.StatusMessage,
 				attributes,
 				events,
+				span.ResourceID,
 			)
 
 		}
@@ -245,8 +369,8 @@ func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, spans []S
 
 		for _, row := range batch {
 			attributes, err := json.Marshal(row.link.Attributes)
-			if err != nil || row.link.Attributes == nil {
-				attributes = []byte("{}")
+			if err != nil {
+				return fmt.Errorf("marshal span link attributes: %w", err)
 			}
 
 			placeholders = append(placeholders, "(?,?,?,?,?)")
@@ -289,7 +413,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 		batch := logs[left:right]
 
-		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service, environment, attributes, resource_attributes) VALUES`
+		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service, environment, attributes, resource_id) VALUES`
 
 		values := make([]any, 0, len(batch)*10) //size set to number of fields inserting into * lenght of batch
 
@@ -298,17 +422,12 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 		for _, log := range batch {
 			attributes, err := json.Marshal(log.Attributes)
 			if err != nil {
-				attributes = []byte("{}")
-			}
-			resourceAttributes, err := json.Marshal(log.ResourceAttributes)
-			if err != nil {
-				resourceAttributes = []byte("{}")
+				return fmt.Errorf("marshal log attributes: %w", err)
 			}
 
 			body, err := json.Marshal(log.Body)
-
 			if err != nil {
-				body = []byte("{}")
+				return fmt.Errorf("marshal log body: %w", err)
 			}
 
 			values = append(values,
@@ -321,7 +440,7 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 				log.Service,
 				log.Environment,
 				attributes,
-				resourceAttributes)
+				log.ResourceID)
 
 			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?)")
 		}
@@ -541,7 +660,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_attributes FROM logs`
+	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_id FROM logs`
 	if len(conds) > 0 {
 		query += " WHERE " + strings.Join(conds, " AND ")
 	}
@@ -559,7 +678,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 
 	for rows.Next() {
 		var timeStampNs int64
-		var attributes, resourceAttributes, body []byte
+		var attributes, body []byte
 
 		var l Log
 
@@ -574,7 +693,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			&l.Service,
 			&l.Environment,
 			&attributes,
-			&resourceAttributes,
+			&l.ResourceID,
 		)
 
 		if err != nil {
@@ -589,10 +708,6 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			return page, err
 		}
 
-		if err := decodeJson(resourceAttributes, &l.ResourceAttributes); err != nil {
-			return page, err
-		}
-
 		l.Timestamp = time.Unix(0, timeStampNs)
 		logs = append(logs, l)
 
@@ -601,6 +716,22 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 	if err := rows.Err(); err != nil {
 		return page, err
 	}
+
+	if err := rows.Close(); err != nil {
+		return page, err
+	}
+
+	resourceIDs := make([]int64, 0, len(logs))
+	for _, l := range logs {
+		resourceIDs = append(resourceIDs, l.ResourceID)
+	}
+
+	resourceAttributes, err := s.loadResources(ctx, nil, resourceIDs)
+	if err != nil {
+		return page, err
+	}
+
+	attachResourceAttributes(logs, resourceAttributes)
 
 	items, hasMore, last := paginate(logs, limit)
 
@@ -689,7 +820,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events FROM spans`
+	query := `SELECT span_id, trace_id, parent_span_id, service, environment, name, kind, start_time_ns, end_time_ns, status_code, status_message, attributes, events, resource_id FROM spans`
 	if len(conds) > 0 {
 		query += " WHERE " + strings.Join(conds, " AND ")
 	}
@@ -728,6 +859,7 @@ func (s *SQLiteStore) ListSpans(ctx context.Context, options ListSpansOptions) (
 			&s.StatusMessage,
 			&attributes,
 			&events,
+			&s.ResourceID,
 		)
 
 		if err != nil {
@@ -1048,7 +1180,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 
 	logRows, err := tx.QueryContext(ctx, `
 		SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number,
-			body, service, environment, attributes, resource_attributes
+			body, service, environment, attributes, resource_id
 		FROM logs
 		WHERE severity_number >= ? AND timestamp_ns >= ? AND timestamp_ns < ?
 		ORDER BY timestamp_ns DESC, id DESC
@@ -1057,10 +1189,11 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 	if err != nil {
 		return stats, err
 	}
+	logIDs := make([]int64, 0, dashboardRecentLimit)
 	for logRows.Next() {
 		var log Log
 		var timestampNS int64
-		var body, attributes, resourceAttributes []byte
+		var body, attributes []byte
 		if err := logRows.Scan(
 			&log.ID,
 			&log.TraceID,
@@ -1072,7 +1205,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 			&log.Service,
 			&log.Environment,
 			&attributes,
-			&resourceAttributes,
+			&log.ResourceID,
 		); err != nil {
 			logRows.Close()
 			return stats, err
@@ -1085,11 +1218,8 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 			logRows.Close()
 			return stats, err
 		}
-		if err := decodeJson(resourceAttributes, &log.ResourceAttributes); err != nil {
-			logRows.Close()
-			return stats, err
-		}
 		log.Timestamp = time.Unix(0, timestampNS)
+		logIDs = append(logIDs, log.ID)
 		stats.RecentErrorLogs = append(stats.RecentErrorLogs, log)
 	}
 	if err := logRows.Err(); err != nil {
@@ -1099,6 +1229,12 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 	if err := logRows.Close(); err != nil {
 		return stats, err
 	}
+
+	resourceAttributes, err := s.loadResources(ctx, tx, logIDs)
+	if err != nil {
+		return stats, err
+	}
+	attachResourceAttributes(stats.RecentErrorLogs, resourceAttributes)
 
 	if err := tx.Commit(); err != nil {
 		return stats, err
@@ -1160,7 +1296,7 @@ func newTraceBuckets(start, end time.Time) []TraceTimeBucket {
 	return buckets
 }
 
-func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error) {
+func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []Span, []Resource, error) {
 
 	query := `SELECT trace_id, root_service, environment, root_name, start_time_ns, end_time_ns, span_count, error, updated_at_ns FROM
 	 traces WHERE trace_id = ?1`
@@ -1179,7 +1315,7 @@ func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []S
 		&updatedNS)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	t.StartTime = time.Unix(0, startTimeNS)
 	t.EndTime = time.Unix(0, endTimeNS)
@@ -1195,10 +1331,29 @@ func (s *SQLiteStore) GetTrace(ctx context.Context, traceID string) (*Trace, []S
 	page, err := s.ListSpans(ctx, listSpanOptions)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return &t, page.Items, nil
+	resourceIDs := make([]int64, 0, len(page.Items))
+	for _, span := range page.Items {
+		resourceIDs = append(resourceIDs, span.ResourceID)
+	}
+
+	attributesByID, err := s.loadResources(ctx, nil, resourceIDs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	resources := make([]Resource, 0, len(attributesByID))
+	for id, attributes := range attributesByID {
+		resources = append(resources, Resource{
+			ID:         id,
+			Attributes: attributes,
+		})
+	}
+	sort.Slice(resources, func(i, j int) bool { return resources[i].ID < resources[j].ID })
+
+	return &t, page.Items, resources, nil
 
 }
 

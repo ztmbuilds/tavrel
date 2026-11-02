@@ -25,7 +25,7 @@ import {
 } from "@/features/traces/queries";
 import type { SpanLogWindow, TraceDetailTab } from "@/features/traces/types";
 import { ApiError } from "@/shared/api/client";
-import { toSpanEventViews } from "@/shared/api/otel";
+import { toSpanEventViews, type Attributes } from "@/shared/api/otel";
 import Button from "@/shared/components/ui/Button.vue";
 import EmptyState from "@/shared/components/EmptyState.vue";
 import LoadingState from "@/shared/components/LoadingState.vue";
@@ -48,6 +48,7 @@ const OVERLAY_PANEL_FRACTION = 0.9;
 const PX_PER_REM = 16;
 const SINGLE_ROOT_DEPTH = 1;
 const MULTI_ROOT_DEPTH = 2;
+const EMPTY_ATTRIBUTES: Attributes = {};
 
 const idRef = computed((): string => {
   const raw = route.params.id;
@@ -88,6 +89,16 @@ const rootDepth = computed((): number =>
 const selectedSpan = computed((): Span | null => {
   if (selectedId.value === null) return null;
   return graph.findSpan(selectedId.value);
+});
+
+const selectedResourceAttributes = computed((): Attributes => {
+  if (selectedSpan.value === null || detail.value === undefined) {
+    return EMPTY_ATTRIBUTES;
+  }
+  return (
+    detail.value.resources.get(selectedSpan.value.resourceId) ??
+    EMPTY_ATTRIBUTES
+  );
 });
 
 const selectedEvents = computed(() =>
@@ -528,6 +539,7 @@ function copyTraceId(): void {
           <SpanPanel
             v-model:active-tab="activeTab"
             :span="selectedSpan"
+            :resource-attributes="selectedResourceAttributes"
             :child-count="selectedChildCount"
             :self-time-ms="selectedSelfMs"
             :percent-of-trace="selectedPercent"

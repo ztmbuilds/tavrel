@@ -15,7 +15,7 @@ import (
 
 type traceStore interface {
 	ListTraces(ctx context.Context, options store.ListTracesOptions) (store.Page[store.Trace, store.ListTracesCursor], error)
-	GetTrace(ctx context.Context, traceID string) (*store.Trace, []store.Span, error)
+	GetTrace(ctx context.Context, traceID string) (*store.Trace, []store.Span, []store.Resource, error)
 }
 
 type spanNode struct {
@@ -23,8 +23,9 @@ type spanNode struct {
 	Children []*spanNode `json:"children"`
 }
 type TraceData struct {
-	Trace *store.Trace `json:"trace"`
-	Spans []*spanNode  `json:"spans"`
+	Trace     *store.Trace     `json:"trace"`
+	Spans     []*spanNode      `json:"spans"`
+	Resources []store.Resource `json:"resources"`
 }
 
 const defaultTracesLimit = 20
@@ -129,7 +130,7 @@ func newGetTraceHandler(ts traceStore) AppHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 
 		traceId := r.PathValue("id")
-		trace, spans, err := ts.GetTrace(r.Context(), traceId)
+		trace, spans, resources, err := ts.GetTrace(r.Context(), traceId)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -143,8 +144,9 @@ func newGetTraceHandler(ts traceStore) AppHandler {
 		writeJson(w, http.StatusOK, &Response{
 			Message: "Trace retrieved successfully",
 			Data: TraceData{
-				Trace: trace,
-				Spans: nodes,
+				Trace:     trace,
+				Spans:     nodes,
+				Resources: resources,
 			},
 		})
 

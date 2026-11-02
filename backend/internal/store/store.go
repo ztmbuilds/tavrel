@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"time"
+
+	"noname/internal/jsonvalue"
 )
 
 type Store interface {
@@ -10,6 +12,8 @@ type Store interface {
 
 	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
 	StoreLogs(ctx context.Context, logs []Log) error
+
+	ResolveResource(ctx context.Context, attributes jsonvalue.Attributes) (Resource, error)
 
 	ListTraces(ctx context.Context, options ListTracesOptions) (Page[Trace, ListTracesCursor], error)
 	ListLogs(ctx context.Context, options ListLogsOptions) (Page[Log, ListLogsCursor], error)
@@ -20,7 +24,7 @@ type Store interface {
 	GetServiceGraph(ctx context.Context, start, end *time.Time) (ServiceGraph, error)
 	GetDashboardStats(ctx context.Context, start, end time.Time) (DashboardStats, error)
 
-	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, error)
+	GetTrace(ctx context.Context, traceID string) (*Trace, []Span, []Resource, error)
 
 	DeleteOldData(ctx context.Context, cutoff time.Time) error
 }
@@ -144,33 +148,39 @@ func toStatusCode(i int32) StatusCode {
 }
 
 type Span struct {
-	SpanID        string         `json:"spanId"`
-	TraceID       string         `json:"traceId"`
-	ParentSpanID  string         `json:"parentSpanId"`
-	Service       string         `json:"service"`
-	Environment   string         `json:"environment"`
-	Name          string         `json:"name"`
-	Kind          SpanKind       `json:"kind"`
-	StatusCode    StatusCode     `json:"statusCode"`
-	StatusMessage string         `json:"statusMessage"`
-	StartTime     time.Time      `json:"startTime"`
-	EndTime       time.Time      `json:"endTime"`
-	Attributes    map[string]any `json:"attributes"`
-	Events        []Event        `json:"events"`
-	Links         []Link         `json:"links,omitempty"`
+	SpanID        string               `json:"spanId"`
+	TraceID       string               `json:"traceId"`
+	ParentSpanID  string               `json:"parentSpanId"`
+	Service       string               `json:"service"`
+	Environment   string               `json:"environment"`
+	Name          string               `json:"name"`
+	Kind          SpanKind             `json:"kind"`
+	StatusCode    StatusCode           `json:"statusCode"`
+	StatusMessage string               `json:"statusMessage"`
+	StartTime     time.Time            `json:"startTime"`
+	EndTime       time.Time            `json:"endTime"`
+	Attributes    jsonvalue.Attributes `json:"attributes"`
+	Events        []Event              `json:"events"`
+	Links         []Link               `json:"links,omitempty"`
+	ResourceID    int64                `json:"resourceId"`
+}
+
+type Resource struct {
+	ID         int64                `json:"id"`
+	Attributes jsonvalue.Attributes `json:"attributes"`
 }
 
 type Link struct {
-	TraceID    string         `json:"traceId"`
-	SpanID     string         `json:"spanId"`
-	Attributes map[string]any `json:"attributes"`
+	TraceID    string               `json:"traceId"`
+	SpanID     string               `json:"spanId"`
+	Attributes jsonvalue.Attributes `json:"attributes"`
 }
 
 type SpanLink struct {
-	TraceID    string          `json:"traceId"`
-	SpanID     string          `json:"spanId"`
-	Attributes map[string]any  `json:"attributes"`
-	Target     *SpanLinkTarget `json:"target"`
+	TraceID    string               `json:"traceId"`
+	SpanID     string               `json:"spanId"`
+	Attributes jsonvalue.Attributes `json:"attributes"`
+	Target     *SpanLinkTarget      `json:"target"`
 }
 
 type SpanLinkTarget struct {
@@ -180,23 +190,24 @@ type SpanLinkTarget struct {
 }
 
 type Event struct {
-	Time       time.Time      `json:"time"`
-	Name       string         `json:"name"`
-	Attributes map[string]any `json:"attributes"`
+	Time       time.Time            `json:"time"`
+	Name       string               `json:"name"`
+	Attributes jsonvalue.Attributes `json:"attributes"`
 }
 
 type Log struct {
-	ID                 int64          `json:"id"`
-	TraceID            string         `json:"traceId"`
-	SpanID             string         `json:"spanId"`
-	Timestamp          time.Time      `json:"timestamp"`
-	SeverityText       string         `json:"severityText"`
-	SeverityNumber     int32          `json:"severityNumber"`
-	Body               any            `json:"body"`
-	Service            string         `json:"service"`
-	Environment        string         `json:"environment"`
-	Attributes         map[string]any `json:"attributes"`
-	ResourceAttributes map[string]any `json:"resourceAttributes"`
+	ID                 int64                `json:"id"`
+	TraceID            string               `json:"traceId"`
+	SpanID             string               `json:"spanId"`
+	Timestamp          time.Time            `json:"timestamp"`
+	SeverityText       string               `json:"severityText"`
+	SeverityNumber     int32                `json:"severityNumber"`
+	Body               jsonvalue.Value      `json:"body"`
+	Service            string               `json:"service"`
+	Environment        string               `json:"environment"`
+	Attributes         jsonvalue.Attributes `json:"attributes"`
+	ResourceID         int64                `json:"-"`
+	ResourceAttributes jsonvalue.Attributes `json:"resourceAttributes"`
 }
 
 type ServiceNode struct {

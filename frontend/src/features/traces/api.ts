@@ -4,10 +4,12 @@ import {
   toSpan,
   toSpanLink,
   toTrace,
+  toTraceResources,
   type LogDto,
   type SpanDto,
   type SpanLinkDto,
   type TraceDto,
+  type TraceResourceDto,
 } from "@/shared/api/otel";
 import type { Log } from "@/shared/types/entities/log";
 import type { SpanKind } from "@/shared/types/entities/span";
@@ -66,6 +68,7 @@ interface SpanNodeDto {
 interface TraceDetailData {
   trace: TraceDto;
   spans: SpanNodeDto[];
+  resources: TraceResourceDto[];
 }
 
 interface TraceDetailResponse {
@@ -88,6 +91,7 @@ export async function getTraceDetail(traceId: string): Promise<TraceDetail> {
   return {
     trace: toTrace(response.data.trace),
     spans: response.data.spans.map(toSpanNode),
+    resources: toTraceResources(response.data.resources),
   };
 }
 

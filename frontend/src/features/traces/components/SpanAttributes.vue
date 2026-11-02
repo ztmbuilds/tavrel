@@ -44,7 +44,7 @@ const {
     v-if="isEmpty"
     class="text-tertiary m-0 px-2 py-8 text-center text-[0.8125rem]"
   >
-    No attributes on this span.
+    No attributes.
   </p>
   <div v-else>
     <div class="mb-2 flex items-center justify-between">
