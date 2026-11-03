@@ -405,7 +405,14 @@ const traceLogsTo = computed((): RouteLocationRaw => {
     if (!Number.isNaN(startMs))
       end = new Date(startMs + TRACE_LOG_FALLBACK_MS).toISOString();
   }
-  return { name: "logs", query: { range: CUSTOM_RANGE, start, end } };
+  const services = graph.serviceLegend.value.map((entry) => entry.name);
+  const query: Record<string, string | string[]> = {
+    range: CUSTOM_RANGE,
+    start,
+    end,
+  };
+  if (services.length > 0) query.service = services;
+  return { name: "logs", query };
 });
 
 function copyTraceId(): void {
