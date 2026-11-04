@@ -113,13 +113,20 @@ const rowLabel = computed(
     <div
       :class="
         cn(
-          'text-primary min-w-0 flex-1 truncate text-[0.78125rem] leading-relaxed',
+          'group text-primary flex min-w-0 flex-1 items-center gap-1.5 text-[0.78125rem] leading-relaxed',
           log.level === 'error' && 'text-error-text',
         )
       "
-      :title="log.message"
     >
-      {{ log.message }}
+      <span class="min-w-0 flex-1 truncate" :title="log.message">
+        {{ log.message }}
+      </span>
+      <CopyButton
+        compact
+        :text="log.message"
+        label="Copy log message"
+        title="Copy log message"
+      />
     </div>
     <span
       v-if="log.traceId !== ''"
@@ -147,9 +154,16 @@ const rowLabel = computed(
     class="border-subtle bg-surface border-b py-2.5 pr-5 pl-[3.6875rem] max-[40rem]:px-5"
   >
     <div
-      class="text-secondary bg-canvas rounded px-2.5 py-2 text-[0.78125rem] leading-relaxed break-words whitespace-pre-wrap"
+      class="group text-secondary bg-canvas relative rounded py-2 pr-9 pl-2.5 text-[0.78125rem] leading-relaxed break-words whitespace-pre-wrap"
     >
       {{ log.message }}
+      <CopyButton
+        compact
+        class="absolute top-1.5 right-1.5"
+        :text="log.message"
+        label="Copy log message"
+        title="Copy log message"
+      />
     </div>
     <dl class="mt-2.5 flex flex-wrap gap-x-5 gap-y-2 text-xs leading-relaxed">
       <div class="flex gap-1">
