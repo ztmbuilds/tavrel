@@ -211,7 +211,7 @@ function applyCustomRange(range: { start?: string; end?: string }): void {
     </PageHead>
 
     <div
-      class="mx-10 mb-4 grid max-h-[40rem] min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-4 max-[65rem]:grid-cols-1 max-[65rem]:overflow-y-auto max-[40rem]:mx-4"
+      class="scroll-thin mx-10 mb-4 grid max-h-[40rem] min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-4 max-[65rem]:grid-cols-1 max-[65rem]:overflow-y-auto max-[40rem]:mx-4"
       @keydown.escape="clearSelection"
     >
       <div

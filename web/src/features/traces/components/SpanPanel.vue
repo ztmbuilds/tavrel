@@ -123,8 +123,8 @@ function logOffsetMs(timestamp: string): number {
       :items="TABS"
       aria-label="Span detail views"
       class="flex min-h-0 flex-1 flex-col"
-      list-class="shrink-0 gap-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      content-class="min-h-0 flex-1 overflow-y-auto px-4 py-3"
+      list-class="shrink-0 gap-5 overflow-x-auto px-5"
+      content-class="min-h-0 flex-1 overflow-y-auto px-4 py-3 scroll-thin"
     >
       <template #overview>
         <div class="mb-3.5 grid grid-cols-2 gap-2">

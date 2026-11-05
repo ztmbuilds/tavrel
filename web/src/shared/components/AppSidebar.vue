@@ -117,7 +117,7 @@ function handleToggle(): void {
     aria-label="Primary"
     :class="
       cn(
-        'border-subtle bg-panel flex w-52 shrink-0 flex-col items-stretch gap-0.5 overflow-y-auto border-r pt-2 pr-4 pb-4 pl-2 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5 max-[40rem]:w-full max-[40rem]:flex-row max-[40rem]:flex-wrap max-[40rem]:items-center max-[40rem]:gap-1 max-[40rem]:overflow-visible max-[40rem]:border-r-0 max-[40rem]:border-b max-[40rem]:px-3 max-[40rem]:py-2',
+        'border-subtle bg-panel scroll-thin flex w-52 shrink-0 flex-col items-stretch gap-0.5 overflow-y-auto border-r pt-2 pr-4 pb-4 pl-2 transition-[width] duration-200 ease-out max-[56.25rem]:w-13 max-[56.25rem]:items-center max-[56.25rem]:px-1.5 max-[40rem]:w-full max-[40rem]:flex-row max-[40rem]:flex-wrap max-[40rem]:items-center max-[40rem]:gap-1 max-[40rem]:overflow-visible max-[40rem]:border-r-0 max-[40rem]:border-b max-[40rem]:px-3 max-[40rem]:py-2',
         isCollapsed && 'w-13 items-center px-1.5',
       )
     "

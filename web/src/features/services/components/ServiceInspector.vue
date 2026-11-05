@@ -62,7 +62,7 @@ function dotStyle(name: string): Record<string, string> {
         </Button>
       </header>
 
-      <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
+      <div class="scroll-thin min-h-0 flex-1 overflow-y-auto px-4 py-3.5">
         <div class="flex flex-col gap-4">
           <section>
             <p class="text-secondary m-0 mb-1.5 text-xs leading-relaxed">

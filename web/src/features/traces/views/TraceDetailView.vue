@@ -495,7 +495,7 @@ function copyTraceId(): void {
             tabindex="0"
             role="tree"
             aria-label="Spans in this trace. Use J and K to move, Enter to expand or collapse."
-            class="relative z-1 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-1.5 pb-6"
+            class="scroll-thin relative z-1 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pt-1.5 pb-6"
             @keydown="onKeydown"
           >
             <WaterfallRow

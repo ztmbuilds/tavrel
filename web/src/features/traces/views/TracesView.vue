@@ -498,7 +498,7 @@ function removeChip(key: string): void {
       <div
         id="trace-list"
         ref="scrollerEl"
-        class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
+        class="border-subtle bg-panel scroll-thin h-full overflow-y-auto rounded-xl border"
         tabindex="-1"
         @scroll="onScrollerScroll"
       >

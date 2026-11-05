@@ -202,7 +202,7 @@ function handlePanelKeydown(event: KeyboardEvent): void {
         role="listbox"
         aria-multiselectable="true"
         :aria-label="`${props.label} options`"
-        class="flex max-h-60 flex-col gap-0.5 overflow-y-auto"
+        class="scroll-thin flex max-h-60 flex-col gap-0.5 overflow-y-auto"
       >
         <button
           v-for="option in serviceRows"

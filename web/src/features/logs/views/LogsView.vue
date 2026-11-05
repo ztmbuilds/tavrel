@@ -456,7 +456,7 @@ function openTrace(traceId: string): void {
       <div
         id="log-list"
         ref="scrollerEl"
-        class="border-subtle bg-panel h-full overflow-y-auto rounded-xl border"
+        class="border-subtle bg-panel scroll-thin h-full overflow-y-auto rounded-xl border"
         tabindex="-1"
         @scroll="onScrollerScroll"
       >

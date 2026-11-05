@@ -121,7 +121,7 @@ const servicesTo = computed(() => ({
     </PageHead>
 
     <div
-      class="min-h-0 flex-1 overflow-y-auto px-10 pb-6 max-[40rem]:px-4 max-[40rem]:pb-5"
+      class="scroll-thin min-h-0 flex-1 overflow-y-auto px-10 pb-6 max-[40rem]:px-4 max-[40rem]:pb-5"
     >
       <LoadingState v-if="isPending" label="Loading dashboard" />
       <div
