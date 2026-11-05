@@ -58,7 +58,7 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		DBPath:              getEnv("DB_PATH", "store.db"),
+		DBPath:              getEnv("DB_PATH", "data/store.db"),
 		OTLPHTTPPort:        getEnv("OTLP_HTTP_PORT", "4318"),
 		OTLPGRPCPort:        getEnv("OTLP_GRPC_PORT", "4317"),
 		WorkerCount:         workerCount,
