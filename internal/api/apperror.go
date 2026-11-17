@@ -5,12 +5,13 @@ import "net/http"
 type errCode string
 
 const (
-	ErrNotFound     errCode = "NOT_FOUND"
-	ErrInternal     errCode = "INTERNAL_SERVER_ERROR"
-	ErrBadRequest   errCode = "BAD_REQUEST"
-	ErrConflict     errCode = "CONFLICT"
-	ErrUnauthorized errCode = "UNAUTHORIZED"
-	ErrForbidden    errCode = "FORBIDDEN"
+	ErrNotFound        errCode = "NOT_FOUND"
+	ErrInternal        errCode = "INTERNAL_SERVER_ERROR"
+	ErrBadRequest      errCode = "BAD_REQUEST"
+	ErrConflict        errCode = "CONFLICT"
+	ErrUnauthorized    errCode = "UNAUTHORIZED"
+	ErrForbidden       errCode = "FORBIDDEN"
+	ErrPayloadTooLarge errCode = "PAYLOAD_TOO_LARGE"
 )
 
 type AppError struct {
@@ -56,9 +57,18 @@ func Conflict(msg string, err error) *AppError {
 	}
 }
 
-func Unauthorized(err error) *AppError {
+func PayloadTooLarge(msg string, err error) *AppError {
 	return &AppError{
-		Message:    "Invalid Credentials",
+		Message:    msg,
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrCode:    ErrPayloadTooLarge,
+		Err:        err,
+	}
+}
+
+func Unauthorized(msg string, err error) *AppError {
+	return &AppError{
+		Message:    msg,
 		StatusCode: http.StatusUnauthorized,
 		ErrCode:    ErrUnauthorized,
 		Err:        err,

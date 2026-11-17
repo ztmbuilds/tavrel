@@ -40,6 +40,14 @@
   --color-spot-to: #28559f;
   --color-error-text: #ff8a9a;
 
+  --color-auth-panel: #0a0e17;
+  --color-auth-field: #0c1018;
+  --color-auth-line: #242b3b;
+  --color-auth-line-hover: #313a50;
+  --color-auth-focus: #6b93ec;
+
+  --container-auth: 23.75rem;
+
   --shadow-raised:
     inset 0 1px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.55),
     0 0 0 1px rgb(0 0 0 / 0.35);

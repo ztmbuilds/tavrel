@@ -25,6 +25,7 @@ type Response struct {
 func writeJson(w http.ResponseWriter, statusCode int, payload *Response) {
 
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(statusCode)
 	err := json.NewEncoder(w).Encode(payload)
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -14,6 +15,11 @@ import (
 // without overflowing when multiplied by 24h.
 const maxRetentionDays = int(math.MaxInt64 / int64(24*time.Hour))
 
+const (
+	minAuthTokenLength = 16
+	maxAuthTokenLength = 512
+)
+
 type Config struct {
 	DBPath              string
 	OTLPHTTPPort        string
@@ -23,6 +29,7 @@ type Config struct {
 	AppPort             string
 	RetentionDays       int
 	MaxRequestBodyBytes int
+	AuthToken           string
 }
 
 func Load() (*Config, error) {
@@ -57,6 +64,21 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load OTLP_MAX_REQUEST_SIZE env: %w", err)
 	}
 
+	authToken := getEnv("AUTH_TOKEN", "")
+	if authToken != "" {
+		if len(authToken) < minAuthTokenLength {
+			return nil, fmt.Errorf("failed to load AUTH_TOKEN env: must be at least %d characters", minAuthTokenLength)
+		}
+		if len(authToken) > maxAuthTokenLength {
+			return nil, fmt.Errorf("failed to load AUTH_TOKEN env: must be at most %d characters", maxAuthTokenLength)
+		}
+		for _, char := range authToken {
+			if char < 0x21 || char > 0x7e {
+				return nil, errors.New("failed to load AUTH_TOKEN env: must contain only printable ASCII characters without whitespace")
+			}
+		}
+	}
+
 	cfg := &Config{
 		DBPath:              getEnv("DB_PATH", "data/store.db"),
 		OTLPHTTPPort:        getEnv("OTLP_HTTP_PORT", "4318"),
@@ -66,6 +88,7 @@ func Load() (*Config, error) {
 		AppPort:             getEnv("APP_PORT", "5678"),
 		RetentionDays:       retentionDays,
 		MaxRequestBodyBytes: maxRequestBodyBytes,
+		AuthToken:           authToken,
 	}
 
 	return cfg, nil

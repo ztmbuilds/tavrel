@@ -62,6 +62,11 @@ export const routes: readonly RouteRecordRaw[] = [
     ],
   },
   {
+    path: "/login",
+    name: "login",
+    component: () => import("@/features/auth/views/LoginView.vue"),
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/",
   },

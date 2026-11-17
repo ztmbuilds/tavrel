@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"net"
-	"net/http"
 	"github.com/ztmbuilds/crimp/internal/api"
 	"github.com/ztmbuilds/crimp/internal/config"
 	"github.com/ztmbuilds/crimp/internal/cron"
@@ -14,6 +11,9 @@ import (
 	"github.com/ztmbuilds/crimp/internal/otlp/otlphttp"
 	"github.com/ztmbuilds/crimp/internal/pipeline"
 	"github.com/ztmbuilds/crimp/internal/store"
+	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -40,6 +40,12 @@ func run() error {
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+	if cfg.AuthToken == "" {
+		logger.Warn("Authentication disabled")
+	} else {
+		logger.Info("Authentication enabled")
+	}
 
 	sqlLiteStore, err := store.NewSQLiteStore(cfg.DBPath)
 

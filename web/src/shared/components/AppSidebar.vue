@@ -5,8 +5,22 @@ import {
   type FunctionalComponent,
   type SVGAttributes,
 } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
+import { queryClient } from "@/app/query-client";
+import dashboardIcon from "@/assets/icons/dashboard.svg?component";
+import logsIcon from "@/assets/icons/logs.svg?component";
+import logoutIcon from "@/assets/icons/logout.svg?component";
+import servicesIcon from "@/assets/icons/services.svg?component";
+import sidebarCollapseIcon from "@/assets/icons/sidebar-collapse.svg?component";
+import sidebarExpandIcon from "@/assets/icons/sidebar-expand.svg?component";
+import spansIcon from "@/assets/icons/spans.svg?component";
+import tracesIcon from "@/assets/icons/traces.svg?component";
+import {
+  authKeys,
+  useAuthSessionQuery,
+  useLogoutMutation,
+} from "@/features/auth/queries";
 import PreloadLink from "@/shared/components/PreloadLink.vue";
 
 import { preserveTimeQuery } from "@/shared/composables/useGlobalTimeRange";
@@ -14,13 +28,6 @@ import { preserveTimeQuery } from "@/shared/composables/useGlobalTimeRange";
 import { cn } from "@/shared/utils/cn";
 import Button from "@/shared/components/ui/Button.vue";
 import Tooltip from "@/shared/components/ui/Tooltip.vue";
-import dashboardIcon from "@/assets/icons/dashboard.svg?component";
-import logsIcon from "@/assets/icons/logs.svg?component";
-import servicesIcon from "@/assets/icons/services.svg?component";
-import spansIcon from "@/assets/icons/spans.svg?component";
-import tracesIcon from "@/assets/icons/traces.svg?component";
-import sidebarCollapseIcon from "@/assets/icons/sidebar-collapse.svg?component";
-import sidebarExpandIcon from "@/assets/icons/sidebar-expand.svg?component";
 
 interface NavItem {
   label: string;
@@ -87,8 +94,12 @@ function getInitialCollapsed(): boolean {
 }
 
 const route = useRoute();
+const router = useRouter();
 const activeRouteName = computed(() => String(route.name ?? ""));
 const isCollapsed = ref(getInitialCollapsed());
+const { data: session } = useAuthSessionQuery();
+const logoutMutation = useLogoutMutation();
+const isLoggingOut = computed(() => logoutMutation.isPending.value);
 const toggleLabel = computed(() =>
   isCollapsed.value ? "Expand sidebar" : "Collapse sidebar",
 );
@@ -109,6 +120,25 @@ function handleToggle(): void {
   } catch {
     return;
   }
+}
+
+async function submitLogout(): Promise<void> {
+  try {
+    await logoutMutation.mutateAsync();
+  } catch (error) {
+    console.error("Logout request failed", error);
+  }
+
+  queryClient.clear();
+  queryClient.setQueryData(authKeys.session(), {
+    enabled: true,
+    authenticated: false,
+  });
+  await router.replace("/login");
+}
+
+function handleLogout(): void {
+  void submitLogout();
 }
 </script>
 
@@ -183,5 +213,41 @@ function handleToggle(): void {
         >{{ item.label }}</span
       >
     </PreloadLink>
+
+    <div
+      v-if="session?.enabled"
+      class="mt-auto pt-2 max-[40rem]:mt-0 max-[40rem]:ml-auto max-[40rem]:pt-0"
+    >
+      <button
+        type="button"
+        title="Log out"
+        aria-label="Log out"
+        :disabled="isLoggingOut"
+        :class="
+          cn(
+            ITEM_CLASSES,
+            isCollapsed && COLLAPSED_ITEM_CLASSES,
+            'disabled:cursor-progress disabled:opacity-50',
+          )
+        "
+        @click="handleLogout"
+      >
+        <component
+          :is="logoutIcon"
+          aria-hidden="true"
+          class="text-tertiary size-4 shrink-0"
+        />
+        <span
+          :class="
+            cn(
+              'overflow-hidden text-ellipsis whitespace-nowrap max-[56.25rem]:hidden',
+              isCollapsed && 'hidden',
+              'max-[40rem]:inline',
+            )
+          "
+          >Log out</span
+        >
+      </button>
+    </div>
   </nav>
 </template>

@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="640" height="640" class="art" aria-hidden="true">
+  <style>
+    @keyframes orbitA { to { transform: rotate(360deg); } }
+    @keyframes orbitB { to { transform: rotate(-360deg); } }
+    @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+    @keyframes drift1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(46px, -34px); } }
+    @keyframes drift2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-52px, 28px); } }
+    @keyframes drift3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(30px, 48px); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    @keyframes twinkle { 0%, 100% { opacity: .25; } 50% { opacity: .9; } }
+    .art { isolation: isolate; }
+    .o1 { animation: orbitA 46s linear infinite; transform-origin: 320px 320px; }
+    .o2 { animation: orbitB 62s linear infinite; transform-origin: 320px 320px; }
+    .o3 { animation: orbitA 54s linear infinite; transform-origin: 320px 320px; }
+    .o4 { animation: orbitB 110s linear infinite; transform-origin: 320px 320px; }
+    .o5 { animation: orbitA 160s linear infinite; transform-origin: 320px 320px; }
+    .disc { mix-blend-mode: screen; animation: breathe 9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .disc.d2 { animation-duration: 11s; animation-delay: -3s; }
+    .disc.d3 { animation-duration: 13s; animation-delay: -6s; }
+    .glow1 { animation: drift1 18s ease-in-out infinite; }
+    .glow2 { animation: drift2 22s ease-in-out infinite; }
+    .glow3 { animation: drift3 26s ease-in-out infinite; }
+    .fl { animation: float 7s ease-in-out infinite; }
+    .fl.b { animation-duration: 9s; animation-delay: -4s; }
+    .fl.c { animation-duration: 11s; animation-delay: -2s; }
+    .tw { animation: twinkle 5s ease-in-out infinite; }
+    .tw.b { animation-delay: -1.7s; }
+    .tw.c { animation-delay: -3.2s; }
+    @media (prefers-reduced-motion: reduce) {
+      .o1, .o2, .o3, .o4, .o5, .disc, .glow1, .glow2, .glow3, .fl, .tw { animation: none; }
+    }
+  </style>
+  <defs>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="46"></feGaussianBlur></filter>
+    <radialGradient id="gBlue" cx="35%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#8fb0f5" stop-opacity=".85"></stop>
+      <stop offset="1" stop-color="#4468b8" stop-opacity=".35"></stop>
+    </radialGradient>
+    <radialGradient id="gPurple" cx="35%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#d49bf0" stop-opacity=".8"></stop>
+      <stop offset="1" stop-color="#8a3fc0" stop-opacity=".32"></stop>
+    </radialGradient>
+    <radialGradient id="gTeal" cx="35%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#7fe0dc" stop-opacity=".75"></stop>
+      <stop offset="1" stop-color="#2f8f8c" stop-opacity=".3"></stop>
+    </radialGradient>
+    <linearGradient id="gLine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8fb0f5" stop-opacity=".7"></stop>
+      <stop offset="1" stop-color="#c084e8" stop-opacity=".1"></stop>
+    </linearGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="11" cy="11" r="1" fill="#cfd6e6"></circle>
+    </pattern>
+    <radialGradient id="fade" cx="50%" cy="50%" r="50%">
+      <stop offset=".25" stop-color="#fff" stop-opacity="1"></stop>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"></stop>
+    </radialGradient>
+    <mask id="dotMask"><rect width="640" height="640" fill="url(#fade)"></rect></mask>
+  </defs>
+
+  <g filter="url(#soft)">
+    <circle class="glow1" cx="250" cy="260" r="140" fill="#4468b8" fill-opacity=".55"></circle>
+    <circle class="glow2" cx="400" cy="380" r="125" fill="#a855d6" fill-opacity=".38"></circle>
+    <circle class="glow3" cx="330" cy="430" r="100" fill="#4fb3b0" fill-opacity=".3"></circle>
+  </g>
+
+  <rect width="640" height="640" fill="url(#dots)" opacity=".22" mask="url(#dotMask)"></rect>
+
+  <circle cx="320" cy="320" r="265" fill="none" stroke="#1b2232" stroke-width="1"></circle>
+  <g class="o5">
+    <circle cx="320" cy="320" r="215" fill="none" stroke="url(#gLine)" stroke-width="1.2" stroke-dasharray="2 8" stroke-linecap="round"></circle>
+  </g>
+  <g class="o4">
+    <rect x="235" y="235" width="170" height="170" rx="46" fill="none" stroke="#cfd6e6" stroke-opacity=".16" stroke-width="1.2"></rect>
+  </g>
+
+  <g transform="rotate(0 320 320)">
+    <g class="o1"><circle class="disc" cx="385" cy="320" r="112" fill="url(#gBlue)"></circle></g>
+  </g>
+  <g transform="rotate(120 320 320)">
+    <g class="o2"><circle class="disc d2" cx="392" cy="320" r="98" fill="url(#gPurple)"></circle></g>
+  </g>
+  <g transform="rotate(240 320 320)">
+    <g class="o3"><circle class="disc d3" cx="382" cy="320" r="88" fill="url(#gTeal)"></circle></g>
+  </g>
+
+  <g class="fl"><circle cx="118" cy="190" r="5" fill="#8fb0f5"></circle></g>
+  <g class="fl b"><circle cx="540" cy="470" r="6" fill="#c084e8" fill-opacity=".9"></circle></g>
+  <g class="fl c"><circle cx="500" cy="130" r="3.5" fill="#5cc4c0"></circle></g>
+  <g class="fl b"><circle cx="150" cy="500" r="3.5" fill="#cfd6e6" fill-opacity=".8"></circle></g>
+  <g class="tw" stroke="#cfd6e6" stroke-width="1.4" stroke-linecap="round"><path d="M92 340h14M99 333v14"></path></g>
+  <g class="tw b" stroke="#cfd6e6" stroke-width="1.4" stroke-linecap="round"><path d="M520 300h12M526 294v12"></path></g>
+  <g class="tw c" stroke="#cfd6e6" stroke-width="1.4" stroke-linecap="round"><path d="M410 76h10M415 71v10"></path></g>
+</svg>

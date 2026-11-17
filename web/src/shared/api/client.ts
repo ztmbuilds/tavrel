@@ -1,5 +1,6 @@
 const HTTP_STATUS_NOT_FOUND = 404;
 const HTTP_STATUS_BAD_REQUEST = 400;
+const HTTP_STATUS_UNAUTHORIZED = 401;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const HTTP_STATUS_NO_CONTENT = 204;
 
@@ -21,11 +22,32 @@ export class ApiError extends Error {
   isBadRequest(): boolean {
     return this.status === HTTP_STATUS_BAD_REQUEST;
   }
+
+  isUnauthorized(): boolean {
+    return this.status === HTTP_STATUS_UNAUTHORIZED;
+  }
 }
 
 interface ApiFetchOptions {
   query?: Record<string, string | number | string[] | undefined>;
   config?: Omit<RequestInit, "method" | "body">;
+}
+
+interface ApiRequestOptions extends ApiFetchOptions {
+  method: "GET" | "POST";
+  body?: unknown;
+}
+
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
+function notifyUnauthorized(path: string): void {
+  if (unauthorizedHandler !== null && !path.startsWith("/api/v1/auth/")) {
+    unauthorizedHandler();
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -103,9 +125,9 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
   }
 }
 
-export async function apiFetch<T>(
+async function apiRequest<T>(
   path: string,
-  options: ApiFetchOptions = {},
+  options: ApiRequestOptions,
 ): Promise<T> {
   const url = buildUrl(path, options.query);
   const {
@@ -115,16 +137,27 @@ export async function apiFetch<T>(
   } = options.config ?? {};
   const headers = new Headers(userHeaders);
   if (!headers.has("Accept")) headers.set("Accept", "application/json");
+
+  let body: BodyInit | undefined;
+  if (options.body !== undefined) {
+    headers.set("Content-Type", "application/json");
+    body = JSON.stringify(options.body);
+  }
+
   const { signal, cleanup } = withTimeout(userSignal);
 
   try {
     const response = await fetch(url, {
       ...rest,
-      method: "GET",
+      method: options.method,
       headers,
+      body: body ?? null,
+      credentials: "same-origin",
       signal,
     });
     if (!response.ok) {
+      if (response.status === HTTP_STATUS_UNAUTHORIZED)
+        notifyUnauthorized(path);
       const payload = await parseJsonSafe(response);
       throw new ApiError(
         response.status,
@@ -148,4 +181,15 @@ export async function apiFetch<T>(
   } finally {
     cleanup();
   }
+}
+
+export function apiFetch<T>(
+  path: string,
+  options: ApiFetchOptions = {},
+): Promise<T> {
+  return apiRequest<T>(path, { ...options, method: "GET" });
+}
+
+export function apiPost<T>(path: string, body?: unknown): Promise<T> {
+  return apiRequest<T>(path, { method: "POST", body });
 }
