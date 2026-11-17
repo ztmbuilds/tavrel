@@ -7,7 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"noname/internal/config"
+	"github.com/ztmbuilds/crimp/internal/config"
 	"strings"
 	"time"
 

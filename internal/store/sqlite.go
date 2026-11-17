@@ -18,7 +18,7 @@ import (
 	"strings"
 	"time"
 
-	"noname/internal/jsonvalue"
+	"github.com/ztmbuilds/crimp/internal/jsonvalue"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite"

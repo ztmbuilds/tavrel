@@ -8,7 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"noname/internal/store"
+	"github.com/ztmbuilds/crimp/internal/store"
 	"slices"
 	"strconv"
 )

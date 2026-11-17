@@ -12,7 +12,7 @@ help:
 	@echo "  dev-backend      air live-reload for the Go app"
 	@echo "  build            frontend + backend → single binary at $(APP_BIN)"
 	@echo "  build-frontend   vite build into $(WEB_DIST)"
-	@echo "  build-backend    go build ./cmd/noname only (needs build-frontend for UI)"
+	@echo "  build-backend    go build ./cmd/crimp only (needs build-frontend for UI)"
 	@echo "  check-frontend   eslint + typecheck for $(WEB_DIR)/"
 	@echo "  vet              go vet ./..."
 	@echo "  test             go test ./..."
@@ -38,7 +38,7 @@ build-frontend:
 	touch $(WEB_DIST)/.gitkeep
 
 build-backend:
-	go build -o $(APP_BIN) ./cmd/noname
+	go build -o $(APP_BIN) ./cmd/crimp
 
 check-frontend:
 	pnpm --dir $(WEB_DIR) lint

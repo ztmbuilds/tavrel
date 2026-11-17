@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"noname/internal/jsonvalue"
+	"github.com/ztmbuilds/crimp/internal/jsonvalue"
 )
 
 func openTestStore(t *testing.T) *SQLiteStore {

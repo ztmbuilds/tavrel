@@ -1,4 +1,4 @@
-module noname
+module github.com/ztmbuilds/crimp
 
 go 1.26.4
 

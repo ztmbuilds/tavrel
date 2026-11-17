@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"math"
 
-	"noname/internal/jsonvalue"
+	"github.com/ztmbuilds/crimp/internal/jsonvalue"
 
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )

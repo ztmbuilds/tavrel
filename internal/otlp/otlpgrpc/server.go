@@ -3,7 +3,7 @@ package otlpgrpc
 import (
 	"context"
 	"log/slog"
-	"noname/internal/config"
+	"github.com/ztmbuilds/crimp/internal/config"
 	"time"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"

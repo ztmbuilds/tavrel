@@ -2,9 +2,9 @@ package api
 
 import (
 	"net/http"
-	"noname/internal/config"
-	"noname/internal/store"
-	"noname/internal/web"
+	"github.com/ztmbuilds/crimp/internal/config"
+	"github.com/ztmbuilds/crimp/internal/store"
+	"github.com/ztmbuilds/crimp/internal/web"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"log/slog"
-	"noname/internal/jsonvalue"
-	"noname/internal/store"
+	"github.com/ztmbuilds/crimp/internal/jsonvalue"
+	"github.com/ztmbuilds/crimp/internal/store"
 	"time"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"

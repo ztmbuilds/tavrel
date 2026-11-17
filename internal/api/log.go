@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
-	"noname/internal/store"
+	"github.com/ztmbuilds/crimp/internal/store"
 )
 
 const defaultLogsLimit = 30
