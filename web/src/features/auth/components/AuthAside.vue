@@ -32,7 +32,7 @@ import logo from "@/assets/icons/logo.svg";
         Welcome back.
       </p>
       <p class="text-tertiary max-w-auth text-[0.9375rem] leading-normal">
-        Pick up right where you left off.
+        Your data, ready to explore.
       </p>
     </div>
   </aside>

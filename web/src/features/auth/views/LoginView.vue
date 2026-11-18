@@ -53,7 +53,8 @@ function focusToken(): void {
 
 function loginErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.isUnauthorized()) return "That token didn’t match. Try again.";
+    if (error.isUnauthorized())
+      return "That token doesn’t look right. Check it and try again.";
     if (error.status === 0) return "Could not reach the server. Try again.";
   }
 
@@ -78,7 +79,7 @@ async function submitLogin(): Promise<void> {
 
   const candidate = token.value.trim();
   if (candidate === "") {
-    errorMessage.value = "Enter your access token to continue.";
+    errorMessage.value = "Enter your token to continue.";
     focusToken();
     return;
   }
@@ -117,16 +118,13 @@ function handleSubmit(): void {
           @submit.prevent="handleSubmit"
         >
           <div class="flex flex-col gap-2.5">
-            <p class="text-tertiary text-[0.8125rem] tracking-[0.02em]">
-              Restricted access
-            </p>
             <h1
               class="text-heading text-3xl leading-[1.15] font-semibold tracking-[-0.02em]"
             >
-              Enter your token
+              Let’s get you in
             </h1>
             <p class="text-tertiary text-[0.9375rem] leading-normal">
-              This workspace is protected. Authenticate to continue.
+              Enter your access token to start exploring.
             </p>
           </div>
 
@@ -150,7 +148,7 @@ function handleSubmit(): void {
                 v-model="token"
                 :type="showToken ? 'text' : 'password'"
                 name="token"
-                placeholder="Access token"
+                placeholder="Enter your token"
                 autocomplete="current-password"
                 autocapitalize="off"
                 autocorrect="off"
@@ -190,7 +188,7 @@ function handleSubmit(): void {
             </div>
           </div>
 
-          <div class="flex flex-col items-center gap-4">
+          <div class="flex flex-col items-center">
             <button
               type="submit"
               :disabled="isPending"
@@ -203,7 +201,7 @@ function handleSubmit(): void {
                 aria-hidden="true"
                 class="size-4.5 animate-spin"
               />
-              <span>{{ isPending ? "Authenticating…" : "Authenticate" }}</span>
+              <span>{{ isPending ? "Signing you in…" : "Sign in" }}</span>
               <component
                 :is="arrowRightIcon"
                 v-if="!isPending"
@@ -211,16 +209,6 @@ function handleSubmit(): void {
                 class="size-4.5"
               />
             </button>
-
-            <div class="text-tertiary flex items-center gap-2 text-[0.8125rem]">
-              Press
-              <kbd
-                class="border-auth-line bg-auth-field text-secondary rounded-md border px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium"
-              >
-                Enter
-              </kbd>
-              to authenticate
-            </div>
           </div>
         </form>
       </div>
