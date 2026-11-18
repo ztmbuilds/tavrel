@@ -7,9 +7,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"github.com/ztmbuilds/crimp/internal/config"
 	"strings"
 	"time"
+
+	"github.com/ztmbuilds/crimp/internal/config"
+	"github.com/ztmbuilds/crimp/internal/otlp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,6 +32,25 @@ func loggingMiddleware(next http.Handler) http.Handler {
 			"content_type", r.Header.Get("Content-Type"),
 		)
 	})
+}
+
+func authMiddleware(token string) func(http.Handler) http.Handler {
+	if token == "" {
+		return func(next http.Handler) http.Handler {
+			return next
+		}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !otlp.TokensEqual(token, r.Header.Get("X-API-Key")) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func decompressRequestBody(maxBytes int) func(http.Handler) http.Handler {
@@ -77,6 +98,7 @@ func NewOTLPHttpServer(worker worker, traceProcessor traceExportProcessor, logsP
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
 	r.Use(loggingMiddleware)
+	r.Use(authMiddleware(cfg.IngestToken))
 	r.Use(middleware.Compress(5, "application/x-protobuf", "application/json"))
 	r.Use(decompressRequestBody(cfg.MaxRequestBodyBytes))
 

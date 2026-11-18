@@ -3,12 +3,16 @@ package otlpgrpc
 import (
 	"context"
 	"log/slog"
-	"github.com/ztmbuilds/crimp/internal/config"
 	"time"
+
+	"github.com/ztmbuilds/crimp/internal/config"
+	"github.com/ztmbuilds/crimp/internal/otlp"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 
 	_ "google.golang.org/grpc/encoding/gzip"
 	"google.golang.org/grpc/reflection"
@@ -29,12 +33,38 @@ func loggingUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServe
 	return resp, err
 }
 
+func authUnaryInterceptor(token string) grpc.UnaryServerInterceptor {
+	if token == "" {
+		return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+			return handler(ctx, req)
+		}
+	}
+
+	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, "unauthorized")
+		}
+
+		for _, value := range md.Get("x-api-key") {
+			if otlp.TokensEqual(token, value) {
+				return handler(ctx, req)
+			}
+		}
+
+		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
+}
+
 func NewOTLPGRPCServer(worker worker, traceProcessor traceExportProcessor, logsProcessor logExportProcessor, cfg *config.Config) *grpc.Server {
 
 	grpcServer := grpc.NewServer(
 		grpc.MaxRecvMsgSize(cfg.MaxRequestBodyBytes),
 		grpc.MaxSendMsgSize(cfg.MaxRequestBodyBytes),
-		grpc.UnaryInterceptor(loggingUnaryInterceptor))
+		grpc.ChainUnaryInterceptor(
+			loggingUnaryInterceptor,
+			authUnaryInterceptor(cfg.IngestToken),
+		))
 
 	tracespb.RegisterTraceServiceServer(grpcServer, newTraceServiceServer(traceProcessor, worker))
 	logspb.RegisterLogsServiceServer(grpcServer, newLogsServiceServer(logsProcessor, worker))

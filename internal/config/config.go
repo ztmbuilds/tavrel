@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -30,6 +29,7 @@ type Config struct {
 	RetentionDays       int
 	MaxRequestBodyBytes int
 	AuthToken           string
+	IngestToken         string
 }
 
 func Load() (*Config, error) {
@@ -65,18 +65,13 @@ func Load() (*Config, error) {
 	}
 
 	authToken := getEnv("AUTH_TOKEN", "")
-	if authToken != "" {
-		if len(authToken) < minAuthTokenLength {
-			return nil, fmt.Errorf("failed to load AUTH_TOKEN env: must be at least %d characters", minAuthTokenLength)
-		}
-		if len(authToken) > maxAuthTokenLength {
-			return nil, fmt.Errorf("failed to load AUTH_TOKEN env: must be at most %d characters", maxAuthTokenLength)
-		}
-		for _, char := range authToken {
-			if char < 0x21 || char > 0x7e {
-				return nil, errors.New("failed to load AUTH_TOKEN env: must contain only printable ASCII characters without whitespace")
-			}
-		}
+	if err := validateTokenEnv("AUTH_TOKEN", authToken); err != nil {
+		return nil, err
+	}
+
+	ingestToken := getEnv("INGEST_TOKEN", "")
+	if err := validateTokenEnv("INGEST_TOKEN", ingestToken); err != nil {
+		return nil, err
 	}
 
 	cfg := &Config{
@@ -89,10 +84,32 @@ func Load() (*Config, error) {
 		RetentionDays:       retentionDays,
 		MaxRequestBodyBytes: maxRequestBodyBytes,
 		AuthToken:           authToken,
+		IngestToken:         ingestToken,
 	}
 
 	return cfg, nil
 
+}
+
+func validateTokenEnv(name, token string) error {
+	if token == "" {
+		return nil
+	}
+
+	if len(token) < minAuthTokenLength {
+		return fmt.Errorf("failed to load %s env: must be at least %d characters", name, minAuthTokenLength)
+	}
+	if len(token) > maxAuthTokenLength {
+		return fmt.Errorf("failed to load %s env: must be at most %d characters", name, maxAuthTokenLength)
+	}
+
+	for _, char := range token {
+		if char < 0x21 || char > 0x7e {
+			return fmt.Errorf("failed to load %s env: must contain only printable ASCII characters without whitespace", name)
+		}
+	}
+
+	return nil
 }
 
 func getEnv(key, fallback string) string {
