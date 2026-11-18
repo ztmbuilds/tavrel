@@ -19,16 +19,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func loggingUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+func failureLoggingUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 	start := time.Now()
 
 	resp, err := handler(ctx, req)
 
-	slog.Info("OTLP/gRPC request",
-		"method", info.FullMethod,
-		"status", status.Code(err).String(),
-		"duration", time.Since(start).String(),
-	)
+	if err != nil {
+		slog.Warn("OTLP/gRPC request failed",
+			"method", info.FullMethod,
+			"status", status.Code(err).String(),
+			"duration", time.Since(start).String(),
+		)
+	}
 
 	return resp, err
 }
@@ -62,7 +64,7 @@ func NewOTLPGRPCServer(worker worker, traceProcessor traceExportProcessor, logsP
 		grpc.MaxRecvMsgSize(cfg.MaxRequestBodyBytes),
 		grpc.MaxSendMsgSize(cfg.MaxRequestBodyBytes),
 		grpc.ChainUnaryInterceptor(
-			loggingUnaryInterceptor,
+			failureLoggingUnaryInterceptor,
 			authUnaryInterceptor(cfg.IngestToken),
 		))
 

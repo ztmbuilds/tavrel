@@ -17,12 +17,17 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func loggingMiddleware(next http.Handler) http.Handler {
+func failureLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 		next.ServeHTTP(ww, r)
-		slog.Info("OTLP/HTTP request",
+
+		if ww.Status() < http.StatusBadRequest {
+			return
+		}
+
+		slog.Warn("OTLP/HTTP request failed",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", ww.Status(),
@@ -97,7 +102,7 @@ func NewOTLPHttpServer(worker worker, traceProcessor traceExportProcessor, logsP
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Recoverer)
-	r.Use(loggingMiddleware)
+	r.Use(failureLoggingMiddleware)
 	r.Use(authMiddleware(cfg.IngestToken))
 	r.Use(middleware.Compress(5, "application/x-protobuf", "application/json"))
 	r.Use(decompressRequestBody(cfg.MaxRequestBodyBytes))
