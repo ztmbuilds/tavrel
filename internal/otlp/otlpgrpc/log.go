@@ -3,7 +3,7 @@ package otlpgrpc
 import (
 	"context"
 	"log/slog"
-	"github.com/ztmbuilds/crimp/internal/pipeline"
+	"github.com/ztmbuilds/tavrel/internal/pipeline"
 
 	pb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"

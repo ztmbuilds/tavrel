@@ -1,6 +1,6 @@
 package pipeline
 
-import "github.com/ztmbuilds/crimp/internal/jsonvalue"
+import "github.com/ztmbuilds/tavrel/internal/jsonvalue"
 
 func resourceIdentity(attributes jsonvalue.Attributes) (service, environment string) {
 	service, _ = attributes["service.name"].AsString()

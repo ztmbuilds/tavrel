@@ -1,9 +1,9 @@
 package api
 
 import (
-	"github.com/ztmbuilds/crimp/internal/config"
-	"github.com/ztmbuilds/crimp/internal/store"
-	"github.com/ztmbuilds/crimp/internal/web"
+	"github.com/ztmbuilds/tavrel/internal/config"
+	"github.com/ztmbuilds/tavrel/internal/store"
+	"github.com/ztmbuilds/tavrel/internal/web"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ztmbuilds/crimp/internal/jsonvalue"
+	"github.com/ztmbuilds/tavrel/internal/jsonvalue"
 )
 
 type Store interface {

@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
-	"github.com/ztmbuilds/crimp/internal/store"
+	"github.com/ztmbuilds/tavrel/internal/store"
 	"strconv"
 )
 

@@ -21,7 +21,7 @@ import logo from "@/assets/icons/logo.svg";
         class="pointer-events-none absolute top-[46%] left-1/2 size-[45rem] -translate-x-1/2 -translate-y-1/2"
       />
     </picture>
-    <img :src="logo" alt="crimp" class="absolute top-8 left-9 size-9" />
+    <img :src="logo" alt="tavrel" class="absolute top-8 left-9 size-9" />
     <div
       class="from-auth-panel absolute inset-x-0 bottom-0 h-[13.75rem] bg-linear-to-t from-8% to-transparent"
     ></div>

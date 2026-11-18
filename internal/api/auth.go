@@ -9,19 +9,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ztmbuilds/crimp/internal/config"
+	"github.com/ztmbuilds/tavrel/internal/config"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 const (
-	sessionCookieName = "crimp_session"
+	sessionCookieName = "tavrel_session"
 	sessionTTL        = 7 * 24 * time.Hour // 7 days
-	sessionIssuer     = "crimp"
+	sessionIssuer     = "tavrel"
 	sessionSubject    = "operator"
 	loginBodyLimit    = 4 << 10 // 4 KiB
 	authRoutePrefix   = "/api/v1/auth/"
-	authChallenge     = `Bearer realm="crimp"`
+	authChallenge     = `Bearer realm="tavrel"`
 )
 
 type authSessionPayload struct {

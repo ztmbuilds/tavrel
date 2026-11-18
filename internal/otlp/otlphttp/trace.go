@@ -3,7 +3,7 @@ package otlphttp
 import (
 	"io"
 	"net/http"
-	"github.com/ztmbuilds/crimp/internal/pipeline"
+	"github.com/ztmbuilds/tavrel/internal/pipeline"
 
 	tracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	"google.golang.org/protobuf/encoding/protojson"

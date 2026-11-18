@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ztmbuilds/crimp/internal/config"
-	"github.com/ztmbuilds/crimp/internal/otlp"
+	"github.com/ztmbuilds/tavrel/internal/config"
+	"github.com/ztmbuilds/tavrel/internal/otlp"
 
 	logspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	tracespb "go.opentelemetry.io/proto/otlp/collector/trace/v1"

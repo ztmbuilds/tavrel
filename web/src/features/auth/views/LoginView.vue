@@ -110,7 +110,7 @@ function handleSubmit(): void {
       class="flex min-w-0 shrink grow basis-[27.5rem] items-center justify-center px-6 py-10 sm:px-8 sm:py-12"
     >
       <div class="max-w-auth w-full">
-        <img :src="logo" alt="crimp" class="mb-10 size-9 lg:hidden" />
+        <img :src="logo" alt="tavrel" class="mb-10 size-9 lg:hidden" />
 
         <form
           class="flex flex-col gap-7"

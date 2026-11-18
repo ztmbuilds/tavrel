@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ztmbuilds/crimp/internal/config"
-	"github.com/ztmbuilds/crimp/internal/otlp"
+	"github.com/ztmbuilds/tavrel/internal/config"
+	"github.com/ztmbuilds/tavrel/internal/otlp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

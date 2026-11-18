@@ -1,4 +1,4 @@
-module github.com/ztmbuilds/crimp
+module github.com/ztmbuilds/tavrel
 
 go 1.26.4
 
