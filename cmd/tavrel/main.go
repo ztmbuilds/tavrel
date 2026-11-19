@@ -4,13 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ztmbuilds/tavrel/internal/api"
-	"github.com/ztmbuilds/tavrel/internal/config"
-	"github.com/ztmbuilds/tavrel/internal/cron"
-	"github.com/ztmbuilds/tavrel/internal/otlp/otlpgrpc"
-	"github.com/ztmbuilds/tavrel/internal/otlp/otlphttp"
-	"github.com/ztmbuilds/tavrel/internal/pipeline"
-	"github.com/ztmbuilds/tavrel/internal/store"
 	"log/slog"
 	"net"
 	"net/http"
@@ -19,12 +12,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ztmbuilds/tavrel/internal/api"
+	"github.com/ztmbuilds/tavrel/internal/config"
+	"github.com/ztmbuilds/tavrel/internal/cron"
+	"github.com/ztmbuilds/tavrel/internal/otlp/otlpgrpc"
+	"github.com/ztmbuilds/tavrel/internal/otlp/otlphttp"
+	"github.com/ztmbuilds/tavrel/internal/pipeline"
+	"github.com/ztmbuilds/tavrel/internal/store"
+
 	"google.golang.org/grpc"
 )
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error("Application startup failed", "error", err)
+		slog.Error("Application failed", "error", err)
 		os.Exit(1)
 	}
 }
@@ -68,17 +69,60 @@ func run() error {
 
 	otlphttpSrv := otlphttp.NewOTLPHttpServer(worker, traceProcessor, logsProcessor, cfg)
 	otlpgrpcSrv := otlpgrpc.NewOTLPGRPCServer(worker, traceProcessor, logsProcessor, cfg)
-
 	appSrv := api.NewAPPHttpServer(sqlLiteStore, cfg)
 
-	go startHttpServer(otlphttpSrv, "OTLP/HTTP", logger)
-	go startHttpServer(appSrv, "APP", logger)
+	// Bind all listeners before starting servers.
+	appListener, err := net.Listen("tcp", ":"+cfg.AppPort)
+	if err != nil {
+		return fmt.Errorf("listening on App port: %w", err)
+	}
+	defer appListener.Close()
+	logger.Info("APP server listening", "addr", appListener.Addr())
 
-	go startgRPCServer(otlpgrpcSrv, cfg.OTLPGRPCPort)
+	otlpHTTPListener, err := net.Listen("tcp", ":"+cfg.OTLPHTTPPort)
+	if err != nil {
+		return fmt.Errorf("listening on OTLP/HTTP port: %w", err)
+	}
+	defer otlpHTTPListener.Close()
+	logger.Info("OTLP/HTTP server listening", "addr", otlpHTTPListener.Addr())
+
+	otlpGRPCListener, err := net.Listen("tcp", ":"+cfg.OTLPGRPCPort)
+	if err != nil {
+		return fmt.Errorf("listening on OTLP/gRPC port: %w", err)
+	}
+	defer otlpGRPCListener.Close()
+	logger.Info("OTLP/GRPC server listening", "addr", otlpGRPCListener.Addr())
+
+	errCh := make(chan error, 3)
+	go func() {
+		errCh <- startHttpServer(otlphttpSrv, otlpHTTPListener)
+	}()
+
+	go func() {
+		errCh <- startHttpServer(appSrv, appListener)
+	}()
+
+	go func() {
+		errCh <- startgRPCServer(otlpgrpcSrv, otlpGRPCListener)
+	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	defer signal.Stop(quit)
+
+	var runErr error
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			runErr = fmt.Errorf("server failed: %w", err)
+		} else {
+			runErr = errors.New("server stopped unexpectedly")
+		}
+
+	case <-quit:
+		logger.Info("Shutdown signal received")
+	}
 
 	logger.Info("Shutting down servers")
 
@@ -87,49 +131,53 @@ func run() error {
 
 	var shutdownErr error
 	if err := otlphttpSrv.Shutdown(ctx); err != nil {
-		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("otlp server forced shutdown: %w", err))
+		shutdownErr = errors.Join(
+			shutdownErr,
+			fmt.Errorf("OTLP/HTTP server shutdown: %w", err),
+		)
 	}
+
 	if err := appSrv.Shutdown(ctx); err != nil {
-		shutdownErr = errors.Join(shutdownErr, fmt.Errorf("%w; api server forced shutdown: %w", shutdownErr, err))
-
+		shutdownErr = errors.Join(
+			shutdownErr,
+			fmt.Errorf("APP server shutdown: %w", err),
+		)
 	}
 
-	otlpgrpcSrv.GracefulStop()
+	grpcStopped := make(chan struct{})
+
+	go func() {
+		otlpgrpcSrv.GracefulStop()
+		close(grpcStopped)
+	}()
+
+	select {
+	case <-grpcStopped:
+		logger.Info("gRPC server stopped gracefully")
+	case <-ctx.Done():
+		logger.Warn("gRPC graceful shutdown timed out")
+		otlpgrpcSrv.Stop()
+	}
 
 	worker.Stop()
 	logger.Info("Servers stopped cleanly")
 
-	return shutdownErr
+	return errors.Join(runErr, shutdownErr)
 }
 
-func startHttpServer(srv *http.Server, srvName string, logger *slog.Logger) {
-	logger.Info(fmt.Sprintf("%s server starting", srvName), "port", srv.Addr)
-
-	err := srv.ListenAndServe()
+func startHttpServer(srv *http.Server, lis net.Listener) error {
+	err := srv.Serve(lis)
 
 	// Shutting down the server returns http.ErrServerClosed, so we don't
 	// want to treat a clean shutdown as a fatal error.
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("server error", "server", srvName, "error", err)
-		os.Exit(1)
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
 	}
+
+	return err
 }
 
-func startgRPCServer(srv *grpc.Server, port string) {
+func startgRPCServer(srv *grpc.Server, lis net.Listener) error {
 
-	addr := fmt.Sprintf(":%s", port)
-	lis, err := net.Listen("tcp", addr)
-
-	if err != nil {
-		slog.Error("failed to listen", "err", err)
-		os.Exit(1)
-	}
-
-	slog.Info(fmt.Sprintf("gRPC server listening on %s", addr))
-
-	if err := srv.Serve(lis); err != nil {
-		slog.Error("failed to serve", "err", err)
-		os.Exit(1)
-	}
-
+	return srv.Serve(lis)
 }
