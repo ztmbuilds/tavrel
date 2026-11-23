@@ -1,12 +1,12 @@
-# tavrel
+# Tavrel
 
-A small, self-hosted observability platform for OpenTelemetry. tavrel accepts OTLP traces and logs and gives you a UI to view, filter and query them. There is no custom SDK — any OpenTelemetry-instrumented service works by pointing its exporter at tavrel.
+A small, self-hosted observability platform for OpenTelemetry. Tavrel accepts OTLP traces and logs and gives you a UI to view, filter and query them. There is no custom SDK — any OpenTelemetry-instrumented service works by pointing its exporter at Tavrel.
 
-tavrel is early software (0.x). Expect breaking changes in minor releases; see [CHANGELOG.md](CHANGELOG.md) and [RELEASING.md](RELEASING.md).
+Tavrel is early software (0.x). Expect breaking changes in minor releases; see [CHANGELOG.md](CHANGELOG.md) and [RELEASING.md](RELEASING.md).
 
 ## Quick start
 
-tavrel is distributed as a multi-arch Docker image. The compose file pulls the image; it does not build from source.
+Tavrel is distributed as a multi-arch Docker image. The compose file pulls the image; it does not build from source.
 
 ```sh
 docker compose up -d
@@ -30,7 +30,7 @@ or run `TAVREL_VERSION=0.1.0 docker compose up -d`. The default, `latest`, track
 
 Telemetry is stored in the `tavrel_tavrel-data` volume at `/data`. The container is otherwise stateless.
 
-### Pointing exporters at tavrel
+### Pointing exporters at Tavrel
 
 ```sh
 OTEL_EXPORTER_OTLP_ENDPOINT=http://<host>:4318
@@ -67,7 +67,7 @@ The UI/API and the OTLP receivers have separate tokens.
   OTEL_EXPORTER_OTLP_HEADERS=x-api-key=<token>
   ```
 
-If both are empty, tavrel is open. Keep the ingest ports on a trusted network or set `INGEST_TOKEN` before exposing them.
+If both are empty, Tavrel is open. Keep the ingest ports on a trusted network or set `INGEST_TOKEN` before exposing them.
 
 ## Data, backup and retention
 
@@ -95,11 +95,13 @@ docker compose pull
 docker compose up -d
 ```
 
-Migrations run automatically at startup. Back up the volume before upgrading, especially while tavrel is on 0.x. Pin `TAVREL_VERSION` if you need reproducible installs.
+Migrations run automatically at startup. Back up the volume before upgrading, especially while Tavrel is on 0.x. Pin `TAVREL_VERSION` if you need reproducible installs.
 
-## Reverse proxy
+## Running behind a reverse proxy (optional)
 
-Terminate TLS at your proxy and forward the UI/API to port 5678. Forward OTLP/HTTP to 4318; exporters send to `/v1/traces` and `/v1/logs` under the endpoint you configure. gRPC ingest on 4317 needs HTTP/2 end to end.
+The compose setup above is the normal way to run Tavrel. A reverse proxy is optional — use one if you need TLS, a stable hostname, or to expose Tavrel to other machines.
+
+If you use one, terminate TLS at the proxy and forward the UI/API to port 5678. Forward OTLP/HTTP to 4318; exporters send to `/v1/traces` and `/v1/logs` under the endpoint you configure. gRPC ingest on 4317 needs HTTP/2 end to end.
 
 Set `X-Forwarded-Proto: https` on proxied requests so session cookies are issued as `Secure`.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to tavrel are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While tavrel is on 0.x, breaking changes may land in minor releases.
+All notable changes to Tavrel are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While Tavrel is on 0.x, breaking changes may land in minor releases.
 
 ## [Unreleased]
 

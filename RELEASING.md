@@ -1,16 +1,16 @@
-# Releasing tavrel
+# Releasing Tavrel
 
 This is the maintainer guide for cutting a release.
 
 ## Versioning
 
-tavrel uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MAJOR.MINOR.PATCH`.
+Tavrel uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html): `MAJOR.MINOR.PATCH`.
 
 - **MAJOR** — incompatible changes. Existing users must change configuration, scripts, the Docker setup, or accept a manual database migration.
 - **MINOR** — new functionality, backward compatible.
 - **PATCH** — backward-compatible bug fixes, performance work, dependency updates, docs.
 
-While tavrel is on `0.x`, the public contract is not stable. Breaking changes bump the **minor** version (`0.1.0 → 0.2.0`) and must be called out in the release notes. Fixes bump the patch version (`0.2.0 → 0.2.1`). `1.0.0` is a deliberate promise of backward compatibility, not a feature milestone.
+While Tavrel is on `0.x`, the public contract is not stable. Breaking changes bump the **minor** version (`0.1.0 → 0.2.0`) and must be called out in the release notes. Fixes bump the patch version (`0.2.0 → 0.2.1`). `1.0.0` is a deliberate promise of backward compatibility, not a feature milestone.
 
 For an application, the public contract is:
 
