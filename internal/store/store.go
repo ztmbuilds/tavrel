@@ -10,7 +10,7 @@ import (
 type Store interface {
 	Close() error
 
-	StoreTrace(ctx context.Context, trace Trace, spans []Span) error
+	StoreTraces(ctx context.Context, traces []TraceSpans) error
 	StoreLogs(ctx context.Context, logs []Log) error
 
 	ResolveResource(ctx context.Context, attributes jsonvalue.Attributes) (Resource, error)
@@ -86,6 +86,11 @@ type ListSpansOptions struct {
 	Environments []string
 	Start        *time.Time
 	End          *time.Time
+}
+
+type TraceSpans struct {
+	Trace Trace
+	Spans []Span
 }
 
 type Trace struct {

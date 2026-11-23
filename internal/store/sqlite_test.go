@@ -84,15 +84,18 @@ func TestListFilters(t *testing.T) {
 			status = StatusCodeError
 		}
 		resource := mustResolveResource(t, s, map[string]any{"service.name": service})
-		if e := s.StoreTrace(ctx, tr, []Span{{
-			SpanID:     "span-" + id,
-			TraceID:    id,
-			Service:    service,
-			Name:       name,
-			StartTime:  ts,
-			EndTime:    ts,
-			StatusCode: status,
-			ResourceID: resource.ID,
+		if e := s.StoreTraces(ctx, []TraceSpans{{
+			Trace: tr,
+			Spans: []Span{{
+				SpanID:     "span-" + id,
+				TraceID:    id,
+				Service:    service,
+				Name:       name,
+				StartTime:  ts,
+				EndTime:    ts,
+				StatusCode: status,
+				ResourceID: resource.ID,
+			}},
 		}}); e != nil {
 			t.Fatal(e)
 		}
@@ -193,7 +196,7 @@ func TestGetServiceGraphIncludesParentServiceWhenParentStartedBeforeWindow(t *te
 			ResourceID:   childResource.ID,
 		},
 	}
-	if err := s.StoreTrace(ctx, trace, spans); err != nil {
+	if err := s.StoreTraces(ctx, []TraceSpans{{Trace: trace, Spans: spans}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -253,7 +256,7 @@ func TestStoreLargeBatches(t *testing.T) {
 			ResourceID: resource.ID,
 		})
 	}
-	if err := s.StoreTrace(ctx, trace, spans); err != nil {
+	if err := s.StoreTraces(ctx, []TraceSpans{{Trace: trace, Spans: spans}}); err != nil {
 		t.Fatal(err)
 	}
 	_, gotSpans, _, err := s.GetTrace(ctx, trace.TraceID)
@@ -381,17 +384,20 @@ func TestStoreSpanRequiresResource(t *testing.T) {
 	s := openTestStore(t)
 	now := time.Now()
 
-	err := s.StoreTrace(context.Background(), Trace{
-		TraceID:   "trace-fk",
-		StartTime: now,
-		EndTime:   now,
-		SpanCount: 1,
-	}, []Span{{
-		SpanID:    "span-fk",
-		TraceID:   "trace-fk",
-		Name:      "op",
-		StartTime: now,
-		EndTime:   now,
+	err := s.StoreTraces(context.Background(), []TraceSpans{{
+		Trace: Trace{
+			TraceID:   "trace-fk",
+			StartTime: now,
+			EndTime:   now,
+			SpanCount: 1,
+		},
+		Spans: []Span{{
+			SpanID:    "span-fk",
+			TraceID:   "trace-fk",
+			Name:      "op",
+			StartTime: now,
+			EndTime:   now,
+		}},
 	}})
 	if err == nil {
 		t.Fatal("expected foreign key error for missing resource")
@@ -516,7 +522,7 @@ func TestJSONAttributesRoundTrip(t *testing.T) {
 		ResourceID: resource.ID,
 	}}
 
-	if err := s.StoreTrace(ctx, trace, spans); err != nil {
+	if err := s.StoreTraces(ctx, []TraceSpans{{Trace: trace, Spans: spans}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -667,7 +673,7 @@ func TestGetTraceReturnsResources(t *testing.T) {
 			ResourceID: second.ID,
 		},
 	}
-	if err := s.StoreTrace(ctx, trace, spans); err != nil {
+	if err := s.StoreTraces(ctx, []TraceSpans{{Trace: trace, Spans: spans}}); err != nil {
 		t.Fatal(err)
 	}
 

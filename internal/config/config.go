@@ -42,7 +42,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load WORKER_COUNT env: %w", err)
 	}
 
-	taskQueueSize, err := strconv.Atoi(getEnv("TASK_QUEUE_SIZE", "5000"))
+	taskQueueSize, err := strconv.Atoi(getEnv("TASK_QUEUE_SIZE", "256"))
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to load TASK_QUEUE_SIZE env: %w", err)
@@ -59,7 +59,7 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid RETENTION_DAYS env: must be <= %d, got %d", maxRetentionDays, retentionDays)
 	}
 
-	maxRequestBodyBytes, err := strconv.Atoi(getEnv("OTLP_MAX_REQUEST_SIZE", "67108864"))
+	maxRequestBodyBytes, err := strconv.Atoi(getEnv("OTLP_MAX_REQUEST_SIZE", "8388608"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load OTLP_MAX_REQUEST_SIZE env: %w", err)
 	}

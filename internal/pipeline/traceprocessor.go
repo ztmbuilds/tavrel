@@ -3,16 +3,16 @@ package pipeline
 import (
 	"context"
 	"encoding/hex"
-	"log/slog"
 	"github.com/ztmbuilds/tavrel/internal/jsonvalue"
 	"github.com/ztmbuilds/tavrel/internal/store"
+	"log/slog"
 	"time"
 
 	tracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 )
 
 type traceStore interface {
-	StoreTrace(ctx context.Context, trace store.Trace, spans []store.Span) error
+	StoreTraces(ctx context.Context, traces []store.TraceSpans) error
 	ResolveResource(ctx context.Context, attributes jsonvalue.Attributes) (store.Resource, error)
 }
 
@@ -28,12 +28,7 @@ func NewTraceExportProcessor(store traceStore) *TraceExportProcessor {
 
 func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) {
 
-	type traceData struct {
-		spans []store.Span
-		trace store.Trace
-	}
-
-	traceGroups := make(map[string]traceData)
+	traceGroups := make(map[string]store.TraceSpans)
 
 	for _, rs := range req.ResourceSpans {
 		resource, err := tp.store.ResolveResource(context.Background(), attributesToJSON(rs.GetResource().GetAttributes()))
@@ -102,47 +97,47 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 
 				td, ok := traceGroups[span.TraceID]
 				if !ok {
-					td = traceData{
-						trace: store.Trace{
+					td = store.TraceSpans{
+						Trace: store.Trace{
 							TraceID: span.TraceID,
 						},
 					}
 
 				}
 
-				td.trace.SpanCount++
-				if td.trace.Environment == "" && environment != "" {
-					td.trace.Environment = environment
+				td.Trace.SpanCount++
+				if td.Trace.Environment == "" && environment != "" {
+					td.Trace.Environment = environment
 				}
 
-				if td.trace.StartTime.IsZero() {
-					td.trace.StartTime = span.StartTime
-				} else if td.trace.StartTime.After(span.StartTime) {
-					td.trace.StartTime = span.StartTime
+				if td.Trace.StartTime.IsZero() {
+					td.Trace.StartTime = span.StartTime
+				} else if td.Trace.StartTime.After(span.StartTime) {
+					td.Trace.StartTime = span.StartTime
 				}
 
-				if td.trace.EndTime.IsZero() {
-					td.trace.EndTime = span.EndTime
-				} else if td.trace.EndTime.Before(span.EndTime) {
-					td.trace.EndTime = span.EndTime
+				if td.Trace.EndTime.IsZero() {
+					td.Trace.EndTime = span.EndTime
+				} else if td.Trace.EndTime.Before(span.EndTime) {
+					td.Trace.EndTime = span.EndTime
 				}
 
 				if span.ParentSpanID == "" || isInvalidSpanID(s.ParentSpanId) {
 
-					if td.trace.RootName == "" && span.Name != "" {
-						td.trace.RootName = span.Name
+					if td.Trace.RootName == "" && span.Name != "" {
+						td.Trace.RootName = span.Name
 					}
 
-					if td.trace.RootService == "" && span.Service != "" {
-						td.trace.RootService = span.Service
+					if td.Trace.RootService == "" && span.Service != "" {
+						td.Trace.RootService = span.Service
 					}
 				}
 
-				if !td.trace.Error && span.StatusCode == store.StatusCodeError {
-					td.trace.Error = true
+				if !td.Trace.Error && span.StatusCode == store.StatusCodeError {
+					td.Trace.Error = true
 				}
 
-				td.spans = append(td.spans, span)
+				td.Spans = append(td.Spans, span)
 
 				traceGroups[span.TraceID] = td
 
@@ -150,13 +145,13 @@ func (tp *TraceExportProcessor) Process(req *tracepb.ExportTraceServiceRequest) 
 		}
 	}
 
-	for _, v := range traceGroups {
+	traces := make([]store.TraceSpans, 0, len(traceGroups))
+	for _, trace := range traceGroups {
+		traces = append(traces, trace)
+	}
 
-		err := tp.store.StoreTrace(context.Background(), v.trace, v.spans)
-
-		if err != nil {
-			slog.Error("failed to store trace", "error", err)
-		}
+	if err := tp.store.StoreTraces(context.Background(), traces); err != nil {
+		slog.Error("failed to store traces", "error", err)
 	}
 
 }

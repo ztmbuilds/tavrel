@@ -42,6 +42,19 @@ type SQLiteStore struct {
 	writeDB *sql.DB
 }
 
+type spanRow struct {
+	span       Span
+	attributes []byte
+	events     []byte
+}
+
+type linkRow struct {
+	traceID    string
+	spanID     string
+	link       Link
+	attributes []byte
+}
+
 func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 	absPath, err := filepath.Abs(dbPath)
 	if err != nil {
@@ -54,7 +67,7 @@ func NewSQLiteStore(dbPath string) (*SQLiteStore, error) {
 
 	slog.Info("Opening SQLite database", "path", absPath)
 
-	dsn := absPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)"
+	dsn := absPath + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)&_pragma=synchronous(NORMAL)"
 
 	writeDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -231,30 +244,74 @@ func attachResourceAttributes(logs []Log, resources map[int64]jsonvalue.Attribut
 	}
 }
 
-func (s *SQLiteStore) StoreTrace(ctx context.Context, trace Trace, spans []Span) error {
+func (s *SQLiteStore) StoreTraces(ctx context.Context, traces []TraceSpans) error {
+	if len(traces) == 0 {
+		return nil
+	}
 
-	tx, err := s.writeDB.BeginTx(ctx, nil)
-
+	spans, links, err := prepareTraceRows(traces)
 	if err != nil {
 		return err
 	}
 
+	tx, err := s.writeDB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback()
 
-	if err := s.upsertTrace(ctx, tx, trace); err != nil {
-		return err
+	for _, trace := range traces {
+		if err := s.upsertTrace(ctx, tx, trace.Trace); err != nil {
+			return err
+		}
 	}
 
 	if err := s.bulkInsertSpans(ctx, tx, spans); err != nil {
 		return err
 	}
 
-	if err := s.bulkInsertLinks(ctx, tx, spans); err != nil {
+	if err := s.bulkInsertLinks(ctx, tx, links); err != nil {
 		return err
 	}
 
 	return tx.Commit()
+}
 
+func prepareTraceRows(traces []TraceSpans) ([]spanRow, []linkRow, error) {
+	spans := make([]spanRow, 0)
+	links := make([]linkRow, 0)
+
+	for _, trace := range traces {
+		for _, span := range trace.Spans {
+			attributes, err := json.Marshal(span.Attributes)
+			if err != nil {
+				return nil, nil, fmt.Errorf("marshal span attributes: %w", err)
+			}
+
+			events, err := json.Marshal(span.Events)
+			if err != nil {
+				return nil, nil, fmt.Errorf("marshal span events: %w", err)
+			}
+
+			spans = append(spans, spanRow{span: span, attributes: attributes, events: events})
+
+			for _, link := range span.Links {
+				linkAttributes, err := json.Marshal(link.Attributes)
+				if err != nil {
+					return nil, nil, fmt.Errorf("marshal span link attributes: %w", err)
+				}
+
+				links = append(links, linkRow{
+					traceID:    span.TraceID,
+					spanID:     span.SpanID,
+					link:       link,
+					attributes: linkAttributes,
+				})
+			}
+		}
+	}
+
+	return spans, links, nil
 }
 
 func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) error {
@@ -277,7 +334,7 @@ func (s *SQLiteStore) upsertTrace(ctx context.Context, tx *sql.Tx, trace Trace) 
 	return err
 }
 
-func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []Span) error {
+func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []spanRow) error {
 
 	if len(spans) == 0 {
 		return nil
@@ -300,16 +357,8 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 		// underlying array size is set to the number of spans in the batch * the number of fields in each span (currently 14)
 		values := make([]any, 0, len(spanBatch)*14)
 
-		for _, span := range spanBatch {
-			attributes, err := json.Marshal(span.Attributes)
-			if err != nil {
-				return fmt.Errorf("marshal span attributes: %w", err)
-			}
-
-			events, err := json.Marshal(span.Events)
-			if err != nil {
-				return fmt.Errorf("marshal span events: %w", err)
-			}
+		for _, row := range spanBatch {
+			span := row.span
 
 			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 
@@ -325,8 +374,8 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 				span.EndTime.UnixNano(),
 				int32(span.StatusCode),
 				span.StatusMessage,
-				attributes,
-				events,
+				row.attributes,
+				row.events,
 				span.ResourceID,
 			)
 
@@ -345,21 +394,7 @@ func (s *SQLiteStore) bulkInsertSpans(ctx context.Context, tx *sql.Tx, spans []S
 
 }
 
-func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, spans []Span) error {
-
-	type linkRow struct {
-		traceID string
-		spanID  string
-		link    Link
-	}
-
-	rows := make([]linkRow, 0)
-
-	for _, span := range spans {
-		for _, link := range span.Links {
-			rows = append(rows, linkRow{traceID: span.TraceID, spanID: span.SpanID, link: link})
-		}
-	}
+func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, rows []linkRow) error {
 
 	if len(rows) == 0 {
 		return nil
@@ -381,11 +416,6 @@ func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, spans []S
 		values := make([]any, 0, len(batch)*5)
 
 		for _, row := range batch {
-			attributes, err := json.Marshal(row.link.Attributes)
-			if err != nil {
-				return fmt.Errorf("marshal span link attributes: %w", err)
-			}
-
 			placeholders = append(placeholders, "(?,?,?,?,?)")
 
 			values = append(values,
@@ -393,7 +423,7 @@ func (s *SQLiteStore) bulkInsertLinks(ctx context.Context, tx *sql.Tx, spans []S
 				row.spanID,
 				row.link.TraceID,
 				row.link.SpanID,
-				attributes,
+				row.attributes,
 			)
 		}
 
