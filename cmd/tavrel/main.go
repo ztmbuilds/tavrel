@@ -24,19 +24,28 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Error("Failed to load config", "error", err)
+		os.Exit(1)
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		if err := healthcheck("127.0.0.1:" + cfg.AppPort); err != nil {
+			slog.Error("Healthcheck failed", "error", err)
+			os.Exit(1)
+		}
+
+		return
+	}
+
+	if err := run(cfg); err != nil {
 		slog.Error("Application failed", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
-	cfg, err := config.Load()
-
-	if err != nil {
-		return err
-	}
-
+func run(cfg *config.Config) error {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))

@@ -1,0 +1,37 @@
+services:
+  tavrel:
+    build:
+      context: .
+    image: tavrel:local
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-5678}:${APP_PORT:-5678}"
+      - "${OTLP_HTTP_PORT:-4318}:${OTLP_HTTP_PORT:-4318}"
+      - "${OTLP_GRPC_PORT:-4317}:${OTLP_GRPC_PORT:-4317}"
+    environment:
+      APP_PORT: ${APP_PORT:-5678}
+      OTLP_HTTP_PORT: ${OTLP_HTTP_PORT:-4318}
+      OTLP_GRPC_PORT: ${OTLP_GRPC_PORT:-4317}
+      DB_PATH: /data/store.db
+      RETENTION_DAYS: ${RETENTION_DAYS:-30}
+      WORKER_COUNT: ${WORKER_COUNT:-4}
+      TASK_QUEUE_SIZE: ${TASK_QUEUE_SIZE:-256}
+      OTLP_MAX_REQUEST_SIZE: ${OTLP_MAX_REQUEST_SIZE:-8388608}
+      AUTH_TOKEN: ${AUTH_TOKEN:-}
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+    volumes:
+      - tavrel-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  tavrel-data:

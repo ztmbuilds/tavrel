@@ -15,6 +15,10 @@ func NewAPPHttpServer(store store.Store, cfg *config.Config) *http.Server {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 
+	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	authHandler := newAuthHandler(cfg)
 
 	r.Route("/api/v1/", func(r chi.Router) {
