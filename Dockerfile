@@ -18,6 +18,10 @@ RUN pnpm build
 
 FROM golang:1.27.2-alpine AS build
 
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG DATE=unknown
+
 WORKDIR /src
 
 COPY go.mod go.sum ./
@@ -26,10 +30,24 @@ RUN go mod download
 COPY . .
 COPY --from=web /src/internal/web/dist ./internal/web/dist
 
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/tavrel ./cmd/tavrel
+RUN CGO_ENABLED=0 go build -trimpath \
+    -ldflags="-s -w -X github.com/ztmbuilds/tavrel/internal/version.Version=${VERSION} -X github.com/ztmbuilds/tavrel/internal/version.Commit=${COMMIT} -X github.com/ztmbuilds/tavrel/internal/version.Date=${DATE}" \
+    -o /out/tavrel ./cmd/tavrel
 RUN mkdir -p /out/data
 
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
+
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG DATE=unknown
+
+LABEL org.opencontainers.image.title="tavrel" \
+      org.opencontainers.image.description="Self-hosted OpenTelemetry traces and logs" \
+      org.opencontainers.image.source="https://github.com/ztmbuilds/tavrel" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.created="${DATE}"
 
 COPY --from=build --chown=65532:65532 /out/data /data
 COPY --from=build /out/tavrel /usr/local/bin/tavrel

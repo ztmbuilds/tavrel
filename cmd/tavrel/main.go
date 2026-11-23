@@ -19,11 +19,17 @@ import (
 	"github.com/ztmbuilds/tavrel/internal/otlp/otlphttp"
 	"github.com/ztmbuilds/tavrel/internal/pipeline"
 	"github.com/ztmbuilds/tavrel/internal/store"
+	"github.com/ztmbuilds/tavrel/internal/version"
 
 	"google.golang.org/grpc"
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Printf("tavrel %s (commit %s, built %s)\n", version.Version, version.Commit, version.Date)
+		return
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("Failed to load config", "error", err)
@@ -50,6 +56,8 @@ func run(cfg *config.Config) error {
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+	logger.Info("Starting tavrel", "version", version.Version, "commit", version.Commit)
 
 	if cfg.AuthToken == "" {
 		logger.Warn("Authentication disabled")
