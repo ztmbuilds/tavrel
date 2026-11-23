@@ -1,8 +1,8 @@
+name: tavrel
+
 services:
   tavrel:
-    build:
-      context: .
-    image: tavrel:local
+    image: ghcr.io/ztmbuilds/tavrel:${TAVREL_VERSION:-latest}
     restart: unless-stopped
     ports:
       - "${APP_PORT:-5678}:${APP_PORT:-5678}"
