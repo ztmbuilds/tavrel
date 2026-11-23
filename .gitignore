@@ -15,5 +15,8 @@ internal/web/dist/*
 designs
 archived
 *.md
+!README.md
+!CHANGELOG.md
+!RELEASING.md
 AGENTS.md
 *.png
