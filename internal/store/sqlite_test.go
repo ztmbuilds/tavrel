@@ -161,6 +161,244 @@ func TestListFilters(t *testing.T) {
 	}
 }
 
+func TestListLogsSearch(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	resource := mustResolveResource(t, s, map[string]any{"service.name": "svc"})
+	now := time.Now()
+
+	logs := []Log{
+		{TraceID: "t-fts-1", Timestamp: now, SeverityNumber: 17, Body: jsonvalue.String("NullPointerException at OrderProcessor.java:42"), Service: "svc", ResourceID: resource.ID},
+		{TraceID: "t-fts-2", Timestamp: now, SeverityNumber: 9, Body: jsonvalue.String("discount 10%off today"), Service: "svc", ResourceID: resource.ID},
+		{TraceID: "t-fts-3", Timestamp: now, SeverityNumber: 9, Body: jsonvalue.String("plain ok message"), Service: "svc", ResourceID: resource.ID},
+		{TraceID: "t-fts-4", Timestamp: now, SeverityNumber: 9, Body: jsonvalue.String(`she said "hi" to me`), Service: "svc", ResourceID: resource.ID},
+	}
+	if err := s.StoreLogs(ctx, logs); err != nil {
+		t.Fatal(err)
+	}
+
+	search := func(term string) []Log {
+		t.Helper()
+		page, err := s.ListLogs(ctx, ListLogsOptions{Search: term})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return page.Items
+	}
+
+	if got := search("rprocessor"); len(got) != 1 || got[0].TraceID != "t-fts-1" {
+		t.Fatalf("mid-word search: %+v", got)
+	}
+	if got := search("10%off"); len(got) != 1 || got[0].TraceID != "t-fts-2" {
+		t.Fatalf("percent literal search: %+v", got)
+	}
+	// bodies are stored as raw text, so quote characters match literally
+	if got := search(`said "hi"`); len(got) != 1 || got[0].TraceID != "t-fts-4" {
+		t.Fatalf("quote literal search: %+v", got)
+	}
+	if got := search("ok"); len(got) != 1 || got[0].TraceID != "t-fts-3" {
+		t.Fatalf("short search fallback: %+v", got)
+	}
+	if got := search("zzz"); len(got) != 0 {
+		t.Fatalf("no-match search: %+v", got)
+	}
+
+	if _, err := s.writeDB.ExecContext(ctx, `DELETE FROM logs WHERE trace_id = ?`, "t-fts-1"); err != nil {
+		t.Fatal(err)
+	}
+	if got := search("rprocessor"); len(got) != 0 {
+		t.Fatalf("search after delete: %+v", got)
+	}
+}
+
+func TestListLogsBodyRoundTrip(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	resource := mustResolveResource(t, s, map[string]any{"service.name": "svc"})
+	now := time.Now()
+
+	floatBody, err := jsonvalue.Float(3.5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bodies := []jsonvalue.Value{
+		jsonvalue.String(`{"a":1}`),
+		jsonvalue.Int(42),
+		jsonvalue.Object(jsonvalue.Attributes{"message": jsonvalue.String("boom")}),
+		jsonvalue.Null(),
+		jsonvalue.Bool(true),
+		floatBody,
+		jsonvalue.Array([]jsonvalue.Value{jsonvalue.Int(1), jsonvalue.String("x")}),
+		jsonvalue.String(""),
+	}
+	logs := make([]Log, 0, len(bodies))
+	for i, body := range bodies {
+		logs = append(logs, Log{
+			TraceID:        fmt.Sprintf("t-body-%d", i),
+			Timestamp:      now,
+			SeverityNumber: 9,
+			Body:           body,
+			Service:        "svc",
+			ResourceID:     resource.ID,
+		})
+	}
+	if err := s.StoreLogs(ctx, logs); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, want := range bodies {
+		page, err := s.ListLogs(ctx, ListLogsOptions{TraceID: fmt.Sprintf("t-body-%d", i)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) != 1 {
+			t.Fatalf("body %d: got %d logs, want 1", i, len(page.Items))
+		}
+		assertJSON(t, page.Items[0].Body, want)
+	}
+
+	// structured bodies are stored as JSON text and stay searchable
+	page, err := s.ListLogs(ctx, ListLogsOptions{Search: "boom"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != 1 || page.Items[0].TraceID != "t-body-2" {
+		t.Fatalf("structured body search: %+v", page.Items)
+	}
+
+	// the dashboard read path reconstructs non-string bodies too
+	errorBody := jsonvalue.Object(jsonvalue.Attributes{"error": jsonvalue.String("structured failure")})
+	if err := s.StoreLogs(ctx, []Log{{
+		TraceID:        "t-body-err",
+		Timestamp:      now,
+		SeverityNumber: 17,
+		Body:           errorBody,
+		Service:        "svc",
+		ResourceID:     resource.ID,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	stats, err := s.GetDashboardStats(ctx, now.Add(-time.Minute), now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, log := range stats.RecentErrorLogs {
+		if log.TraceID == "t-body-err" {
+			found = true
+			assertJSON(t, log.Body, errorBody)
+		}
+	}
+	if !found {
+		t.Fatalf("structured error log missing from dashboard: %+v", stats.RecentErrorLogs)
+	}
+}
+
+func TestDeleteOldDataKeepsLogsSearchInSync(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	resource := mustResolveResource(t, s, map[string]any{"service.name": "svc"})
+	now := time.Now()
+
+	storeTrace := func(traceID string, ts time.Time) {
+		t.Helper()
+		trace := Trace{TraceID: traceID, RootService: "svc", RootName: "op", StartTime: ts, EndTime: ts, SpanCount: 1}
+		if err := s.StoreTraces(ctx, []TraceSpans{{
+			Trace: trace,
+			Spans: []Span{{SpanID: "span-" + traceID, TraceID: traceID, Service: "svc", Name: "op", StartTime: ts, EndTime: ts, StatusCode: StatusCodeOk, ResourceID: resource.ID}},
+		}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	storeLog := func(traceID, body string, ts time.Time) {
+		t.Helper()
+		if err := s.StoreLogs(ctx, []Log{{TraceID: traceID, Timestamp: ts, SeverityNumber: 9, Body: jsonvalue.String(body), Service: "svc", ResourceID: resource.ID}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	old := now.Add(-48 * time.Hour)
+	fresh := now.Add(-time.Minute)
+
+	storeTrace("t-retention-old", old)
+	storeLog("t-retention-old", "deleteme retention-check", old)
+	storeTrace("t-retention-fresh", fresh)
+	storeLog("t-retention-fresh", "keepme retention-check", fresh)
+
+	if err := s.DeleteOldData(ctx, now.Add(-24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	search := func(term string) []Log {
+		t.Helper()
+		page, err := s.ListLogs(ctx, ListLogsOptions{Search: term})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return page.Items
+	}
+	if got := search("deleteme"); len(got) != 0 {
+		t.Fatalf("FTS stale after retention delete: %+v", got)
+	}
+	if got := search("keepme"); len(got) != 1 || got[0].TraceID != "t-retention-fresh" {
+		t.Fatalf("fresh log lost from FTS: %+v", got)
+	}
+}
+
+func TestListLogsSearchPagination(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	resource := mustResolveResource(t, s, map[string]any{"service.name": "svc"})
+	base := time.Now().Add(-time.Hour)
+
+	logs := make([]Log, 0, 5)
+	for i := range 5 {
+		logs = append(logs, Log{
+			Timestamp:      base.Add(time.Duration(i) * time.Minute),
+			SeverityNumber: 9,
+			Body:           jsonvalue.String(fmt.Sprintf("paginateterm entry %d", i)),
+			Service:        "svc",
+			ResourceID:     resource.ID,
+		})
+	}
+	if err := s.StoreLogs(ctx, logs); err != nil {
+		t.Fatal(err)
+	}
+
+	var cursor *ListLogsCursor
+	seen := make(map[int64]bool)
+	var counts []int
+	for {
+		page, err := s.ListLogs(ctx, ListLogsOptions{
+			ListOptions: ListOptions[ListLogsCursor]{Limit: 2, Cursor: cursor},
+			Search:      "paginateterm",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		counts = append(counts, len(page.Items))
+		for _, l := range page.Items {
+			if seen[l.ID] {
+				t.Fatalf("log %d repeated across pages", l.ID)
+			}
+			seen[l.ID] = true
+		}
+		if !page.HasMore || page.NextCursor == nil {
+			break
+		}
+		cursor = page.NextCursor
+		if len(counts) > 10 {
+			t.Fatal("pagination did not terminate")
+		}
+	}
+	if fmt.Sprint(counts) != "[2 2 1]" {
+		t.Fatalf("page sizes: %v", counts)
+	}
+	if len(seen) != 5 {
+		t.Fatalf("saw %d distinct logs, want 5", len(seen))
+	}
+}
+
 func TestGetServiceGraphIncludesParentServiceWhenParentStartedBeforeWindow(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
@@ -290,6 +528,33 @@ func TestStoreLargeBatches(t *testing.T) {
 	}
 	if len(page.Items) != len(logs) {
 		t.Fatalf("got %d logs, want %d", len(page.Items), len(logs))
+	}
+
+	linkTrace := Trace{TraceID: "trace-large-links", RootService: "svc", RootName: "op", StartTime: now, EndTime: now, SpanCount: 1}
+	linkSpan := Span{
+		SpanID:     "span-links",
+		TraceID:    linkTrace.TraceID,
+		Service:    "svc",
+		Name:       "op",
+		StartTime:  now,
+		EndTime:    now,
+		ResourceID: resource.ID,
+	}
+	for i := range linkBatchSize {
+		linkSpan.Links = append(linkSpan.Links, Link{
+			TraceID: fmt.Sprintf("linked-trace-%d", i),
+			SpanID:  "linked-span",
+		})
+	}
+	if err := s.StoreTraces(ctx, []TraceSpans{{Trace: linkTrace, Spans: []Span{linkSpan}}}); err != nil {
+		t.Fatal(err)
+	}
+	storedLinks, err := s.ListSpanLinks(ctx, linkTrace.TraceID, linkSpan.SpanID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(storedLinks) != linkBatchSize {
+		t.Fatalf("got %d links, want %d", len(storedLinks), linkBatchSize)
 	}
 }
 

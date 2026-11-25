@@ -7,20 +7,20 @@ import (
 	"math"
 )
 
-type kind uint8
+type Kind uint8
 
 const (
-	kindNull kind = iota
-	kindString
-	kindBool
-	kindInt
-	kindFloat
-	kindArray
-	kindObject
+	KindNull Kind = iota
+	KindString
+	KindBool
+	KindInt
+	KindFloat
+	KindArray
+	KindObject
 )
 
 type Value struct {
-	kind    kind
+	kind    Kind
 	str     string
 	boolean bool
 	integer int64
@@ -36,63 +36,67 @@ func Null() Value {
 }
 
 func String(value string) Value {
-	return Value{kind: kindString, str: value}
+	return Value{kind: KindString, str: value}
 }
 
 func Bool(value bool) Value {
-	return Value{kind: kindBool, boolean: value}
+	return Value{kind: KindBool, boolean: value}
 }
 
 func Int(value int64) Value {
-	return Value{kind: kindInt, integer: value}
+	return Value{kind: KindInt, integer: value}
 }
 
 func Float(value float64) (Value, error) {
 	if math.IsNaN(value) || math.IsInf(value, 0) {
 		return Value{}, fmt.Errorf("jsonvalue: non-finite float")
 	}
-	return Value{kind: kindFloat, float: value}, nil
+	return Value{kind: KindFloat, float: value}, nil
 }
 
 func Array(values []Value) Value {
-	return Value{kind: kindArray, array: values}
+	return Value{kind: KindArray, array: values}
 }
 
 func Object(values Attributes) Value {
 	if values == nil {
 		values = Attributes{}
 	}
-	return Value{kind: kindObject, object: values}
+	return Value{kind: KindObject, object: values}
 }
 
 func (v Value) AsString() (string, bool) {
-	if v.kind != kindString {
+	if v.kind != KindString {
 		return "", false
 	}
 	return v.str, true
 }
 
+func (v Value) Kind() Kind {
+	return v.kind
+}
+
 func (v Value) MarshalJSON() ([]byte, error) {
 	switch v.kind {
-	case kindNull:
+	case KindNull:
 		return []byte("null"), nil
-	case kindString:
+	case KindString:
 		return json.Marshal(v.str)
-	case kindBool:
+	case KindBool:
 		return json.Marshal(v.boolean)
-	case kindInt:
+	case KindInt:
 		return json.Marshal(v.integer)
-	case kindFloat:
+	case KindFloat:
 		if math.IsNaN(v.float) || math.IsInf(v.float, 0) {
 			return nil, fmt.Errorf("jsonvalue: non-finite float")
 		}
 		return json.Marshal(v.float)
-	case kindArray:
+	case KindArray:
 		if v.array == nil {
 			return []byte("[]"), nil
 		}
 		return json.Marshal(v.array)
-	case kindObject:
+	case KindObject:
 		return json.Marshal(v.object)
 	default:
 		return nil, fmt.Errorf("jsonvalue: invalid kind %d", v.kind)

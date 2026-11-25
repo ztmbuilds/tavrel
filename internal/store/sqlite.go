@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/ztmbuilds/tavrel/internal/jsonvalue"
 
@@ -30,7 +31,7 @@ var migrationFiles embed.FS
 
 const (
 	spanBatchSize        = 2000
-	logBatchSize         = 3000
+	logBatchSize         = 2500
 	linkBatchSize        = 6000
 	deleteBatchSize      = 10000
 	dashboardRecentLimit = 5
@@ -456,9 +457,9 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 
 		batch := logs[left:right]
 
-		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service, environment, attributes, resource_id) VALUES`
+		query := `INSERT INTO logs (trace_id, span_id, timestamp_ns, severity_text, severity_number, body, body_kind, service, environment, attributes, resource_id) VALUES`
 
-		values := make([]any, 0, len(batch)*10) //size set to number of fields inserting into * lenght of batch
+		values := make([]any, 0, len(batch)*11)
 
 		placeholders := make([]string, 0, len(batch))
 
@@ -468,9 +469,16 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 				return fmt.Errorf("marshal log attributes: %w", err)
 			}
 
-			body, err := json.Marshal(log.Body)
-			if err != nil {
-				return fmt.Errorf("marshal log body: %w", err)
+			var body string
+			var bodyKind jsonvalue.Kind
+			if text, ok := log.Body.AsString(); ok {
+				body, bodyKind = text, jsonvalue.KindString
+			} else {
+				encoded, err := json.Marshal(log.Body)
+				if err != nil {
+					return fmt.Errorf("marshal log body: %w", err)
+				}
+				body, bodyKind = string(encoded), log.Body.Kind()
 			}
 
 			values = append(values,
@@ -479,13 +487,14 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 				log.Timestamp.UnixNano(),
 				log.SeverityText,
 				int32(log.SeverityNumber),
-				string(body),
+				body,
+				int32(bodyKind),
 				log.Service,
 				log.Environment,
 				attributes,
 				log.ResourceID)
 
-			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?)")
+			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?)")
 		}
 
 		query += strings.Join(placeholders, ",")
@@ -666,9 +675,17 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		conds = append(conds, "(timestamp_ns,id) < (?,?)")
 		args = append(args, options.Cursor.TimeStamp.UnixNano(), options.Cursor.ID)
 	}
+	var matchLogsFts bool
 	if options.Search != "" {
-		conds = append(conds, "body LIKE ? ESCAPE '\\' COLLATE NOCASE")
-		args = append(args, "%"+escapeLike(options.Search)+"%")
+		if utf8.RuneCountInString(options.Search) >= 3 {
+			matchLogsFts = true
+			conds = append(conds, "logs_fts MATCH ?")
+			args = append(args, ftsMatchPhrase(options.Search))
+		} else {
+			// trigram index only covers substrings of 3+ runes
+			conds = append(conds, "body LIKE ? ESCAPE '\\' COLLATE NOCASE")
+			args = append(args, "%"+escapeLike(options.Search)+"%")
+		}
 	}
 	if levelMin != nil {
 		conds = append(conds, "severity_number >= ?")
@@ -703,7 +720,10 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 		args = appendStrings(args, options.Environments)
 	}
 
-	query := `SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number, body, service,environment, attributes, resource_id FROM logs`
+	query := `SELECT logs.id, logs.trace_id, logs.span_id, logs.timestamp_ns, logs.severity_text, logs.severity_number, logs.body, logs.body_kind, logs.service, logs.environment, logs.attributes, logs.resource_id FROM logs`
+	if matchLogsFts {
+		query += ` JOIN logs_fts ON logs_fts.rowid = logs.id`
+	}
 	if len(conds) > 0 {
 		query += " WHERE " + strings.Join(conds, " AND ")
 	}
@@ -722,6 +742,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 	for rows.Next() {
 		var timeStampNs int64
 		var attributes, body []byte
+		var bodyKind int32
 
 		var l Log
 
@@ -733,6 +754,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			&l.SeverityText,
 			&l.SeverityNumber,
 			&body,
+			&bodyKind,
 			&l.Service,
 			&l.Environment,
 			&attributes,
@@ -743,7 +765,7 @@ func (s *SQLiteStore) ListLogs(ctx context.Context, options ListLogsOptions) (Pa
 			return page, err
 		}
 
-		if err := decodeJson(body, &l.Body); err != nil {
+		if err := decodeBody(body, bodyKind, &l.Body); err != nil {
 			return page, err
 		}
 
@@ -1223,7 +1245,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 
 	logRows, err := tx.QueryContext(ctx, `
 		SELECT id, trace_id, span_id, timestamp_ns, severity_text, severity_number,
-			body, service, environment, attributes, resource_id
+			body, body_kind, service, environment, attributes, resource_id
 		FROM logs
 		WHERE severity_number >= ? AND timestamp_ns >= ? AND timestamp_ns < ?
 		ORDER BY timestamp_ns DESC, id DESC
@@ -1237,6 +1259,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 		var log Log
 		var timestampNS int64
 		var body, attributes []byte
+		var bodyKind int32
 		if err := logRows.Scan(
 			&log.ID,
 			&log.TraceID,
@@ -1245,6 +1268,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 			&log.SeverityText,
 			&log.SeverityNumber,
 			&body,
+			&bodyKind,
 			&log.Service,
 			&log.Environment,
 			&attributes,
@@ -1253,7 +1277,7 @@ func (s *SQLiteStore) GetDashboardStats(ctx context.Context, start, end time.Tim
 			logRows.Close()
 			return stats, err
 		}
-		if err := decodeJson(body, &log.Body); err != nil {
+		if err := decodeBody(body, bodyKind, &log.Body); err != nil {
 			logRows.Close()
 			return stats, err
 		}
@@ -1492,8 +1516,24 @@ func decodeJson[T any](b []byte, target *T) error {
 
 }
 
+// decodeBody rebuilds a log body from storage: string bodies are stored as
+// raw text, all other kinds as compact JSON with body_kind preserving the type.
+func decodeBody(body []byte, kind int32, target *jsonvalue.Value) error {
+	if jsonvalue.Kind(kind) == jsonvalue.KindString {
+		*target = jsonvalue.String(string(body))
+		return nil
+	}
+	return decodeJson(body, target)
+}
+
 func escapeLike(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+// ftsMatchPhrase quotes user input as an FTS5 phrase so every character is
+// matched literally; only phrases of 3+ runes can use the trigram index.
+func ftsMatchPhrase(s string) string {
+	return `"` + strings.ReplaceAll(s, `"`, `""`) + `"`
 }
 
 func resolvePagingLimits(requested, fallback int) (limit, fetch int) {

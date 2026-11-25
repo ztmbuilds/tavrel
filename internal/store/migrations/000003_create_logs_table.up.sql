@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS logs (
     severity_text TEXT ,
     severity_number INTEGER NOT NULL,
     body TEXT NOT NULL,
+    body_kind INTEGER NOT NULL,
     service TEXT NOT NULL,
     environment TEXT,
     attributes TEXT,
