@@ -447,6 +447,8 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 		return nil
 	}
 
+	dropped := 0
+
 	for left := 0; left < len(logs); left += logBatchSize {
 
 		right := left + logBatchSize
@@ -466,7 +468,8 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 		for _, log := range batch {
 			attributes, err := json.Marshal(log.Attributes)
 			if err != nil {
-				return fmt.Errorf("marshal log attributes: %w", err)
+				dropped++
+				continue
 			}
 
 			var body string
@@ -476,7 +479,8 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 			} else {
 				encoded, err := json.Marshal(log.Body)
 				if err != nil {
-					return fmt.Errorf("marshal log body: %w", err)
+					dropped++
+					continue
 				}
 				body, bodyKind = string(encoded), log.Body.Kind()
 			}
@@ -497,12 +501,21 @@ func (s *SQLiteStore) StoreLogs(ctx context.Context, logs []Log) error {
 			placeholders = append(placeholders, "(?,?,?,?,?,?,?,?,?,?,?)")
 		}
 
+		// all logs in this batch were dropped; a bare VALUES is invalid SQL
+		if len(placeholders) == 0 {
+			continue
+		}
+
 		query += strings.Join(placeholders, ",")
 
 		_, err := s.writeDB.ExecContext(ctx, query, values...)
 		if err != nil {
 			return err
 		}
+	}
+
+	if dropped > 0 {
+		slog.Warn("dropped logs failing to marshal", "count", dropped)
 	}
 
 	return nil
