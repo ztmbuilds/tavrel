@@ -2,7 +2,7 @@ WEB_DIR := web
 WEB_DIST := internal/web/dist
 APP_BIN := tmp/main
 
-.PHONY: help install dev dev-frontend dev-backend build build-frontend build-backend check-frontend vet test clean
+.PHONY: help install dev dev-frontend dev-backend compose-dev build build-frontend build-backend check-frontend vet test clean
 
 help:
 	@echo "Targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  dev              run frontend + backend together (Ctrl-C stops both)"
 	@echo "  dev-frontend     vite dev on :5173, proxies /api/v1 to APP_PORT"
 	@echo "  dev-backend      air live-reload for the Go app"
+	@echo "  compose-dev      build tavrel:local and run the compose stack"
 	@echo "  build            frontend + backend → single binary at $(APP_BIN)"
 	@echo "  build-frontend   vite build into $(WEB_DIST)"
 	@echo "  build-backend    go build ./cmd/tavrel only (needs build-frontend for UI)"
@@ -29,6 +30,9 @@ dev-frontend:
 
 dev-backend:
 	air
+
+compose-dev:
+	docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 
 build: build-frontend build-backend
 
